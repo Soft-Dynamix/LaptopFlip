@@ -16,6 +16,12 @@ import {
 // Cache the detected mode so we don't keep hitting a dead server
 let _localMode: boolean | null = null;
 
+/** Detect if running inside a Capacitor native shell (APK) */
+function isCapacitorNative(): boolean {
+  if (typeof window === "undefined") return false;
+  return !!(window as Record<string, unknown>).Capacitor;
+}
+
 export function isLocalMode(): boolean {
   return _localMode === true;
 }
@@ -24,13 +30,16 @@ export function isLocalMode(): boolean {
 async function detectServer(): Promise<boolean> {
   try {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 3000);
+    const timeout = setTimeout(() => controller.abort(), 2000);
     const res = await fetch("/api/laptops", {
       method: "GET",
       signal: controller.signal,
     });
     clearTimeout(timeout);
-    return res.ok;
+    if (!res.ok) return false;
+    // Make sure the response is actually JSON, not HTML
+    const ct = res.headers.get("content-type") || "";
+    return ct.includes("application/json");
   } catch {
     return false;
   }
@@ -39,6 +48,13 @@ async function detectServer(): Promise<boolean> {
 /** Ensure we know which mode to use */
 async function ensureMode(): Promise<boolean> {
   if (_localMode !== null) return !_localMode; // true = server available
+
+  // In a Capacitor APK, always use local mode immediately — no server probe delay
+  if (isCapacitorNative()) {
+    _localMode = true;
+    return false;
+  }
+
   const serverUp = await detectServer();
   _localMode = !serverUp;
   return serverUp;
@@ -180,7 +196,7 @@ export async function apiGenerateAd(
       });
       if (res.ok) {
         const data = await res.json();
-        // The real API returns an array directly (or { ads: [...] })
+        // The real API returns { ads: [...] }
         if (Array.isArray(data)) return data as AdPreview[];
         if (data.ads && Array.isArray(data.ads)) return data.ads;
         return [];

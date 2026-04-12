@@ -323,9 +323,11 @@ export function Inventory() {
           )}
 
           {filteredLaptops.map((laptop, index) => {
-            const photos: string[] = laptop.photos
-              ? JSON.parse(laptop.photos)
-              : [];
+            const photos: string[] = Array.isArray(laptop.photos)
+              ? laptop.photos
+              : laptop.photos
+                ? (() => { try { return JSON.parse(laptop.photos); } catch { return []; } })()
+                : [];
             const thumbnail = photos[0] || null;
 
             return (

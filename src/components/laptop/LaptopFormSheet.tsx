@@ -671,11 +671,15 @@ export function LaptopFormSheet() {
       };
       setFormData(form);
       if (laptop.photos) {
-        try {
-          const parsed = JSON.parse(laptop.photos);
-          if (Array.isArray(parsed)) setPhotos(parsed);
-        } catch {
-          setPhotos([]);
+        if (Array.isArray(laptop.photos)) {
+          setPhotos(laptop.photos);
+        } else {
+          try {
+            const parsed = JSON.parse(laptop.photos);
+            if (Array.isArray(parsed)) setPhotos(parsed);
+          } catch {
+            setPhotos([]);
+          }
         }
       }
     } catch {
