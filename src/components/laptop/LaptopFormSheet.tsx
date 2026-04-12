@@ -29,6 +29,12 @@ import {
 import { toast } from "sonner";
 
 import { useAppStore } from "@/lib/store";
+import {
+  apiFetchLaptop,
+  apiFetchLaptops,
+  apiCreateLaptop,
+  apiUpdateLaptop,
+} from "@/lib/api";
 import type { LaptopFormData, Laptop } from "@/lib/types";
 import {
   defaultLaptopForm,
@@ -642,9 +648,8 @@ export function LaptopFormSheet() {
     if (!editingLaptopId) return;
     setFetchingLaptop(true);
     try {
-      const res = await fetch(`/api/laptops/${editingLaptopId}`);
-      if (!res.ok) throw new Error("Failed to fetch laptop");
-      const laptop: Laptop = await res.json();
+      const laptop: Laptop | null = await apiFetchLaptop(editingLaptopId);
+      if (!laptop) throw new Error("Failed to fetch laptop");
 
       const form: LaptopFormData = {
         brand: laptop.brand || "",
@@ -734,11 +739,8 @@ export function LaptopFormSheet() {
 
   const refreshLaptops = useCallback(async () => {
     try {
-      const res = await fetch("/api/laptops");
-      if (res.ok) {
-        const data = await res.json();
-        setLaptops(data);
-      }
+      const data = await apiFetchLaptops();
+      setLaptops(data);
     } catch {
       // Silently fail
     }
@@ -760,18 +762,11 @@ export function LaptopFormSheet() {
         photos: JSON.stringify(photos),
       };
 
-      const url = isEditing
-        ? `/api/laptops/${editingLaptopId}`
-        : "/api/laptops";
-      const method = isEditing ? "PUT" : "POST";
+      const savedLaptop = isEditing
+        ? await apiUpdateLaptop(editingLaptopId!, payload)
+        : await apiCreateLaptop(payload);
 
-      const res = await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      if (!res.ok) throw new Error("Failed to save laptop");
+      if (!savedLaptop) throw new Error("Failed to save laptop");
 
       toast.success(
         isEditing ? "Laptop updated successfully" : "Laptop added successfully"

@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAppStore } from "@/lib/store";
+import { apiFetchLaptops } from "@/lib/api";
 import { formatPrice } from "@/lib/types";
 import type { Laptop as LaptopType } from "@/lib/types";
 import { useCallback } from "react";
@@ -129,41 +130,38 @@ export function Dashboard() {
 
   const fetchLaptops = useCallback(async () => {
     try {
-      const res = await fetch("/api/laptops");
-      if (res.ok) {
-        const data = await res.json();
-        setLaptops(data);
+      const data = await apiFetchLaptops();
+      setLaptops(data);
 
-        const soldItems = data.filter((l: LaptopType) => l.status === "sold");
-        const totalProfit = soldItems.reduce((sum: number, l: LaptopType) => {
-          const purchase = l.purchasePrice || 0;
-          return sum + (l.askingPrice - purchase);
-        }, 0);
-        const itemsWithCost = soldItems.filter(
-          (l: LaptopType) => l.purchasePrice > 0
-        );
-        const avgMargin =
-          itemsWithCost.length > 0
-            ? itemsWithCost.reduce((sum: number, l: LaptopType) => {
-                return sum + ((l.askingPrice - l.purchasePrice) / l.purchasePrice) * 100;
-              }, 0) / itemsWithCost.length
-            : 0;
+      const soldItems = data.filter((l: LaptopType) => l.status === "sold");
+      const totalProfit = soldItems.reduce((sum: number, l: LaptopType) => {
+        const purchase = l.purchasePrice || 0;
+        return sum + (l.askingPrice - purchase);
+      }, 0);
+      const itemsWithCost = soldItems.filter(
+        (l: LaptopType) => l.purchasePrice > 0
+      );
+      const avgMargin =
+        itemsWithCost.length > 0
+          ? itemsWithCost.reduce((sum: number, l: LaptopType) => {
+              return sum + ((l.askingPrice - l.purchasePrice) / l.purchasePrice) * 100;
+            }, 0) / itemsWithCost.length
+          : 0;
 
-        const stats = {
-          totalLaptops: data.length,
-          activeListings: data.filter(
-            (l: LaptopType) => l.status === "active"
-          ).length,
-          sold: soldItems.length,
-          totalRevenue: soldItems.reduce(
-            (sum: number, l: LaptopType) => sum + l.askingPrice,
-            0
-          ),
-          totalProfit,
-          avgMargin: Math.round(avgMargin),
-        };
-        setDashboardStats(stats);
-      }
+      const stats = {
+        totalLaptops: data.length,
+        activeListings: data.filter(
+          (l: LaptopType) => l.status === "active"
+        ).length,
+        sold: soldItems.length,
+        totalRevenue: soldItems.reduce(
+          (sum: number, l: LaptopType) => sum + l.askingPrice,
+          0
+        ),
+        totalProfit,
+        avgMargin: Math.round(avgMargin),
+      };
+      setDashboardStats(stats);
     } catch {
       // Error silently handled
     }

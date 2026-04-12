@@ -18,6 +18,7 @@ import {
 import { toast } from "sonner";
 
 import { useAppStore } from "@/lib/store";
+import { apiFetchLaptop, apiGenerateAd } from "@/lib/api";
 import type { Laptop, AdPreview, Platform } from "@/lib/types";
 import { PLATFORMS } from "@/lib/types";
 
@@ -221,9 +222,11 @@ export function AdCreatorSheet() {
         setLaptop(found);
       } else {
         // Fetch from API if not in store
-        fetch(`/api/laptops/${adCreatorLaptopId}`)
-          .then((res) => res.json())
-          .then((data) => setLaptop(data))
+        apiFetchLaptop(adCreatorLaptopId)
+          .then((data) => {
+            if (data) setLaptop(data);
+            else toast.error("Failed to load laptop data");
+          })
           .catch(() => {
             toast.error("Failed to load laptop data");
           });
@@ -249,19 +252,8 @@ export function AdCreatorSheet() {
 
     setIsGenerating(true);
     try {
-      const res = await fetch("/api/generate-ad", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          laptopId: adCreatorLaptopId,
-          platforms: selectedPlatforms,
-        }),
-      });
-
-      if (!res.ok) throw new Error("Failed to generate ads");
-
-      const data = await res.json();
-      setAdPreviews(data.ads || data);
+      const data = await apiGenerateAd(adCreatorLaptopId, selectedPlatforms);
+      setAdPreviews(data);
       toast.success("Ads generated successfully!");
     } catch {
       toast.error("Failed to generate ads. Please try again.");

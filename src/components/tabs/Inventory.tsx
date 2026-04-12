@@ -38,6 +38,11 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useAppStore } from "@/lib/store";
+import {
+  apiFetchLaptops,
+  apiDeleteLaptop,
+  apiUpdateLaptop,
+} from "@/lib/api";
 import { formatPrice, STATUSES } from "@/lib/types";
 import type { Laptop as LaptopType } from "@/lib/types";
 
@@ -134,11 +139,8 @@ export function Inventory() {
   const fetchLaptops = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await fetch("/api/laptops");
-      if (res.ok) {
-        const data = await res.json();
-        setLaptops(data);
-      }
+      const data = await apiFetchLaptops();
+      setLaptops(data);
     } catch {
       // Error silently handled
     } finally {
@@ -153,11 +155,8 @@ export function Inventory() {
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
-      const res = await fetch("/api/laptops");
-      if (res.ok) {
-        const data = await res.json();
-        setLaptops(data);
-      }
+      const data = await apiFetchLaptops();
+      setLaptops(data);
       toast.success("Data refreshed");
     } catch {
       // Error silently handled
@@ -193,10 +192,8 @@ export function Inventory() {
     if (!deleteTarget) return;
     try {
       setDeleting(true);
-      const res = await fetch(`/api/laptops/${deleteTarget.id}`, {
-        method: "DELETE",
-      });
-      if (res.ok) {
+      const success = await apiDeleteLaptop(deleteTarget.id);
+      if (success) {
         setLaptops(laptops.filter((l) => l.id !== deleteTarget.id));
         setDeleteTarget(null);
       }
@@ -210,13 +207,8 @@ export function Inventory() {
   const handleChangeStatus = async (laptop: LaptopType) => {
     const newStatus = statusTransition[laptop.status] || "draft";
     try {
-      const res = await fetch(`/api/laptops/${laptop.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: newStatus }),
-      });
-      if (res.ok) {
-        const updated = await res.json();
+      const updated = await apiUpdateLaptop(laptop.id, { status: newStatus });
+      if (updated) {
         setLaptops(
           laptops.map((l) => (l.id === laptop.id ? updated : l))
         );
