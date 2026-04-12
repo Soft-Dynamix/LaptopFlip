@@ -52,3 +52,13 @@ prompt
 server.log
 # Skills directory
 /skills/
+
+# Database
+/db/*.db
+/db/*.db-journal
+
+# Download / QA artifacts
+/download/
+
+# Mini services (runtime)
+mini-services/*/node_modules
