@@ -1,0 +1,49 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Laptop {
+  id            String   @id @default(cuid())
+  brand         String
+  model         String
+  cpu           String   @default("")
+  ram           String   @default("")
+  storage       String   @default("")
+  gpu           String   @default("")
+  screenSize    String   @default("")
+  condition     String   @default("Good") // Mint, Excellent, Good, Fair, Poor
+  batteryHealth String   @default("Good") // Excellent, Good, Fair, Poor
+  purchasePrice Float    @default(0)
+  askingPrice   Float    @default(0)
+  notes         String   @default("")
+  photos        String   @default("[]") // JSON array of base64 or URLs
+  status        String   @default("draft") // draft, active, sold, archived
+  color         String   @default("")
+  year          Int      @default(0)
+  serialNumber  String   @default("")
+  repairs       String   @default("")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  listings Listing[]
+}
+
+model Listing {
+  id        String   @id @default(cuid())
+  laptopId  String
+  platform  String   // facebook, whatsapp, gumtree, olx
+  adTitle   String   @default("")
+  adBody    String   @default("")
+  price     Float    @default(0)
+  status    String   @default("draft") // draft, posted, removed
+  postedAt  DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  laptop    Laptop   @relation(fields: [laptopId], references: [id], onDelete: Cascade)
+}

@@ -1,0 +1,153 @@
+import { create } from "zustand";
+import type { Laptop, LaptopFormData, AdPreview, Platform } from "./types";
+import { defaultLaptopForm, PLATFORMS } from "./types";
+
+interface AppState {
+  // Navigation
+  activeTab: string;
+  setActiveTab: (tab: string) => void;
+
+  // Laptop management
+  laptops: Laptop[];
+  setLaptops: (laptops: Laptop[]) => void;
+  selectedLaptop: Laptop | null;
+  setSelectedLaptop: (laptop: Laptop | null) => void;
+  isFormOpen: boolean;
+  setIsFormOpen: (open: boolean) => void;
+  editingLaptopId: string | null;
+  setEditingLaptopId: (id: string | null) => void;
+
+  // Ad creator
+  isAdCreatorOpen: boolean;
+  setIsAdCreatorOpen: (open: boolean) => void;
+  adCreatorLaptopId: string | null;
+  setAdCreatorLaptopId: (id: string | null) => void;
+  selectedPlatforms: Platform[];
+  setSelectedPlatforms: (platforms: Platform[]) => void;
+  adPreviews: AdPreview[];
+  setAdPreviews: (previews: AdPreview[]) => void;
+  isGenerating: boolean;
+  setIsGenerating: (generating: boolean) => void;
+
+  // Ad preview
+  previewPlatform: Platform | null;
+  setPreviewPlatform: (platform: Platform | null) => void;
+  previewAd: AdPreview | null;
+  setPreviewAd: (ad: AdPreview | null) => void;
+  isPreviewOpen: boolean;
+  setIsPreviewOpen: (open: boolean) => void;
+
+  // Photo guide
+  photoChecklist: Record<string, boolean>;
+  togglePhotoCheck: (key: string) => void;
+  resetPhotoChecklist: () => void;
+
+  // Inventory
+  searchQuery: string;
+  setSearchQuery: (query: string) => void;
+  filterStatus: string;
+  setFilterStatus: (status: string) => void;
+
+  // Dashboard
+  dashboardStats: {
+    totalLaptops: number;
+    activeListings: number;
+    sold: number;
+    totalRevenue: number;
+    totalProfit: number;
+    avgMargin: number;
+  };
+  setDashboardStats: (stats: AppState["dashboardStats"]) => void;
+}
+
+const defaultChecklist: Record<string, boolean> = {
+  "prep-clean": false,
+  "prep-lighting": false,
+  "prep-background": false,
+  "prep-wipe-screen": false,
+  "prep-remove-case": false,
+  "prep-charge": false,
+  "shot-front": false,
+  "shot-back": false,
+  "shot-screen-on": false,
+  "shot-keyboard": false,
+  "shot-ports": false,
+  "shot-open-angle": false,
+  "detail-dent": false,
+  "detail-scratch": false,
+  "detail-sticker": false,
+  "detail-hinge": false,
+  "detail-charger": false,
+  "detail-box-accessories": false,
+  "quality-focused": false,
+  "quality-consistent": false,
+  "quality-lit": false,
+  "quality-8plus": false,
+  "quality-all-shots": false,
+  "quality-no-glare": false,
+  "quality-honest": false,
+};
+
+export const useAppStore = create<AppState>((set) => ({
+  // Navigation
+  activeTab: "dashboard",
+  setActiveTab: (tab) => set({ activeTab: tab }),
+
+  // Laptop management
+  laptops: [],
+  setLaptops: (laptops) => set({ laptops }),
+  selectedLaptop: null,
+  setSelectedLaptop: (laptop) => set({ selectedLaptop: laptop }),
+  isFormOpen: false,
+  setIsFormOpen: (open) => set({ isFormOpen: open }),
+  editingLaptopId: null,
+  setEditingLaptopId: (id) => set({ editingLaptopId: id }),
+
+  // Ad creator
+  isAdCreatorOpen: false,
+  setIsAdCreatorOpen: (open) => set({ isAdCreatorOpen: open }),
+  adCreatorLaptopId: null,
+  setAdCreatorLaptopId: (id) => set({ adCreatorLaptopId: id }),
+  selectedPlatforms: ["facebook", "whatsapp"],
+  setSelectedPlatforms: (platforms) => set({ selectedPlatforms: platforms }),
+  adPreviews: [],
+  setAdPreviews: (previews) => set({ adPreviews: previews }),
+  isGenerating: false,
+  setIsGenerating: (generating) => set({ isGenerating: generating }),
+
+  // Ad preview
+  previewPlatform: null,
+  setPreviewPlatform: (platform) => set({ previewPlatform: platform }),
+  previewAd: null,
+  setPreviewAd: (ad) => set({ previewAd: ad }),
+  isPreviewOpen: false,
+  setIsPreviewOpen: (open) => set({ isPreviewOpen: open }),
+
+  // Photo guide
+  photoChecklist: { ...defaultChecklist },
+  togglePhotoCheck: (key) =>
+    set((state) => ({
+      photoChecklist: {
+        ...state.photoChecklist,
+        [key]: !state.photoChecklist[key],
+      },
+    })),
+  resetPhotoChecklist: () => set({ photoChecklist: { ...defaultChecklist } }),
+
+  // Inventory
+  searchQuery: "",
+  setSearchQuery: (query) => set({ searchQuery: query }),
+  filterStatus: "all",
+  setFilterStatus: (status) => set({ filterStatus: status }),
+
+  // Dashboard
+  dashboardStats: {
+    totalLaptops: 0,
+    activeListings: 0,
+    sold: 0,
+    totalRevenue: 0,
+    totalProfit: 0,
+    avgMargin: 0,
+  },
+  setDashboardStats: (stats) => set({ dashboardStats: stats }),
+}));
