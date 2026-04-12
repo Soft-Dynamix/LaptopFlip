@@ -160,18 +160,78 @@ export async function loadModel(): Promise<boolean> {
   }
 }
 
-// ─── Ad generation ──────────────────────────────────────
+// ─── Value context builder (shared logic) ──────────────
 
-const PLATFORM_INSTRUCTIONS: Record<Platform, string> = {
-  whatsapp: `WhatsApp format rules: Max 500 chars. Use *bold* and _italic_. Hook opener. Top 3 specs only. Bold price. Urgent CTA. 2-3 emojis.`,
-  facebook: `Facebook Marketplace format: Full listing. Emoji headers. Sections: Specs, Condition, Why Buy, Perfect For. Trust signals. Price prominently. Friendly CTA.`,
-  gumtree: `Gumtree SA format: "FOR SALE:" opener. Professional tone. Clean spec list. Honest condition. Price stated. "Serious buyers only" CTA.`,
-  olx: `OLX SA format: Price in title. Emoji headers. Structured sections. Justify price. "Message on OLX" CTA. Short paragraphs.`,
+function buildOnDeviceValueContext(laptop: Laptop): string {
+  const angles: string[] = [];
+  const specs = `${laptop.cpu} ${laptop.ram} ${laptop.gpu} ${laptop.storage} ${laptop.screenSize}`.toLowerCase();
+
+  // Condition angle
+  if (laptop.condition === "Mint" || laptop.condition === "Excellent") {
+    angles.push("Near-new condition. Buyer saves thousands vs retail.");
+  } else if (laptop.condition === "Good") {
+    angles.push("Well-maintained. Every feature works perfectly.");
+  } else if (laptop.condition === "Fair") {
+    angles.push("Normal wear. Everything works. Great value at this price.");
+  } else {
+    angles.push("Honest condition. Ideal for budget buyers or parts.");
+  }
+
+  // Key spec highlights
+  if (specs.includes("m1") || specs.includes("m2") || specs.includes("m3") || specs.includes("m4")) {
+    angles.push("Apple Silicon = all-day battery + fast performance.");
+  }
+  if (specs.includes("rtx 40") || specs.includes("rtx 30")) {
+    angles.push("Modern RTX GPU = plays modern games at high settings.");
+  } else if (specs.includes("rtx") || specs.includes("gtx")) {
+    angles.push("Dedicated GPU = gaming and creative work capable.");
+  }
+  if (specs.includes("i7") || specs.includes("i9") || specs.includes("ryzen 7") || specs.includes("ryzen 9")) {
+    angles.push("High-performance CPU for demanding workloads.");
+  } else if (specs.includes("i5") || specs.includes("ryzen 5")) {
+    angles.push("Solid mid-range performance. Great value.");
+  }
+  if (specs.includes("16gb") || specs.includes("32gb")) {
+    angles.push("Plenty of RAM for smooth multitasking.");
+  }
+  if (specs.includes("1tb") || specs.includes("2tb")) {
+    angles.push("Large storage capacity.");
+  }
+  if (specs.includes("oled")) {
+    angles.push("Premium OLED display with perfect blacks.");
+  }
+
+  // Battery
+  if (laptop.batteryHealth?.toLowerCase().includes("excellent") || laptop.batteryHealth?.toLowerCase().includes("95")) {
+    angles.push("Excellent battery health - all-day battery life.");
+  }
+
+  // Purchase price context
+  if (laptop.purchasePrice && laptop.askingPrice && laptop.purchasePrice > laptop.askingPrice) {
+    angles.push("Priced below cost - urgent sale.");
+  }
+
+  return angles.join(" ");
+}
+
+// ─── Platform-specific instructions for on-device LLM ──
+
+const ON_DEVICE_PLATFORM_RULES: Record<Platform, string> = {
+  whatsapp: `WHATSAPP FORMAT: Max 500 chars total. Use *bold* and _italic_. Lead with the biggest selling point. Top 3 specs only. Bold price line. One urgent CTA ("DM now"). 2-3 emojis max. Every line must earn its space. No generic phrases.`,
+
+  facebook: `FACEBOOK FORMAT: Full listing 300-600 words. Title with brand+model+spec+price. Open with strongest benefit (not fact). Use emoji headers: Specs, Condition, Why Buy, Perfect For, What's Included. Add trust signals: well maintained, original charger, smoke-free. Include competitive price context. Close with CTA + delivery info.`,
+
+  gumtree: `GUMTREE FORMAT: Professional classified. Title: Brand+Model+Condition+Price. "FOR SALE:" opener. Clean spec list. HONEST condition section - mention wear upfront. Value justification. Price on own line. "Contact to arrange viewing" CTA. Max 3-4 emojis. Direct, honest, no-nonsense tone.`,
+
+  olx: `OLX FORMAT: Price MUST be in title ("Brand Model - R X,XXX"). Sections with emoji headers: Summary, Specs, Condition, Price & Value, What's Included. Short paragraphs. Justify the price. OLX-specific CTA. Professional tone. No ALL CAPS.`,
 };
 
+// ─── Ad generation ──────────────────────────────────────
+
 function buildLLMPrompt(platform: Platform, laptop: Laptop): string {
-  const platformRules = PLATFORM_INSTRUCTIONS[platform];
+  const platformRules = ON_DEVICE_PLATFORM_RULES[platform];
   const priceStr = formatPrice(laptop.askingPrice);
+  const valueContext = buildOnDeviceValueContext(laptop);
 
   const specs = [
     laptop.cpu && `CPU: ${laptop.cpu}`,
@@ -181,20 +241,20 @@ function buildLLMPrompt(platform: Platform, laptop: Laptop): string {
     laptop.screenSize && `Screen: ${laptop.screenSize}"`,
   ].filter(Boolean).join(", ");
 
-  return `You are an expert ad writer for South African marketplaces. Write a ${platform.toUpperCase()} ad for this laptop. Be honest, persuasive, mobile-friendly. Use Rands. South African English.
+  return `You are a South African marketplace ad writer. Write a ${platform.toUpperCase()} ad for this laptop. Be honest, persuasive, mobile-friendly. Use Rands. SA English spelling.
 
-Laptop: ${laptop.brand} ${laptop.model}
+SELLING ANGLES: ${valueContext}
+
+LAPTOP: ${laptop.brand} ${laptop.model}
 Condition: ${laptop.condition}
 Battery: ${laptop.batteryHealth}
 Specs: ${specs || "Contact for specs"}
-Price: ${priceStr}
-${laptop.year ? `Year: ${laptop.year}` : ""}
-${laptop.color ? `Colour: ${laptop.color}` : ""}
-${laptop.notes ? `Notes: ${laptop.notes}` : ""}
+Price: ${priceStr}${laptop.year ? ` | Year: ${laptop.year}` : ""}${laptop.color ? ` | Colour: ${laptop.color}` : ""}${laptop.notes ? ` | Notes: ${laptop.notes}` : ""}
+${laptop.repairs ? `Repairs: ${laptop.repairs} (be transparent about this)` : ""}
 
 ${platformRules}
 
-Respond ONLY with valid JSON: {"title": "ad title here", "body": "ad body here"}`;
+Respond ONLY with valid JSON: {"title": "ad title", "body": "ad body"}`;
 }
 
 function extractJsonFromLLM(text: string): { title: string; body: string } | null {

@@ -469,3 +469,85 @@ Stage Summary:
 - Graceful fallback at every level — ads are always generated
 - Dynamic imports keep bundle size small until model is actually needed
 - Dev server compiles and runs with no errors (GET / 200)
+
+---
+Task ID: 14
+Agent: Main
+Task: Major AI prompt improvement — advanced copywriting across all 3 ad generation layers
+
+Work Log:
+- **Server-side prompt** (`/src/app/api/generate-ad/route.ts`):
+  - Rewrote system prompt from 10 basic principles to 12 advanced copywriting principles:
+    1. Honesty First (non-negotiable — never exaggerate, disclose repairs upfront)
+    2. The Hook (first 2 seconds — question, bold value claim, or lifestyle benefit)
+    3. Specifications That Sell (include EVERY spec, explain what they mean for the buyer)
+    4. Emotional Benefits (paint a picture — imagine owning this laptop)
+    5. Trust Architecture (2-3 subtle trust signals woven naturally)
+    6. Urgency & Scarcity (without desperation — never sound desperate)
+    7. Value Anchoring (pricing psychology — frame as smart deal, not cheap)
+    8. Competitive Differentiation (what makes THIS listing better than 50 others)
+    9. Mobile-First Formatting (80%+ browse on phones)
+    10. South African Marketplace Context (Rands, SA spelling, local norms)
+    11. Anti-patterns (what NEVER to do — clickbait, ALL CAPS, fake urgency)
+    12. Output Format (strict JSON only)
+  - Expanded all 4 platform instructions with more specific guidance:
+    - WhatsApp: Lead with BIGGEST selling point, REASON to buy NOW, never use generic phrases
+    - Facebook: Frame as BENEFIT not fact, specific use case scenarios ("running VS Code and 20 tabs"), competitive price context, response time expectation
+    - Gumtree: Honest condition UPFRONT, value justification, missing items must be noted, preferred contact method
+    - OLX: Lead with deal factor, justify pricing with retail comparison, "What's Included" section
+  - Massively expanded `buildValueContext()` with new context dimensions:
+    - Pricing psychology: price ranges (under 5K, 5-10K, 10-20K, 20K+) with specific messaging
+    - Purchase price vs asking price margin analysis
+    - CPU tier breakdown: i9/Ryzen 9 → flagship, i5/Ryzen 5 → sweet spot, i3/Celeron → budget
+    - Apple Silicon detection (M1/M2/M3/M4) with specific selling points
+    - GPU tier breakdown: RTX 30/40 → modern gaming, GTX → older gaming, Radeon → value
+    - RAM tier: 32GB+ → professional, 16GB → standard, 8GB → adequate, 4GB → basic
+    - Storage tier: 2TB/1TB → large, 512GB → good, 256GB/128GB → small + expansion options
+    - Display: 4K/UHD → premium, OLED → premium highlight, Touch → versatility, screen size → portability
+    - Battery health: Excellent/95%+ → all-day claim
+    - Repair transparency: How to frame repairs positively (professionally repaired, genuine parts)
+    - Year context: 2023+ → recent/current, pre-2018 → proven workhorse
+    - Seller notes intelligence: Upgrades add value, fresh OS install, warranty, receipt
+  - `buildPrompt()` now includes purchase price context for pricing intelligence
+  - `buildFallbackAd()` now includes:
+    - Smart spec selection (top 3 for WhatsApp)
+    - Context-aware value angle and use case
+    - Profit/margin context line (below-cost = urgent sale)
+    - Bullet-point spec format for all platforms
+
+- **On-device LLM prompt** (`/src/lib/on-device-llm.ts`):
+  - Added `buildOnDeviceValueContext()` function — condensed version of server-side logic
+  - Expanded platform rules from one-liners to detailed formatting guides per platform
+  - Added selling angles to the prompt: condition, Apple Silicon, GPU, CPU, RAM, storage, OLED, battery
+  - Added repair transparency instruction
+  - Added purchase price below-cost context
+
+- **Offline templates** (`/src/lib/local-api.ts`):
+  - New `getPricingLine()` — price-range-aware messaging (under 5K, 5-10K, 10-20K, 20K+, below cost)
+  - New `getSpecHighlight()` — spec-specific highlight badges:
+    - Apple Silicon → "all-day battery, instant wake, silent operation"
+    - RTX 30/40 → "plays modern games at high settings"
+    - OLED → "perfect blacks, stunning colours"
+    - 32GB+ RAM → "multitasking without limits"
+    - 16GB RAM → "future-proof, no upgrade needed"
+  - Improved `getUseCase()` with specific game names and realistic scenarios:
+    - RTX 30/40 → "Valorant, CS2, GTA V at high settings"
+    - i9/Ryzen 9 → "heavy video editing, 3D rendering, data science, running multiple VMs"
+    - i7/Ryzen 7 → "developers, content creators, and power users"
+    - Apple Silicon → "all-day battery + blazing speed"
+    - i5/Ryzen 5 → "work tasks, study, streaming, and entertainment"
+    - i3/Celeron → "students, school work, office productivity, web browsing, and Netflix"
+  - Improved `getTrustLine()` with more specific and persuasive messaging per condition
+  - WhatsApp template: Dynamic hook selection (like-new vs below-cost vs standard)
+  - Facebook template: Added "Why This Is a Great Deal" section with pricing line + spec highlight
+  - Gumtree template: Added "described honestly" label, "Why Buy?" section, pricing justification
+  - OLX template: Added pricing line, spec highlight, "Why This Is Worth It" section
+  - Spec list format: Changed from pipe-separated to bullet-point format (cleaner on mobile)
+
+Stage Summary:
+- All 3 ad generation layers now use advanced copywriting techniques
+- Server-side prompt: 12 principles + expanded value context (20+ spec/price/condition dimensions)
+- On-device LLM: Condensed but structured copywriting guidance
+- Offline templates: Spec-specific highlights, price-aware messaging, dynamic hooks
+- Fallback ads now nearly as compelling as AI-generated ones
+- No new lint errors, dev server compiles successfully
