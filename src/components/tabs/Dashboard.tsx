@@ -352,8 +352,7 @@ export function Dashboard() {
                 <Card className="rounded-xl py-3 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
                   onClick={() => {
                     useAppStore.getState().setSelectedLaptop(laptop);
-                    useAppStore.getState().setEditingLaptopId(laptop.id);
-                    setIsFormOpen(true);
+                    useAppStore.getState().setIsDetailOpen(true);
                   }}
                 >
                   <CardContent className="p-0 px-4">

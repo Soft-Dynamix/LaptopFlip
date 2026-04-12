@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useCallback } from "react";
+import { useCallback } from "react";
 // Initialize Capacitor runtime so window.Capacitor is available for native detection
 import "@capacitor/core";
 import {
@@ -20,6 +20,7 @@ import { Inventory } from "@/components/tabs/Inventory";
 import { LaptopFormSheet } from "@/components/laptop/LaptopFormSheet";
 import { AdCreatorSheet } from "@/components/ad/AdCreatorSheet";
 import { AdPreviewSheet } from "@/components/ad/AdPreviewSheet";
+import { LaptopDetailSheet } from "@/components/laptop/LaptopDetailSheet";
 import { cn } from "@/lib/utils";
 
 const tabs = [
@@ -134,6 +135,7 @@ export default function Home() {
       </nav>
 
       {/* Sheets */}
+      <LaptopDetailSheet />
       <LaptopFormSheet />
       <AdCreatorSheet />
       <AdPreviewSheet />

@@ -13,6 +13,8 @@ import {
   ImageOff,
   TrendingUp,
   TrendingDown,
+  ArrowUpDown,
+  Download,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
@@ -24,6 +26,9 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -43,8 +48,40 @@ import {
   apiDeleteLaptop,
   apiUpdateLaptop,
 } from "@/lib/api";
-import { formatPrice, STATUSES } from "@/lib/types";
+import { formatPrice } from "@/lib/types";
 import type { Laptop as LaptopType } from "@/lib/types";
+
+type SortOption = "newest" | "oldest" | "price-high" | "price-low" | "brand";
+
+const sortOptions: { value: SortOption; label: string }[] = [
+  { value: "newest", label: "Newest first" },
+  { value: "oldest", label: "Oldest first" },
+  { value: "price-high", label: "Price: High to Low" },
+  { value: "price-low", label: "Price: Low to High" },
+  { value: "brand", label: "Brand (A–Z)" },
+];
+
+function formatDaysAgo(dateString: string): string {
+  const now = new Date();
+  const created = new Date(dateString);
+  const diffMs = now.getTime() - created.getTime();
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+  if (diffDays < 0) return "just now";
+  if (diffDays === 0) return "today";
+  if (diffDays === 1) return "1d ago";
+  if (diffDays < 7) return `${diffDays}d ago`;
+  if (diffDays < 30) {
+    const weeks = Math.floor(diffDays / 7);
+    return `${weeks}w ago`;
+  }
+  if (diffDays < 365) {
+    const months = Math.floor(diffDays / 30);
+    return `${months}m ago`;
+  }
+  const years = Math.floor(diffDays / 365);
+  return `${years}y ago`;
+}
 
 const filterChips = [
   { value: "all", label: "All" },
@@ -130,11 +167,15 @@ export function Inventory() {
     setAdCreatorLaptopId,
     isAdCreatorOpen,
     setIsAdCreatorOpen,
+    setSelectedLaptop,
+    isDetailOpen,
+    setIsDetailOpen,
   } = useAppStore();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<LaptopType | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [sortBy, setSortBy] = useState<SortOption>("newest");
 
   const fetchLaptops = useCallback(async () => {
     try {
@@ -165,22 +206,104 @@ export function Inventory() {
     }
   }, [setLaptops]);
 
-  const filteredLaptops = laptops.filter((laptop) => {
-    const matchesStatus =
-      filterStatus === "all" || laptop.status === filterStatus;
-    const query = searchQuery.toLowerCase();
-    const matchesSearch =
-      !query ||
-      laptop.brand.toLowerCase().includes(query) ||
-      laptop.model.toLowerCase().includes(query) ||
-      laptop.status.toLowerCase().includes(query) ||
-      laptop.condition.toLowerCase().includes(query);
-    return matchesStatus && matchesSearch;
-  });
+  const filteredLaptops = laptops
+    .filter((laptop) => {
+      const matchesStatus =
+        filterStatus === "all" || laptop.status === filterStatus;
+      const query = searchQuery.toLowerCase();
+      const matchesSearch =
+        !query ||
+        laptop.brand.toLowerCase().includes(query) ||
+        laptop.model.toLowerCase().includes(query) ||
+        laptop.status.toLowerCase().includes(query) ||
+        laptop.condition.toLowerCase().includes(query);
+      return matchesStatus && matchesSearch;
+    })
+    .sort((a, b) => {
+      switch (sortBy) {
+        case "newest":
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        case "oldest":
+          return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+        case "price-high":
+          return b.askingPrice - a.askingPrice;
+        case "price-low":
+          return a.askingPrice - b.askingPrice;
+        case "brand":
+          return a.brand.localeCompare(b.brand);
+        default:
+          return 0;
+      }
+    });
+
+  const handleExportCsv = useCallback(() => {
+    const headers = [
+      "Brand", "Model", "CPU", "RAM", "Storage", "GPU", "Screen",
+      "Condition", "Battery", "PurchasePrice", "AskingPrice", "Profit",
+      "Status", "CreatedAt", "DaysListed"
+    ];
+
+    const rows = filteredLaptops.map((l) => {
+      const profit = l.askingPrice - l.purchasePrice;
+      const now = new Date();
+      const created = new Date(l.createdAt);
+      const daysListed = Math.max(0, Math.floor((now.getTime() - created.getTime()) / (1000 * 60 * 60 * 24)));
+
+      return [
+        l.brand,
+        l.model,
+        l.cpu,
+        l.ram,
+        l.storage,
+        l.gpu,
+        l.screenSize,
+        l.condition,
+        l.batteryHealth,
+        l.purchasePrice,
+        l.askingPrice,
+        profit,
+        l.status,
+        l.createdAt,
+        daysListed,
+      ];
+    });
+
+    const csvContent = [headers, ...rows]
+      .map((row) =>
+        row.map((cell) => {
+          const str = String(cell);
+          if (str.includes(",") || str.includes('"') || str.includes("\n")) {
+            return `"${str.replace(/"/g, '""')}"`;
+          }
+          return str;
+        }).join(",")
+      )
+      .join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    const date = new Date().toISOString().slice(0, 10);
+    link.href = url;
+    link.download = `laptopflip-inventory-${date}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    toast.success(`Exported ${filteredLaptops.length} laptops to CSV`);
+  }, [filteredLaptops]);
 
   const handleEdit = (laptop: LaptopType) => {
+    setIsDetailOpen(false);
+    setSelectedLaptop(null);
     setEditingLaptopId(laptop.id);
     setIsFormOpen(true);
+  };
+
+  const handleViewDetail = (laptop: LaptopType) => {
+    setSelectedLaptop(laptop);
+    setIsDetailOpen(true);
   };
 
   const handleCreateAd = (laptop: LaptopType) => {
@@ -204,6 +327,13 @@ export function Inventory() {
     }
   };
 
+  const statusLabels: Record<string, string> = {
+    draft: "Draft",
+    active: "Active",
+    sold: "Sold",
+    archived: "Archived",
+  };
+
   const handleChangeStatus = async (laptop: LaptopType) => {
     const newStatus = statusTransition[laptop.status] || "draft";
     try {
@@ -212,9 +342,12 @@ export function Inventory() {
         setLaptops(
           laptops.map((l) => (l.id === laptop.id ? updated : l))
         );
+        toast.success(
+          `${laptop.brand} ${laptop.model} → ${statusLabels[newStatus] || newStatus}`
+        );
       }
     } catch {
-      // Error silently handled
+      toast.error("Failed to update status");
     }
   };
 
@@ -240,16 +373,28 @@ export function Inventory() {
               {filteredLaptops.length} of {laptops.length} laptops
             </p>
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="text-muted-foreground hover:text-foreground"
-            onClick={handleRefresh}
-            disabled={refreshing}
-            aria-label="Refresh data"
-          >
-            <RefreshCw className={`size-5 ${refreshing ? "animate-spin" : ""}`} />
-          </Button>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-muted-foreground hover:text-foreground"
+              onClick={handleExportCsv}
+              disabled={filteredLaptops.length === 0}
+              aria-label="Export CSV"
+            >
+              <Download className="size-5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-muted-foreground hover:text-foreground"
+              onClick={handleRefresh}
+              disabled={refreshing}
+              aria-label="Refresh data"
+            >
+              <RefreshCw className={`size-5 ${refreshing ? "animate-spin" : ""}`} />
+            </Button>
+          </div>
         </div>
       </motion.div>
 
@@ -265,8 +410,34 @@ export function Inventory() {
           placeholder="Search by brand, model, status..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-9 rounded-xl h-10 bg-background"
+          className="pl-9 pr-10 rounded-xl h-10 bg-background"
         />
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute right-1 top-1/2 -translate-y-1/2 size-8 text-muted-foreground hover:text-foreground"
+              aria-label="Sort inventory"
+            >
+              <ArrowUpDown className="size-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-48">
+            <DropdownMenuLabel>Sort by</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuRadioGroup
+              value={sortBy}
+              onValueChange={(value) => setSortBy(value as SortOption)}
+            >
+              {sortOptions.map((option) => (
+                <DropdownMenuRadioItem key={option.value} value={option.value}>
+                  {option.label}
+                </DropdownMenuRadioItem>
+              ))}
+            </DropdownMenuRadioGroup>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </motion.div>
 
       {/* Filter Chips */}
@@ -344,7 +515,7 @@ export function Inventory() {
               >
                 <Card
                   className="rounded-xl py-0 shadow-sm overflow-hidden cursor-pointer hover:shadow-md transition-shadow"
-                  onClick={() => handleEdit(laptop)}
+                  onClick={() => handleViewDetail(laptop)}
                 >
                   <CardContent className="p-0">
                     <div className="flex gap-3 p-3">
@@ -387,6 +558,9 @@ export function Inventory() {
                           >
                             {laptop.status}
                           </Badge>
+                          <span className="text-[10px] text-muted-foreground">
+                            {formatDaysAgo(laptop.createdAt)}
+                          </span>
                         </div>
                       </div>
 
@@ -454,7 +628,7 @@ export function Inventory() {
                                 onClick={() => handleChangeStatus(laptop)}
                               >
                                 <RefreshCw className="size-4" />
-                                Change Status
+                                Mark as {statusLabels[statusTransition[laptop.status] || "draft"]}
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem

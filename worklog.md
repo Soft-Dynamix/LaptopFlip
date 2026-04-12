@@ -275,3 +275,37 @@ Stage Summary:
 - All tabs (Dashboard, Photos, Stock) use localStorage when no server detected
 - Ad generation uses built-in templates when offline
 - Dev server restored to normal mode (standalone + API routes)
+
+---
+Task ID: 10
+Agent: Main
+Task: Create LaptopDetailSheet — read-only laptop detail view
+
+Work Log:
+- Added `isDetailOpen: boolean` and `setIsDetailOpen` to Zustand store (`src/lib/store.ts`)
+- Created `src/components/laptop/LaptopDetailSheet.tsx` — full read-only detail view as a bottom sheet:
+  - **Photo Gallery**: Horizontal scrollable strip with snap-scrolling, dot indicators, prev/next overlay buttons, photo counter
+  - **Header**: Brand & Model as title, Condition + Status badges, "Days listed" indicator
+  - **Specifications card**: CPU, RAM, Storage, GPU, Screen Size with appropriate Lucide icons
+  - **Condition & Battery card**: Condition, Battery Health (color-coded), Repairs
+  - **Details card**: Year, Color, Serial Number, Created date, Last Updated date
+  - **Pricing card**: Purchase Price, Asking Price, profit/loss calculation with margin percentage, color-coded (green/red) indicator
+  - **Notes section**: Only shown when notes exist, with whitespace-preserve display
+  - **Action buttons**: Edit (opens LaptopFormSheet), Create Ad (opens AdCreatorSheet), Delete (with AlertDialog confirmation)
+  - Framer Motion staggered animations on all sections
+  - Dark mode aware (emerald accent, proper contrast)
+- Imported and rendered `LaptopDetailSheet` in `src/app/page.tsx` alongside other sheets
+- Updated `Inventory.tsx`:
+  - Card tap now opens detail view (`handleViewDetail`) instead of edit form
+  - Pencil icon button still opens edit form directly (`handleEdit`)
+  - Added `setSelectedLaptop`, `isDetailOpen`, `setIsDetailOpen` from store
+- Updated `Dashboard.tsx`:
+  - Recent listing card tap now opens detail view via `setSelectedLaptop` + `setIsDetailOpen`
+- ESLint clean (0 errors) on all modified files
+
+Stage Summary:
+- LaptopDetailSheet is a polished, read-only bottom sheet showing all laptop details
+- Tapping a laptop card (in Inventory or Dashboard) opens the detail view
+- Pencil icon in Inventory still opens the edit form directly
+- Detail view has: photo gallery, specs, condition, pricing with profit/loss, notes, action buttons
+- All animations, dark mode, and accessibility properly handled

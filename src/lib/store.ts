@@ -12,6 +12,8 @@ interface AppState {
   setLaptops: (laptops: Laptop[]) => void;
   selectedLaptop: Laptop | null;
   setSelectedLaptop: (laptop: Laptop | null) => void;
+  isDetailOpen: boolean;
+  setIsDetailOpen: (open: boolean) => void;
   isFormOpen: boolean;
   setIsFormOpen: (open: boolean) => void;
   editingLaptopId: string | null;
@@ -98,6 +100,8 @@ export const useAppStore = create<AppState>((set) => ({
   setLaptops: (laptops) => set({ laptops }),
   selectedLaptop: null,
   setSelectedLaptop: (laptop) => set({ selectedLaptop: laptop }),
+  isDetailOpen: false,
+  setIsDetailOpen: (open) => set({ isDetailOpen: open }),
   isFormOpen: false,
   setIsFormOpen: (open) => set({ isFormOpen: open }),
   editingLaptopId: null,
