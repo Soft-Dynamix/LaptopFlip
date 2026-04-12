@@ -723,3 +723,23 @@ Stage Summary:
 3. Cloud photo storage (S3/Cloudflare R2)
 4. Price trend analytics with charts
 5. Buyer contact management / mini CRM
+
+---
+Task ID: 18
+Agent: BugFix Agent
+Task: Fix "Generate with On-Device AI" button not working
+
+Work Log:
+- Diagnosed root cause: Qwen3-0.6B thinking mode consuming all tokens, messages array format not compatible with pipeline
+- Changed buildLLMPrompt() to return Qwen3 ChatML string format with /no_think directive
+- Added prompt echo stripping (remove <|im_start|>assistant and chat markers)
+- Added think tag stripping as safety net (<think >...</think > blocks)
+- Increased max_new_tokens from 512 to 1024 for more generation room
+- Improved output parsing to handle string, object, and array output formats
+- Added console logging for debugging generation issues
+
+Stage Summary:
+- On-device AI generation should now work correctly with Qwen3-0.6B
+- Thinking mode disabled via /no_think in system prompt
+- Output parsing handles multiple formats and strips chat markers
+- ESLint clean, dev server compiling

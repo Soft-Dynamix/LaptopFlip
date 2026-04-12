@@ -225,7 +225,7 @@ const ON_DEVICE_PLATFORM_RULES: Record<Platform, string> = {
 
 // ─── Ad generation ──────────────────────────────────────
 
-function buildLLMPrompt(platform: Platform, laptop: Laptop): Array<{ role: string; content: string }> {
+function buildLLMPrompt(platform: Platform, laptop: Laptop): string {
   const platformRules = ON_DEVICE_PLATFORM_RULES[platform];
   const priceStr = formatPrice(laptop.askingPrice);
   const valueContext = buildOnDeviceValueContext(laptop);
@@ -250,17 +250,14 @@ function buildLLMPrompt(platform: Platform, laptop: Laptop): Array<{ role: strin
     laptop.repairs ? `Repairs: ${laptop.repairs} (be transparent)` : null,
   ].filter(Boolean).join("\n");
 
-  // Qwen3 uses chat format — use messages array for proper template application
-  return [
-    {
-      role: "system",
-      content: `You are a South African marketplace ad writer. Write honest, persuasive, mobile-friendly ads. Use Rands. SA English spelling. You MUST respond ONLY with valid JSON: {"title": "ad title", "body": "ad body"}. No other text.`,
-    },
-    {
-      role: "user",
-      content: `Write a ${platform.toUpperCase()} ad for this laptop.\n\n${laptopInfo}\n\n${valueContext}\n\n${platformRules}`,
-    },
-  ];
+  // System prompt with /no_think to disable Qwen3 reasoning mode
+  const systemContent = `/no_think
+You are a South African marketplace ad writer. Write honest, persuasive, mobile-friendly ads. Use Rands. SA English spelling. You MUST respond ONLY with valid JSON: {"title": "ad title", "body": "ad body"}. No other text. No explanation. Just the JSON object.`;
+
+  const userContent = `Write a ${platform.toUpperCase()} ad for this laptop.\n\n${laptopInfo}\n\n${valueContext}\n\n${platformRules}`;
+
+  // Qwen3 ChatML format — manually applied to avoid pipeline chat template issues
+  return `<|im_start|>system\n${systemContent}<|im_end|>\n<|im_start|>user\n${userContent}<|im_end|>\n<|im_start|>assistant\n`;
 }
 
 function extractJsonFromLLM(text: string): { title: string; body: string } | null {
@@ -296,33 +293,54 @@ export async function generateAdWithLLM(
   try {
     const prompt = buildLLMPrompt(platform, laptop);
 
-    // Qwen3 with chat messages: pipeline auto-applies chat template
-    // return_full_text is false for chat input, so we get only the response
+    console.log("[on-device-llm] Generating ad, prompt length:", prompt.length);
+
     const result = await pipeline(prompt, {
-      max_new_tokens: 512,
+      max_new_tokens: 1024,
       temperature: 0.7,
       top_p: 0.9,
       do_sample: true,
     });
 
-    // With chat input, result[0] is an array of messages.
-    // The last message (assistant) contains the generated text.
+    // Extract generated text from various possible output formats
     let generated = "";
-    if (Array.isArray(result[0])) {
-      const lastMsg = result[0][result[0].length - 1];
-      if (lastMsg && typeof lastMsg === "object" && "content" in lastMsg) {
-        generated = String(lastMsg.content);
+    if (Array.isArray(result) && result.length > 0) {
+      const item = result[0];
+      if (typeof item === "string") {
+        generated = item;
+      } else if (item && typeof item === "object") {
+        if ("generated_text" in item) {
+          const gt = item.generated_text;
+          if (typeof gt === "string") {
+            generated = gt;
+          } else if (Array.isArray(gt) && gt.length > 0) {
+            const lastMsg = gt[gt.length - 1];
+            if (lastMsg && typeof lastMsg === "object" && "content" in lastMsg) {
+              generated = String(lastMsg.content);
+            }
+          }
+        } else if ("text" in item) {
+          generated = String(item.text);
+        }
       }
-    } else if (result[0] && typeof result[0] === "object" && "generated_text" in result[0]) {
-      generated = String(result[0].generated_text);
     }
 
-    // Extract JSON from the response
-    const responsePart = generated.includes("{")
-      ? generated.substring(generated.lastIndexOf("{"))
-      : generated;
+    console.log("[on-device-llm] Raw output length:", generated.length);
 
-    const parsed = extractJsonFromLLM(responsePart);
+    // Strip prompt echo — remove everything up to the last assistant marker
+    const assistantMarker = "<|im_start|>assistant";
+    if (generated.includes(assistantMarker)) {
+      generated = generated.substring(generated.lastIndexOf(assistantMarker) + assistantMarker.length);
+    }
+    // Clean up any remaining chat markers
+    generated = generated.replace(/<\|im_(start|end)\|>/g, "").trim();
+
+    // Strip Qwen3 thinking tags (safety net in case /no_think didn't work)
+    generated = generated.replace(/<think\b[^>]*>[\s\S]*?<\/think>\s*/gi, "").trim();
+
+    console.log("[on-device-llm] Cleaned output:", generated.substring(0, 300));
+
+    const parsed = extractJsonFromLLM(generated);
 
     if (parsed && parsed.title && parsed.body) {
       let body = parsed.body;
@@ -346,7 +364,10 @@ export async function generateAdWithLLM(
     notifyListeners();
     return null;
   } catch (err) {
-    console.error("On-device LLM generation failed:", err);
+    console.error("[on-device-llm] Generation failed:", err);
+    if (err instanceof Error) {
+      console.error("[on-device-llm] Error:", err.name, err.message);
+    }
     currentStatus = "ready";
     notifyListeners();
     return null;
