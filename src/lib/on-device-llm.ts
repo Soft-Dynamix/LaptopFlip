@@ -326,7 +326,6 @@ function createGenerationTimeout(): Promise<never> {
 function buildLLMPrompt(platform: Platform, laptop: Laptop): string {
   const platformRules = ON_DEVICE_PLATFORM_RULES[platform];
   const priceStr = formatPrice(laptop.askingPrice);
-  const valueContext = buildOnDeviceValueContext(laptop);
 
   const specs = [
     laptop.cpu && `CPU: ${laptop.cpu}`,
