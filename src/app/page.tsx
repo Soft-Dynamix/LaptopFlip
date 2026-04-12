@@ -8,18 +8,19 @@ import {
   Camera,
   Plus,
   Package,
-  Settings as SettingsIcon,
+  SettingsIcon,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAppStore } from "@/lib/store";
 import { Dashboard } from "@/components/tabs/Dashboard";
 import { PhotoGuide } from "@/components/tabs/PhotoGuide";
 import { Inventory } from "@/components/tabs/Inventory";
-import { Settings } from "@/components/tabs/Settings";
+import { Settings as SettingsPage } from "@/components/tabs/Settings";
 import { LaptopFormSheet } from "@/components/laptop/LaptopFormSheet";
 import { AdCreatorSheet } from "@/components/ad/AdCreatorSheet";
 import { AdPreviewSheet } from "@/components/ad/AdPreviewSheet";
 import { LaptopDetailSheet } from "@/components/laptop/LaptopDetailSheet";
+import { ContactsSheet } from "@/components/contacts/ContactsSheet";
 import { cn } from "@/lib/utils";
 
 const tabs = [
@@ -64,7 +65,7 @@ export default function Home() {
             {activeTab === "dashboard" && <Dashboard />}
             {activeTab === "photos" && <PhotoGuide />}
             {activeTab === "inventory" && <Inventory />}
-            {activeTab === "settings" && <Settings />}
+            {activeTab === "settings" && <SettingsPage />}
           </motion.div>
         </AnimatePresence>
       </main>
@@ -143,6 +144,7 @@ export default function Home() {
       <LaptopFormSheet />
       <AdCreatorSheet />
       <AdPreviewSheet />
+      <ContactsSheet />
     </div>
   );
 }

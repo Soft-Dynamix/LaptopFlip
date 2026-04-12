@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Search,
@@ -10,7 +10,6 @@ import {
   Trash2,
   RefreshCw,
   Laptop,
-  ImageOff,
   TrendingUp,
   TrendingDown,
   ArrowUpDown,
@@ -53,7 +52,15 @@ import {
 import { formatPrice } from "@/lib/types";
 import type { Laptop as LaptopType } from "@/lib/types";
 
-type SortOption = "newest" | "oldest" | "price-high" | "price-low" | "brand";
+type SortOption = "newest" | "oldest" | "price-high" | "price-low" | "brand" | "condition";
+
+const CONDITION_ORDER: Record<string, number> = {
+  Mint: 0,
+  Excellent: 1,
+  Good: 2,
+  Fair: 3,
+  Poor: 4,
+};
 
 const sortOptions: { value: SortOption; label: string }[] = [
   { value: "newest", label: "Newest first" },
@@ -61,6 +68,7 @@ const sortOptions: { value: SortOption; label: string }[] = [
   { value: "price-high", label: "Price: High to Low" },
   { value: "price-low", label: "Price: Low to High" },
   { value: "brand", label: "Brand (A–Z)" },
+  { value: "condition", label: "Condition (Best first)" },
 ];
 
 function formatDaysAgo(dateString: string): string {
@@ -128,6 +136,67 @@ function getStatusColor(status: string) {
 function abbreviateCpu(cpu: string): string {
   if (!cpu) return "";
   return cpu.length > 20 ? cpu.substring(0, 18) + "..." : cpu;
+}
+
+// ─── Status Summary Bar ─────────────────────────────────────
+
+function StatusSummaryBar({ laptops }: { laptops: LaptopType[] }) {
+  const counts = useMemo(() => {
+    const c: Record<string, number> = { all: 0, draft: 0, active: 0, sold: 0, archived: 0 };
+    for (const l of laptops) {
+      c[l.status] = (c[l.status] || 0) + 1;
+      c.all++;
+    }
+    return c;
+  }, [laptops]);
+
+  const bars = [
+    { key: "active", label: "Active", color: "bg-emerald-500" },
+    { key: "sold", label: "Sold", color: "bg-blue-500" },
+    { key: "draft", label: "Draft", color: "bg-gray-400" },
+    { key: "archived", label: "Archived", color: "bg-slate-400" },
+  ];
+
+  return (
+    <div className="grid grid-cols-4 gap-2">
+      {bars.map((bar) => {
+        const pct = counts.all > 0 ? Math.round((counts[bar.key] / counts.all) * 100) : 0;
+        return (
+          <div key={bar.key} className="rounded-xl bg-muted/50 dark:bg-muted/30 p-2.5 space-y-1.5">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] text-muted-foreground font-medium">{bar.label}</span>
+              <span className="text-xs font-bold">{counts[bar.key]}</span>
+            </div>
+            <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+              <motion.div
+                className={`h-full rounded-full ${bar.color}`}
+                initial={{ width: 0 }}
+                animate={{ width: `${pct}%` }}
+                transition={{ duration: 0.5, ease: "easeOut" }}
+              />
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ─── Brand Icon Helper ────────────────────────────────────
+
+function getBrandIcon(brand: string): string {
+  const lower = brand.toLowerCase();
+  if (lower.includes("apple") || lower.includes("mac")) return "🍎";
+  if (lower.includes("dell")) return "💻";
+  if (lower.includes("hp")) return "🖥️";
+  if (lower.includes("lenovo")) return "📋";
+  if (lower.includes("asus")) return "🎮";
+  if (lower.includes("acer")) return "💠";
+  if (lower.includes("msi")) return "🐉";
+  if (lower.includes("samsung")) return "📱";
+  if (lower.includes("razer")) return "🐍";
+  if (lower.includes("microsoft")) return "🪟";
+  return "💻";
 }
 
 function InventorySkeleton() {
@@ -220,35 +289,39 @@ export function Inventory() {
     }
   }, [setLaptops]);
 
-  const filteredLaptops = (Array.isArray(laptops) ? laptops : [])
-    .filter((laptop) => {
-      const matchesStatus =
-        filterStatus === "all" || laptop.status === filterStatus;
-      const query = debouncedQuery.toLowerCase();
-      const matchesSearch =
-        !query ||
-        laptop.brand.toLowerCase().includes(query) ||
-        laptop.model.toLowerCase().includes(query) ||
-        laptop.status.toLowerCase().includes(query) ||
-        laptop.condition.toLowerCase().includes(query);
-      return matchesStatus && matchesSearch;
-    })
-    .sort((a, b) => {
-      switch (sortBy) {
-        case "newest":
-          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-        case "oldest":
-          return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-        case "price-high":
-          return b.askingPrice - a.askingPrice;
-        case "price-low":
-          return a.askingPrice - b.askingPrice;
-        case "brand":
-          return a.brand.localeCompare(b.brand);
-        default:
-          return 0;
-      }
-    });
+  const filteredLaptops = useMemo(() => {
+    return (Array.isArray(laptops) ? laptops : [])
+      .filter((laptop) => {
+        const matchesStatus =
+          filterStatus === "all" || laptop.status === filterStatus;
+        const query = debouncedQuery.toLowerCase();
+        const matchesSearch =
+          !query ||
+          laptop.brand.toLowerCase().includes(query) ||
+          laptop.model.toLowerCase().includes(query) ||
+          laptop.status.toLowerCase().includes(query) ||
+          laptop.condition.toLowerCase().includes(query);
+        return matchesStatus && matchesSearch;
+      })
+      .sort((a, b) => {
+        switch (sortBy) {
+          case "newest":
+            return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+          case "oldest":
+            return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+          case "price-high":
+            return b.askingPrice - a.askingPrice;
+          case "price-low":
+            return a.askingPrice - b.askingPrice;
+          case "brand":
+            return a.brand.localeCompare(b.brand);
+          case "condition":
+            return (CONDITION_ORDER[a.condition] ?? 9) - (CONDITION_ORDER[b.condition] ?? 9);
+          default:
+            return 0;
+        }
+      });
+  }, [laptops, filterStatus, debouncedQuery, sortBy]);
 
   const handleExportCsv = useCallback(() => {
     const headers = [
@@ -506,6 +579,17 @@ export function Inventory() {
         </DropdownMenu>
       </motion.div>
 
+      {/* Status Summary Bar */}
+      {laptops.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.08 }}
+        >
+          <StatusSummaryBar laptops={laptops} />
+        </motion.div>
+      )}
+
       {/* Filter Chips */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
@@ -586,16 +670,21 @@ export function Inventory() {
                   <CardContent className="p-0">
                     <div className="flex gap-3 p-3">
                       {/* Thumbnail */}
-                      <div className="w-20 h-20 rounded-lg bg-muted flex items-center justify-center shrink-0 overflow-hidden">
+                      <div className="w-20 h-20 rounded-lg bg-muted flex items-center justify-center shrink-0 overflow-hidden border">
                         {thumbnail ? (
                           <img
                             src={thumbnail}
                             alt={`${laptop.brand} ${laptop.model}`}
                             className="w-full h-full object-cover"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).style.display = "none";
+                              (e.target as HTMLImageElement).nextElementSibling?.classList.remove("hidden");
+                            }}
                           />
-                        ) : (
-                          <ImageOff className="size-6 text-muted-foreground" />
-                        )}
+                        ) : null}
+                        <span className={`text-2xl ${thumbnail ? "hidden" : ""}`}>
+                          {getBrandIcon(laptop.brand)}
+                        </span>
                       </div>
 
                       {/* Info */}

@@ -18,9 +18,6 @@ import {
   Globe,
   Upload,
   Lightbulb,
-  ChevronLeft,
-  Phone,
-  MapPin,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { toast } from "sonner";
@@ -242,7 +239,7 @@ export function Settings() {
           </div>
           <div className="mt-3 flex items-center gap-2">
             <Badge className="bg-white/15 text-white border-0 text-[10px]">
-              v1.2.0
+              v1.3.0
             </Badge>
             <Badge className="bg-emerald-500/20 text-emerald-300 border-0 text-[10px]">
               {laptops.length} laptops
@@ -589,7 +586,7 @@ export function Settings() {
                 iconBg="bg-emerald-100 dark:bg-emerald-900/40"
                 iconColor="text-emerald-600 dark:text-emerald-400"
                 label="Version"
-                value="1.2.0"
+                value="1.3.0"
               />
               <SettingRow
                 icon={Shield}

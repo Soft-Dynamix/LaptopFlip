@@ -5,9 +5,11 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Pencil,
   Sparkles,
+  Copy,
   Trash2,
   ChevronLeft,
   ChevronRight,
+  Users,
   Cpu,
   MemoryStick,
   HardDrive,
@@ -30,7 +32,7 @@ import {
 import { toast } from "sonner";
 
 import { useAppStore } from "@/lib/store";
-import { apiDeleteLaptop, apiFetchLaptops } from "@/lib/api";
+import { apiDeleteLaptop, apiFetchLaptops, apiCreateLaptop } from "@/lib/api";
 import { formatPrice } from "@/lib/types";
 import type { Laptop } from "@/lib/types";
 
@@ -362,7 +364,10 @@ export function LaptopDetailSheet() {
   const setEditingLaptopId = useAppStore((s) => s.setEditingLaptopId);
   const setIsAdCreatorOpen = useAppStore((s) => s.setIsAdCreatorOpen);
   const setAdCreatorLaptopId = useAppStore((s) => s.setAdCreatorLaptopId);
+  const setContactsSheetOpen = useAppStore((s) => s.setContactsSheetOpen);
+  const setContactsSheetLaptopId = useAppStore((s) => s.setContactsSheetLaptopId);
   const setLaptops = useAppStore((s) => s.setLaptops);
+  const addActivityLog = useAppStore((s) => s.addActivityLog);
 
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -416,6 +421,14 @@ export function LaptopDetailSheet() {
     setIsAdCreatorOpen,
   ]);
 
+  const handleOpenContacts = useCallback(() => {
+    if (!selectedLaptop) return;
+    setIsDetailOpen(false);
+    setSelectedLaptop(null);
+    setContactsSheetLaptopId(selectedLaptop.id);
+    setContactsSheetOpen(true);
+  }, [selectedLaptop, setIsDetailOpen, setSelectedLaptop, setContactsSheetLaptopId, setContactsSheetOpen]);
+
   const handleDelete = useCallback(async () => {
     if (!selectedLaptop) return;
     setDeleting(true);
@@ -444,6 +457,33 @@ export function LaptopDetailSheet() {
     setSelectedLaptop,
     setLaptops,
   ]);
+
+  const handleDuplicate = useCallback(async () => {
+    if (!selectedLaptop) return;
+    try {
+      const duplicated = await apiCreateLaptop({
+        ...selectedLaptop,
+        id: undefined,
+        model: `${selectedLaptop.model} - Copy`,
+        status: "draft",
+        photos: "[]",
+      });
+      if (duplicated) {
+        addActivityLog({
+          laptopId: duplicated.id,
+          action: "created",
+          detail: `Duplicated from ${selectedLaptop.brand} ${selectedLaptop.model}`,
+        });
+        toast.success(`${selectedLaptop.brand} ${selectedLaptop.model} duplicated`);
+        const data = await apiFetchLaptops();
+        setLaptops(Array.isArray(data) ? data : []);
+        setIsDetailOpen(false);
+        setSelectedLaptop(null);
+      }
+    } catch {
+      toast.error("Failed to duplicate laptop");
+    }
+  }, [selectedLaptop, addActivityLog, setLaptops, setIsDetailOpen, setSelectedLaptop]);
 
   const handleOpenDeleteDialog = useCallback(() => {
     setDeleteDialogOpen(true);
@@ -786,6 +826,24 @@ export function LaptopDetailSheet() {
               >
                 <Sparkles className="size-4" />
                 Create Ad
+              </Button>
+              <Button
+                onClick={handleDuplicate}
+                variant="outline"
+                className="flex-1 rounded-xl h-11 gap-2"
+              >
+                <Copy className="size-4" />
+                Duplicate
+              </Button>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                onClick={handleOpenContacts}
+                variant="outline"
+                className="flex-1 rounded-xl h-11 gap-2"
+              >
+                <Users className="size-4" />
+                Buyers
               </Button>
             </div>
             <Button

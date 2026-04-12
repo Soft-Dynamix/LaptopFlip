@@ -17,6 +17,7 @@ import {
   Trophy,
   Clock,
   Wallet,
+  Users,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
@@ -25,7 +26,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAppStore } from "@/lib/store";
 import { apiFetchLaptops } from "@/lib/api";
-import { formatPrice } from "@/lib/types";
+import { formatPrice, CONTACT_STATUSES } from "@/lib/types";
 import type { Laptop as LaptopType } from "@/lib/types";
 import { PricingCalculator } from "@/components/dashboard/PricingCalculator";
 import { SalesAnalytics } from "@/components/dashboard/SalesAnalytics";
@@ -216,6 +217,7 @@ export function Dashboard() {
     setDashboardStats,
     setActiveTab,
     setIsFormOpen,
+    contacts,
   } = useAppStore();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -320,6 +322,11 @@ export function Dashboard() {
       new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     )
     .slice(0, 3);
+
+  // Recent buyer contacts (last 5)
+  const recentContacts = [...contacts]
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .slice(0, 5);
 
   // Get animated value for stat
   const getAnimatedValue = (key: string): number => {
@@ -740,6 +747,82 @@ export function Dashboard() {
 
       {/* Sales Analytics Charts */}
       <SalesAnalytics laptops={laptops} loading={loading} />
+
+      {/* Buyer Enquiries Quick Link */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: 0.4 }}
+        className="space-y-3"
+      >
+        <div className="flex items-center justify-between">
+          <h2 className="text-base font-semibold flex items-center gap-2">
+            <Users className="size-4 text-emerald-600 dark:text-emerald-400" />
+            Buyer Enquiries
+          </h2>
+          <span className="text-xs text-muted-foreground">
+            {contacts.length} total
+          </span>
+        </div>
+        <Card className="rounded-xl border shadow-sm overflow-hidden">
+          <CardContent className="p-4">
+            {contacts.length === 0 ? (
+              <div className="flex items-center gap-3 py-2">
+                <div className="size-9 rounded-lg bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center shrink-0">
+                  <Users className="size-4 text-emerald-600 dark:text-emerald-400" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-medium">No enquiries yet</p>
+                  <p className="text-xs text-muted-foreground">Open a laptop detail to add buyer contacts</p>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-2.5">
+                {/* Contact status summary */}
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { label: "New", status: "new", color: "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400" },
+                    { label: "Interested", status: "interested", color: "bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300" },
+                    { label: "Sold To", status: "sold_to", color: "bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300" },
+                  ].map((s) => (
+                    <div key={s.status} className={`rounded-lg p-2 text-center ${s.color}`}>
+                      <p className="text-lg font-bold">
+                        {contacts.filter((c) => c.status === s.status).length}
+                      </p>
+                      <p className="text-[10px] font-medium">{s.label}</p>
+                    </div>
+                  ))}
+                </div>
+                {/* Recent contacts */}
+                {recentContacts.length > 0 && (
+                  <div className="space-y-1.5">
+                    {recentContacts.slice(0, 3).map((contact) => {
+                      const laptop = laptops.find((l) => l.id === contact.laptopId);
+                      return (
+                        <div key={contact.id} className="flex items-center gap-2 text-sm">
+                          <span className="text-xs font-medium truncate flex-1">
+                            {contact.name}
+                            {laptop ? (
+                              <span className="text-muted-foreground"> · {laptop.brand} {laptop.model}</span>
+                            ) : null}
+                          </span>
+                          <Badge
+                            variant="secondary"
+                            className={`text-[10px] px-1.5 py-0 rounded-full border-0 ${CONTACT_STATUSES.find((s) => s.value === contact.status)?.color || ""}`}
+                          >
+                            {CONTACT_STATUSES.find((s) => s.value === contact.status)?.label || contact.status}
+                          </Badge>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+          </CardContent>
+          <div className="h-0.5 bg-gradient-to-r from-emerald-400 via-teal-400 to-emerald-500 dark:from-emerald-600 dark:via-teal-600 dark:to-emerald-700 opacity-40" />
+        </Card>
+      </motion.div>
     </div>
   );
 }

@@ -869,3 +869,111 @@ Stage Summary:
 - Photos stored as base64 (needs cloud storage for production)
 - No user authentication (single-user app)
 - New APK not yet built with location/WhatsApp features
+
+---
+Task ID: 2
+Agent: full-stack-developer
+Task: Build Buyer Contacts CRM Sheet
+
+Work Log:
+- Created ContactsSheet.tsx with full CRUD UI for buyer contacts management
+- Sheet opens as a bottom sheet (Radix) filtered to a specific laptop's contacts
+- Add Contact form (collapsible) with Name, Phone, Email, Platform, Message fields
+- Contact cards show: status badge, name, platform icon, phone (tap-to-call), email (tap-to-mailto), message preview, time ago
+- Status dropdown on each card to change contact status (New/Contacted/Interested/Not Interested/Sold To)
+- Delete button on each card with toast confirmation
+- Empty state with Users icon and "No buyer enquiries yet" message
+- Contact count badge in sheet header
+- Emerald gradient bottom line matching other sheets
+- Framer Motion animations on form toggle and contact cards
+- Dark mode support throughout
+- Integrated ContactsSheet into page.tsx alongside other sheets
+- Added "Buyers" button to LaptopDetailSheet action buttons area
+
+Stage Summary:
+- New component: src/components/contacts/ContactsSheet.tsx
+- Modified: src/app/page.tsx (added ContactsSheet import and render)
+- Modified: src/components/laptop/LaptopDetailSheet.tsx (added Buyers button)
+- ESLint clean on all modified files, dev server compiling normally
+
+---
+Task ID: 3
+Agent: full-stack-developer
+Task: Add sort options and duplicate feature to Inventory tab
+
+Work Log:
+- Added "Condition (Best first)" sort option to Inventory tab with CONDITION_ORDER mapping (Mint > Excellent > Good > Fair > Poor)
+- Wrapped filteredLaptops computation in useMemo for performance optimization
+- Added useMemo import to Inventory.tsx
+- Added Duplicate button to LaptopDetailSheet action buttons (alongside Edit and Create Ad)
+- Duplicate handler creates copy with "- Copy" suffix, draft status, empty photos, logs activity
+- Duplicate handler imported apiCreateLaptop and addActivityLog in LaptopDetailSheet
+- ESLint clean (0 errors), dev server compiling successfully
+
+Stage Summary:
+- Modified: src/components/tabs/Inventory.tsx (added condition sort option + useMemo optimization)
+- Modified: src/components/laptop/LaptopDetailSheet.tsx (added duplicate button + handler)
+
+---
+Task ID: 18
+Agent: Main + FullStack SubAgents
+Task: v1.3.0 — Buyer CRM, Inventory Enhancements, Styling Improvements
+
+Work Log:
+- **Stopped auto-dev cron job** — Deleted "LaptopFlip Auto Dev" scheduled task (job ID 84354)
+- **Fixed Settings.tsx unused imports** — Removed ChevronLeft, Phone, MapPin from lucide-react imports
+- **Fixed SWC name collision** — Renamed Settings component import to SettingsPage in page.tsx to avoid "the name Settings is defined multiple times" bundler error
+- **Built Buyer Contacts CRM Sheet** (Task 2, subagent):
+  - Created src/components/contacts/ContactsSheet.tsx (~524 lines)
+  - Collapsible add-contact form (name, phone, email, platform select, initial message)
+  - Contact cards with: status badge, platform emoji, tap-to-call phone, tap-to-email, message preview, time ago, status dropdown, delete button
+  - Empty state with Users icon
+  - Integrated into page.tsx and LaptopDetailSheet.tsx (new "Buyers" action button)
+- **Added sort options to Inventory** (Task 3, subagent):
+  - 6 sort options: Newest, Oldest, Price High/Low, Brand A-Z, Condition Best first
+  - Condition order map: Mint > Excellent > Good > Fair > Poor
+  - Sort dropdown via DropdownMenuRadioGroup in search bar
+  - useMemo for filtered+sorted list performance
+- **Added duplicate laptop feature**:
+  - Duplicate in Inventory via More Options dropdown
+  - Duplicate in LaptopDetailSheet action buttons
+  - Creates copy with "- Copy" suffix, status reset to draft, logs activity
+  - Opens edit form for the duplicated laptop
+- **Added Status Summary Bar to Inventory**:
+  - Grid of 4 mini cards showing Active/Sold/Draft/Archived counts
+  - Animated progress bars per status
+- **Added brand icons to Inventory cards**:
+  - Brand emoji icons (🍎💻🖥️📋🎮💠🐉📱) shown when no photo available
+  - onError fallback for broken photo URLs
+- **Added Buyer Enquiries widget to Dashboard**:
+  - Shows total contact count
+  - Status summary grid (New / Interested / Sold To)
+  - Recent contacts list with laptop association
+  - Empty state when no contacts
+- **Version bumped to v1.3.0** in Settings
+
+Stage Summary:
+- New component: src/components/contacts/ContactsSheet.tsx (Buyer CRM)
+- Modified: src/app/page.tsx (ContactsSheet import + Settings rename fix)
+- Modified: src/components/tabs/Inventory.tsx (sort, duplicate, status bar, brand icons)
+- Modified: src/components/tabs/Dashboard.tsx (buyer enquiries widget)
+- Modified: src/components/laptop/LaptopDetailSheet.tsx (buyers button + duplicate)
+- Modified: src/components/tabs/Settings.tsx (cleanup + version bump)
+- Version: 1.3.0
+
+## Current Project Status
+
+### Project: LaptopFlip v1.3.0
+### Status: Feature-rich with Buyer CRM, enhanced Inventory, polished UI
+
+### New in v1.3.0:
+1. **Buyer Contacts CRM** — Full CRUD for tracking buyer enquiries per laptop
+2. **Inventory Sort** — 6 sort options (date, price, brand, condition)
+3. **Duplicate Laptop** — One-click duplicate from Inventory or Detail view
+4. **Status Summary Bar** — Visual status distribution in Inventory
+5. **Brand Icons** — Emoji brand icons for cards without photos
+6. **Buyer Enquiries Widget** — Dashboard widget showing contact pipeline
+
+### Unresolved:
+- Cron auto-dev stopped (manual development mode)
+- worklog.md was root-owned (now owned by user z)
