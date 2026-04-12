@@ -9,7 +9,6 @@ import {
   ImageIcon,
   ArrowRight,
   CheckCircle2,
-  Sun,
   Smartphone,
   Lightbulb,
 } from "lucide-react";
@@ -17,7 +16,6 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { useAppStore } from "@/lib/store";
 import { photoSteps, prepTips } from "@/lib/photo-steps";
 
@@ -127,14 +125,16 @@ export function PhotoGuide() {
               </p>
             </div>
           </div>
-          <Button
-            onClick={handleStartAdding}
-            className="w-full bg-white text-emerald-700 hover:bg-emerald-50 rounded-xl h-12 text-base font-bold gap-2 shadow-md"
-          >
-            <Camera className="size-5" />
-            Start Adding Laptop
-            <ArrowRight className="size-4" />
-          </Button>
+          <motion.div whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.98 }}>
+            <Button
+              onClick={handleStartAdding}
+              className="w-full bg-white text-emerald-700 hover:bg-emerald-50 rounded-xl h-12 text-base font-bold gap-2 shadow-md hover:shadow-lg transition-shadow duration-200"
+            >
+              <Camera className="size-5" />
+              Start Adding Laptop
+              <ArrowRight className="size-4" />
+            </Button>
+          </motion.div>
         </div>
       </motion.div>
 
@@ -197,21 +197,24 @@ export function PhotoGuide() {
           <CircleDot className="size-4 text-amber-500" />
           Before you start
         </h2>
-        <Card className="rounded-xl">
-          <CardContent className="p-3 space-y-2">
-            {prepTips.map((tip, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, x: -5 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.2 + index * 0.04 }}
-                className="flex items-center gap-3"
-              >
-                <span className="text-base">{tip.emoji}</span>
-                <span className="text-sm">{tip.text}</span>
-              </motion.div>
-            ))}
+        <Card className="rounded-xl overflow-hidden">
+          <CardContent className="p-3">
+            <div className="space-y-2">
+              {prepTips.map((tip, index) => (
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0, x: -5 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.2 + index * 0.04 }}
+                  className="flex items-center gap-3 p-2.5 rounded-lg bg-muted/40 dark:bg-muted/20 hover:bg-muted/70 dark:hover:bg-muted/30 transition-colors"
+                >
+                  <span className="text-lg shrink-0">{tip.emoji}</span>
+                  <span className="text-sm leading-snug">{tip.text}</span>
+                </motion.div>
+              ))}
+            </div>
           </CardContent>
+          <div className="h-0.5 bg-gradient-to-r from-amber-300 via-amber-400 to-amber-300 dark:from-amber-700 dark:via-amber-500 dark:to-amber-700 opacity-40" />
         </Card>
       </motion.div>
 
@@ -376,15 +379,17 @@ export function PhotoGuide() {
         transition={{ duration: 0.3, delay: 0.4 }}
         className="pt-2"
       >
-        <Button
-          onClick={handleStartAdding}
-          size="lg"
-          className="w-full bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl h-14 text-base font-bold gap-2 shadow-lg shadow-emerald-600/25"
-        >
-          <Sparkles className="size-5" />
-          Start Adding a Laptop
-          <ArrowRight className="size-4" />
-        </Button>
+        <motion.div whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.98 }}>
+          <Button
+            onClick={handleStartAdding}
+            size="lg"
+            className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-xl h-14 text-base font-bold gap-2 shadow-lg shadow-emerald-600/25 hover:shadow-xl hover:shadow-emerald-600/30 transition-all duration-200"
+          >
+            <Sparkles className="size-5" />
+            Start Adding a Laptop
+            <ArrowRight className="size-4" />
+          </Button>
+        </motion.div>
       </motion.div>
     </div>
   );

@@ -10,6 +10,7 @@ import {
   localCreateLaptop,
   localUpdateLaptop,
   localDeleteLaptop,
+  localUpdateListing,
   localGenerateAd,
   syncLaptopsToLocalStorage,
 } from "./local-api";
@@ -234,6 +235,38 @@ export async function apiDeleteLaptop(id: string): Promise<boolean> {
     switchToLocalMode();
   }
   return localDeleteLaptop(id);
+}
+
+/**
+ * Update a listing's status. Returns the updated `Listing` or `null` if not found.
+ */
+export async function apiUpdateListing(
+  id: string,
+  data: Record<string, unknown>
+): Promise<Record<string, unknown> | null> {
+  const serverUp = ensureMode();
+  if (serverUp) {
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 3000);
+      const res = await fetch(`/api/listings/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+        signal: controller.signal,
+      });
+      clearTimeout(timeout);
+      if (res.ok) {
+        return await res.json();
+      }
+      if (res.status === 404) return null;
+    } catch {
+      // fall through
+    }
+    switchToLocalMode();
+  }
+  // Local mode — update listing in localStorage laptops
+  return localUpdateListing(id, data);
 }
 
 /**

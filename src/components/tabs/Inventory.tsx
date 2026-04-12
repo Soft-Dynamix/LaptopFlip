@@ -15,6 +15,8 @@ import {
   ArrowUpDown,
   Download,
   Copy,
+  Plus,
+  Minus,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
@@ -115,6 +117,23 @@ function getConditionColor(condition: string) {
       return "bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800";
     default:
       return "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700";
+  }
+}
+
+function getConditionBorderColor(condition: string) {
+  switch (condition) {
+    case "Mint":
+      return "border-l-emerald-500";
+    case "Excellent":
+      return "border-l-blue-500";
+    case "Good":
+      return "border-l-yellow-500";
+    case "Fair":
+      return "border-l-orange-500";
+    case "Poor":
+      return "border-l-red-500";
+    default:
+      return "border-l-gray-400";
   }
 }
 
@@ -398,6 +417,27 @@ export function Inventory() {
     setIsAdCreatorOpen(true);
   };
 
+  const handleQuickPrice = async (laptop: LaptopType, delta: number) => {
+    const newPrice = Math.max(0, laptop.askingPrice + delta);
+    if (newPrice === laptop.askingPrice) return;
+    try {
+      const updated = await apiUpdateLaptop(laptop.id, { askingPrice: newPrice });
+      if (updated) {
+        setLaptops((prev: LaptopType[]) =>
+          prev.map((l) => (l.id === laptop.id ? { ...l, askingPrice: newPrice } : l))
+        );
+        addActivityLog({
+          laptopId: laptop.id,
+          action: "price_update",
+          detail: `Price adjusted by ${delta > 0 ? "+" : ""}R${delta} → ${formatPrice(newPrice)}`,
+        });
+        toast.success(`${laptop.brand} ${laptop.model}: ${formatPrice(newPrice)}`);
+      }
+    } catch {
+      toast.error("Failed to update price");
+    }
+  };
+
   const handleDuplicate = async (laptop: LaptopType) => {
     setDuplicating(true);
     try {
@@ -664,7 +704,7 @@ export function Inventory() {
                 layout
               >
                 <Card
-                  className="rounded-xl py-0 shadow-sm overflow-hidden cursor-pointer hover:shadow-md transition-shadow"
+                  className={`rounded-xl py-0 shadow-sm overflow-hidden cursor-pointer border-l-[3px] ${getConditionBorderColor(laptop.condition)} hover:shadow-lg hover:scale-[1.01] active:scale-[0.99] transition-all duration-200`}
                   onClick={() => handleViewDetail(laptop)}
                 >
                   <CardContent className="p-0">
@@ -721,9 +761,25 @@ export function Inventory() {
 
                       {/* Price & Actions */}
                       <div className="flex flex-col items-end justify-between shrink-0 py-0.5">
-                        <span className="text-sm font-bold text-emerald-700 dark:text-emerald-400">
-                          {formatPrice(laptop.askingPrice)}
-                        </span>
+                        <div className="flex items-center gap-0.5" onClick={(e) => e.stopPropagation()}>
+                          <button
+                            onClick={() => handleQuickPrice(laptop, -500)}
+                            className="size-6 rounded-md bg-muted/80 hover:bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+                            aria-label="Decrease price by R500"
+                          >
+                            <Minus className="size-3" />
+                          </button>
+                          <span className="text-sm font-bold text-emerald-700 dark:text-emerald-400 min-w-[60px] text-right">
+                            {formatPrice(laptop.askingPrice)}
+                          </span>
+                          <button
+                            onClick={() => handleQuickPrice(laptop, 500)}
+                            className="size-6 rounded-md bg-muted/80 hover:bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+                            aria-label="Increase price by R500"
+                          >
+                            <Plus className="size-3" />
+                          </button>
+                        </div>
                         {laptop.purchasePrice > 0 && laptop.askingPrice > 0 && (
                           <div
                             className={`flex items-center gap-0.5 text-[10px] font-medium mt-0.5 ${
@@ -761,11 +817,16 @@ export function Inventory() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="size-8"
+                            className="size-8 relative"
                             onClick={() => handleCreateAd(laptop)}
                             aria-label="Create ad"
                           >
                             <Sparkles className="size-3.5" />
+                            {laptop.listings && laptop.listings.length > 0 && (
+                              <span className="absolute -top-0.5 -right-0.5 min-w-[14px] h-[14px] rounded-full bg-amber-500 text-[9px] font-bold text-white flex items-center justify-center px-0.5 leading-none">
+                                {laptop.listings.length}
+                              </span>
+                            )}
                           </Button>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>

@@ -148,6 +148,23 @@ function getConditionColor(condition: string) {
   }
 }
 
+function getConditionBorderColor(condition: string) {
+  switch (condition) {
+    case "Mint":
+      return "border-l-emerald-500";
+    case "Excellent":
+      return "border-l-blue-500";
+    case "Good":
+      return "border-l-yellow-500";
+    case "Fair":
+      return "border-l-orange-500";
+    case "Poor":
+      return "border-l-red-500";
+    default:
+      return "border-l-gray-400";
+  }
+}
+
 function getStatusColor(status: string) {
   switch (status) {
     case "draft":
@@ -405,7 +422,9 @@ export function Dashboard() {
               key={stat.key}
               className="gap-0 py-4 px-4 rounded-xl border shadow-sm relative overflow-hidden"
             >
-              <CardContent className="p-0">
+              {/* Subtle gradient overlay */}
+              <div className="absolute inset-0 bg-gradient-to-br from-transparent to-muted/30 pointer-events-none" />
+              <CardContent className="p-0 relative z-10">
                 <div className="flex items-start justify-between">
                   <div className="space-y-1">
                     <p className="text-xs font-medium text-muted-foreground">
@@ -568,9 +587,13 @@ export function Dashboard() {
         {recentLaptops.length === 0 ? (
           <Card className="rounded-xl border-dashed border-2 border-muted py-10">
             <CardContent className="flex flex-col items-center gap-3 text-center p-6">
-              <div className="rounded-full bg-emerald-50 dark:bg-emerald-950/30 p-4">
+              <motion.div
+                animate={{ scale: [1, 1.12, 1], opacity: [1, 0.6, 1] }}
+                transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
+                className="rounded-full bg-emerald-50 dark:bg-emerald-950/30 p-4"
+              >
                 <PackageOpen className="size-8 text-emerald-600 dark:text-emerald-400" />
-              </div>
+              </motion.div>
               <div className="space-y-1">
                 <p className="font-medium text-sm">No laptops yet</p>
                 <p className="text-xs text-muted-foreground">
@@ -605,7 +628,7 @@ export function Dashboard() {
                 transition={{ duration: 0.2, delay: index * 0.05 }}
               >
                 <Card
-                  className="rounded-xl py-3 shadow-md hover:shadow-lg transition-shadow cursor-pointer"
+                  className={`rounded-xl py-3 shadow-md hover:shadow-lg transition-all duration-200 cursor-pointer border-l-[3px] ${getConditionBorderColor(laptop.condition)}`}
                   onClick={() => {
                     useAppStore.getState().setSelectedLaptop(laptop);
                     useAppStore.getState().setIsDetailOpen(true);

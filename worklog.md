@@ -721,8 +721,55 @@ Stage Summary:
 1. Build new APK with Qwen3 model + all recent fixes
 2. Add multi-user support with NextAuth
 3. Cloud photo storage (S3/Cloudflare R2)
-4. Price trend analytics with charts
-5. Buyer contact management / mini CRM
+
+---
+Task ID: 18
+Agent: Polish Agent
+Task: Visual polish and styling improvements across all tabs
+
+Work Log:
+- **Inventory Cards** (`src/components/tabs/Inventory.tsx`):
+  - Added 3px left border color-coded by condition (Mint=emerald, Excellent=blue, Good=yellow, Fair=orange, Poor=red)
+  - Added hover scale effect (`hover:scale-[1.01] active:scale-[0.99]`) with shadow elevation
+  - Added listings count badge (violet dot) on Sparkles button when laptop has listings
+  - Added `getConditionBorderColor()` helper function
+
+- **Dashboard Recent Listings** (`src/components/tabs/Dashboard.tsx`):
+  - Added 3px condition-colored left border to recent listing cards
+  - Enhanced empty state with pulsing animation on PackageOpen icon (scale + opacity pulse)
+  - Added subtle gradient overlay on stats cards (`bg-gradient-to-br from-transparent to-muted/30`)
+  - Fixed duplicate `getConditionBorderColor` function
+
+- **Photo Guide Tab** (`src/components/tabs/PhotoGuide.tsx`):
+  - Improved preparation tips section with mini-card styling (rounded-lg backgrounds, hover effects)
+  - Added amber gradient divider to preparation tips card
+  - Added `whileHover`/`whileTap` motion effects to both CTA buttons
+  - Enhanced bottom CTA with gradient background (emerald→teal) and hover shadow elevation
+  - Removed unused `Sun` and `Separator` imports
+
+- **Settings Tab** (`src/components/tabs/Settings.tsx`):
+  - Added amber-to-orange gradient header strip to Data Management card
+  - Enhanced theme selector cards with `whileTap` scale animation and emerald shadow glow
+  - Added animated checkmark indicator (spring animation) on active theme card
+  - Added hover border effect on inactive theme cards
+  - Added `relative` positioning to theme card for checkmark placement
+
+- **Main page.tsx** (`src/app/page.tsx`):
+  - Added scroll-based top status bar that slides in when user scrolls (10px threshold)
+  - Top bar shows laptop emoji, "LaptopFlip" title, and active tab name
+  - Main content area adds `pt-12` padding when scrolled to prevent content jump
+  - Added gradient fade overlay above bottom nav (`bg-gradient-to-t from-background/90`)
+  - Bottom nav uses `relative` positioning for proper gradient stacking
+
+Stage Summary:
+- All 5 files enhanced with visual polish
+- Condition-colored borders provide at-a-glance laptop quality indication in Inventory and Dashboard
+- Scroll-based header improves mobile navigation context
+- Theme selector now has satisfying micro-interaction feedback
+- Preparation tips section more visually engaging with card-style layout
+- All changes use Tailwind CSS only, maintain dark mode support
+- No new lint errors in modified files
+- Dev server compiling normally
 
 ---
 Task ID: 18
@@ -1003,3 +1050,143 @@ Stage Summary:
 - Offline resilience: if server dies after initial load, localStorage has the data
 - features/ports field was already implemented in previous session (v1.3.0)
 - Server kept alive via: bash -c 'while true; do npx next dev -p 3000; sleep 2; done' & disown
+
+---
+Task ID: 18
+Agent: Main
+Task: Add Ad History Tracker, Quick Price Adjustment, and Listing Status Management
+
+Work Log:
+
+**1. Ad History Tracker**
+- Added ad count badge on Sparkles (Create Ad) button in Inventory.tsx
+  - Amber-colored pill badge showing number of listings per laptop
+  - Uses `laptop.listings.length` from the API data (listings are already included via Prisma `include`)
+  - Badge only visible when count > 0
+- Added "Ad History" section in LaptopDetailSheet.tsx
+  - Shows below Notes section, above Activity Log
+  - Displays each listing with: platform color icon, ad title, creation date, posted date (if posted)
+  - Scrollable list (max-h-64) with clean card layout per listing
+  - Header shows total ad count badge
+
+**2. Quick Price Adjustment**
+- Added +/-R500 buttons flanking the asking price on each Inventory card
+  - Subtle `bg-muted/80` rounded buttons with Plus/Minus icons from lucide-react
+  - `e.stopPropagation()` prevents card tap when clicking price buttons
+  - Calls `apiUpdateLaptop` with new price, updates local state immediately
+  - Adds activity log entry ("Price adjusted by +R500 → R8,500")
+  - Shows toast confirmation with laptop name and new price
+  - Price cannot go below 0
+
+**3. Listing Status Management**
+- Created new API route: PUT `/api/listings/[id]` in `src/app/api/listings/[id]/route.ts`
+  - Accepts status changes: draft → posted, posted → draft
+  - Auto-sets `postedAt` timestamp when marking as posted
+  - Clears `postedAt` when reverting to draft
+  - Validates status values (draft/posted/removed)
+- Added `apiUpdateListing()` function to `src/lib/api.ts` (server + local mode)
+- Added `localUpdateListing()` function to `src/lib/local-api.ts` (offline fallback)
+- In LaptopDetailSheet Ad History section:
+  - Posted vs Draft summary counts at top (green CheckCircle2 + gray RotateCcw)
+  - Each listing shows color-coded status badge (Draft=gray, Posted=emerald, Removed=red)
+  - "Send" button on draft listings to mark as posted with one tap
+  - "RotateCcw" button on posted listings to revert to draft
+  - Loading state disables buttons during API call
+  - Activity log entries for all status changes
+
+Stage Summary:
+- Ad History Tracker shows listing count on inventory cards and full history in detail view
+- Quick Price Adjustment allows rapid R500 increments/decrements with toast feedback
+- Listing Status Management enables marking ads as posted/draft via API
+- New API route `/api/listings/[id]` with offline fallback
+- ESLint clean (0 errors on src/), dev server compiling normally
+---
+Task ID: 18
+Agent: Main + Styling SubAgent + Feature SubAgent
+Task: Fix AI prompts (no spec guessing), styling improvements, new features
+
+Work Log:
+
+**AI Prompt Fix — Stop guessing specs, only write ad copy:**
+- **User request**: "On the AI prompts dont guess specs etc. Use the ai to only make nice advert text content."
+- **Server-side** (`/src/app/api/generate-ad/route.ts`):
+  - Removed massive `buildValueContext()` function (200+ lines of spec-based selling angles like "FLAGSHIP CPU — ideal for heavy video editing")
+  - Replaced with simple `buildContext()` — only condition framing, pricing context, repair transparency, notes intelligence
+  - Added "CRITICAL RULES" section to prompt: "ONLY use the laptop data provided. DO NOT guess, infer, or add ANY specifications, ports, or features."
+  - Removed port inference from Facebook platform instructions ("If no user-specified features are provided, infer reasonable ports..." → "If no features are provided by the user, skip this section entirely")
+  - System prompt rewritten: 11 principles focused on ad copy quality, NOT spec interpretation
+  - `buildFallbackAd()` — now only uses provided data, no port inference, no use case guessing, no target audience guessing
+- **On-device LLM** (`/src/lib/on-device-llm.ts`):
+  - Replaced `buildOnDeviceValueContext()` (spec-based angles like "Apple Silicon = all-day battery + fast performance") with `buildOnDeviceContext()` — only condition, price, battery, notes
+  - System prompt updated: "DO NOT guess, infer, or add ANY specs, ports, or features that are not explicitly listed"
+  - Platform rules simplified: removed spec interpretation instructions
+- **Offline templates** (`/src/lib/local-api.ts`):
+  - Completely removed `inferPorts()` function (was guessing ports based on brand/model/year)
+  - Removed `getSpecHighlight()` (was saying "plays modern games at high settings" for RTX GPUs)
+  - Removed `getUseCase()` (was guessing use cases: "Valorant, CS2, GTA V at high settings")
+  - Removed `getFacebookTagline()` spec-based logic
+  - Facebook template: Features section now conditional (only shown if user provided features)
+  - Removed benefitLine, targetAudience from Facebook template
+  - All templates now use ONLY the data provided in the laptop listing
+
+**Styling Improvements (by Styling SubAgent):**
+1. **Inventory Cards** — 3px condition-colored left border, hover scale effect, listing count badge on Sparkles button
+2. **Dashboard Recent Listings** — Condition-colored left border, pulsing empty state animation, gradient overlay on stats cards
+3. **Photo Guide Tab** — Improved prep tips as mini-cards, CTA hover effects, gradient bottom CTA
+4. **Settings Tab** — Data management gradient header, enhanced theme selector with spring checkmark animation
+5. **Main page.tsx** — Scroll-based top status bar, bottom nav gradient overlay
+
+**New Features (by Feature SubAgent):**
+1. **Ad History Tracker** — Shows ad count badge on inventory cards; Ad History section in LaptopDetailSheet with platform, title, date, posted/draft status
+2. **Quick Price Adjustment** — ±R500 buttons on inventory cards next to price; updates via API with toast confirmation
+3. **Listing Status Management** — New API route `PUT /api/listings/[id]`; draft↔posted toggle; "Send" and "Revert" buttons in Ad History
+
+Stage Summary:
+- AI no longer guesses specs, ports, or features — only uses provided laptop data
+- All 3 ad generation layers (server AI, on-device LLM, templates) cleaned up
+- 5 styling improvements across Inventory, Dashboard, PhotoGuide, Settings, page.tsx
+- 3 new features: Ad History, Quick Price Adjustment, Listing Status Management
+- New API route for listing status updates
+- ESLint clean on all modified files
+- Dev server running normally (GET / 200)
+- Cron job created for 15-min review cycles
+
+## Current Project Status
+
+### Project: LaptopFlip - Mobile-First Laptop Resale App
+### Status: Feature-rich MVP v1.4.0 with no spec-guessing in AI prompts
+
+### Completed Features (16 total):
+1. Dashboard - Stats grid, gradient header, quick actions, recent listings, refresh, profit insights
+2. Guided Photo Session - 12-shot wizard with camera/upload/skip
+3. Inventory - Search + filter + sort + condition borders, CSV export, duplicate, undo delete, quick price ±R500
+4. Laptop Detail View - Photo gallery, specs, pricing, activity timeline, ad history section
+5. Laptop Form - Multi-step (Photos → Details), all fields including Features/Ports
+6. AI Ad Creator - 3-tier generation (Server AI → On-Device LLM → Templates), no spec guessing
+7. Ad Preview - Facebook/WhatsApp/Gumtree/OLX realistic previews, share/copy
+8. Listing Status Management - Draft↔posted toggle with timestamps
+9. Quick Price Adjustment - ±R500 buttons on inventory cards
+10. Dark Mode - Full support via next-themes
+11. Animations - Framer Motion throughout
+12. Error Boundary - Graceful error handling
+13. Search Debounce - 300ms in Inventory
+14. Activity Log - Tracks all laptop lifecycle events
+15. Data Import/Export - JSON backup/restore in Settings
+16. Contacts/CRM - Buyer enquiry tracking per laptop
+
+### Key Change This Session:
+- AI prompts NO LONGER guess specs, ports, or features. Only uses provided data. Ad copy focuses on persuasive text quality.
+
+### Unresolved/Risks:
+- Photos stored as base64 in SQLite (needs CDN for production)
+- No user authentication (single-user app)
+- Auto-posting to platforms not implemented (manual copy/paste)
+- SalesAnalytics component still imported but may need review
+
+### Next Phase Recommendations:
+1. Build new APK with all recent fixes
+2. Add multi-user support with NextAuth
+3. Cloud photo storage (S3/Cloudflare R2)
+4. Price trend analytics with charts
+5. Push notifications for buyer enquiries
+6. Auto-relist stale listings

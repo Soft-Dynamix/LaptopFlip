@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useState, useEffect } from "react";
 // Initialize Capacitor runtime so window.Capacitor is available for native detection
 import "@capacitor/core";
 import {
@@ -36,6 +36,15 @@ export default function Home() {
   const setActiveTab = useAppStore((s) => s.setActiveTab);
   const setIsFormOpen = useAppStore((s) => s.setIsFormOpen);
   const setEditingLaptopId = useAppStore((s) => s.setEditingLaptopId);
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 10);
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   const handleTabClick = useCallback(
     (tabId: string) => {
@@ -51,8 +60,31 @@ export default function Home() {
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
+      {/* Scroll-based top status bar */}
+      <AnimatePresence>
+        {scrolled && (
+          <motion.header
+            initial={{ y: -56, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: -56, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed top-0 left-0 right-0 z-40 bg-background/90 backdrop-blur-xl border-b border-border/50"
+          >
+            <div className="max-w-lg mx-auto flex items-center justify-between h-12 px-4">
+              <div className="flex items-center gap-2">
+                <span className="text-lg">💻</span>
+                <h1 className="text-sm font-bold tracking-tight text-emerald-700 dark:text-emerald-400">LaptopFlip</h1>
+              </div>
+              <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
+                {tabs.find((t) => t.id === activeTab)?.label}
+              </span>
+            </div>
+          </motion.header>
+        )}
+      </AnimatePresence>
+
       {/* Main Content Area */}
-      <main className="flex-1 pb-20 overflow-y-auto">
+      <main className={cn("flex-1 pb-20 overflow-y-auto", scrolled && "pt-12")}>
         <AnimatePresence mode="wait">
           <motion.div
             key={activeTab}
@@ -75,7 +107,10 @@ export default function Home() {
         {/* Gradient top border */}
         <div className="h-px bg-gradient-to-r from-transparent via-emerald-500 to-transparent opacity-60" />
 
-        <div className="bg-background/90 backdrop-blur-2xl">
+        {/* Subtle gradient overlay above nav for content fade */}
+        <div className="absolute -top-8 left-0 right-0 h-8 bg-gradient-to-t from-background/90 to-transparent pointer-events-none" />
+
+        <div className="relative bg-background/90 backdrop-blur-2xl">
           <div className="max-w-lg mx-auto flex items-center justify-around h-16 px-2">
             {tabs.map((tab) => {
               const isActive = tab.id === activeTab;

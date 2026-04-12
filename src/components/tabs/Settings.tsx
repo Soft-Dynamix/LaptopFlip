@@ -415,24 +415,38 @@ export function Settings() {
                 const Icon = opt.icon;
                 const isActive = mounted && theme === opt.value;
                 return (
-                  <button
+                  <motion.button
                     key={opt.value}
+                    whileTap={{ scale: 0.95 }}
                     onClick={() => setTheme(opt.value)}
-                    className={`flex flex-col items-center justify-center gap-1.5 p-3 rounded-xl border-2 transition-all duration-200 ${
+                    className={`relative flex flex-col items-center justify-center gap-1.5 p-3 rounded-xl border-2 transition-all duration-200 ${
                       isActive
-                        ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-950/30"
-                        : "border-transparent bg-muted/50 hover:bg-muted"
+                        ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-950/30 shadow-sm shadow-emerald-500/20"
+                        : "border-transparent bg-muted/50 hover:bg-muted hover:border-muted-foreground/20"
                     }`}
                   >
                     <Icon
-                      className={`size-5 ${isActive ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground"}`}
+                      className={`size-5 transition-colors duration-200 ${isActive ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground"}`}
                     />
                     <span
-                      className={`text-xs font-medium ${isActive ? "text-emerald-700 dark:text-emerald-300" : "text-muted-foreground"}`}
+                      className={`text-xs font-medium transition-colors duration-200 ${isActive ? "text-emerald-700 dark:text-emerald-300" : "text-muted-foreground"}`}
                     >
                       {opt.label}
                     </span>
-                  </button>
+                    {isActive && (
+                      <motion.div
+                        layoutId="themeCheck"
+                        className="absolute -top-1.5 -right-1.5 size-4 rounded-full bg-emerald-500 flex items-center justify-center"
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                      >
+                        <svg className="size-2.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                      </motion.div>
+                    )}
+                  </motion.button>
                 );
               })}
             </div>
@@ -446,7 +460,9 @@ export function Settings() {
           <Database className="size-4 text-amber-500" />
           Data Management
         </h2>
-        <Card className="rounded-xl border shadow-sm hover:shadow-md transition-shadow duration-200">
+        <Card className="rounded-xl border shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden">
+          {/* Gradient header area */}
+          <div className="h-1 bg-gradient-to-r from-amber-400 via-orange-400 to-amber-400 dark:from-amber-600 dark:via-orange-600 dark:to-amber-600 opacity-60" />
           <CardContent className="p-0">
             {/* Storage info */}
             <div className="px-4 py-3 flex items-center justify-between">

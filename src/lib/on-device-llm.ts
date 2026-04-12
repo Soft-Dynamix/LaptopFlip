@@ -257,55 +257,41 @@ export async function loadModel(): Promise<boolean> {
   }
 }
 
-// ─── Value context builder (shared logic) ──────────────
+// ─── Simple context builder — NO spec guessing ──────────────
 
-function buildOnDeviceValueContext(laptop: Laptop): string {
+function buildOnDeviceContext(laptop: Laptop): string {
   const angles: string[] = [];
-  const specs = `${laptop.cpu} ${laptop.ram} ${laptop.gpu} ${laptop.storage} ${laptop.screenSize}`.toLowerCase();
 
-  // Condition angle
+  // Condition framing only — based on actual condition value
   if (laptop.condition === "Mint" || laptop.condition === "Excellent") {
-    angles.push("Near-new condition. Buyer saves thousands vs retail.");
+    angles.push("Near-new condition. Significant saving vs retail.");
   } else if (laptop.condition === "Good") {
-    angles.push("Well-maintained. Every feature works perfectly.");
+    angles.push("Well-maintained. Everything works perfectly.");
   } else if (laptop.condition === "Fair") {
     angles.push("Normal wear. Everything works. Great value at this price.");
   } else {
     angles.push("Honest condition. Ideal for budget buyers or parts.");
   }
 
-  // Key spec highlights
-  if (specs.includes("m1") || specs.includes("m2") || specs.includes("m3") || specs.includes("m4")) {
-    angles.push("Apple Silicon = all-day battery + fast performance.");
-  }
-  if (specs.includes("rtx 40") || specs.includes("rtx 30")) {
-    angles.push("Modern RTX GPU = plays modern games at high settings.");
-  } else if (specs.includes("rtx") || specs.includes("gtx")) {
-    angles.push("Dedicated GPU = gaming and creative work capable.");
-  }
-  if (specs.includes("i7") || specs.includes("i9") || specs.includes("ryzen 7") || specs.includes("ryzen 9")) {
-    angles.push("High-performance CPU for demanding workloads.");
-  } else if (specs.includes("i5") || specs.includes("ryzen 5")) {
-    angles.push("Solid mid-range performance. Great value.");
-  }
-  if (specs.includes("16gb") || specs.includes("32gb")) {
-    angles.push("Plenty of RAM for smooth multitasking.");
-  }
-  if (specs.includes("1tb") || specs.includes("2tb")) {
-    angles.push("Large storage capacity.");
-  }
-  if (specs.includes("oled")) {
-    angles.push("Premium OLED display with perfect blacks.");
-  }
-
-  // Battery
-  if (laptop.batteryHealth?.toLowerCase().includes("excellent") || laptop.batteryHealth?.toLowerCase().includes("95")) {
-    angles.push("Excellent battery health - all-day battery life.");
-  }
-
-  // Purchase price context
+  // Pricing context — only based on actual price data
   if (laptop.purchasePrice && laptop.askingPrice && laptop.purchasePrice > laptop.askingPrice) {
     angles.push("Priced below cost - urgent sale.");
+  }
+
+  // Battery — only if explicitly provided and good
+  if (laptop.batteryHealth?.toLowerCase().includes("excellent")) {
+    angles.push("Excellent battery health.");
+  }
+
+  // Notes intelligence — only if seller actually mentioned these
+  if (laptop.notes) {
+    const n = laptop.notes.toLowerCase();
+    if (n.includes("fresh") || n.includes("clean install")) {
+      angles.push("Fresh OS install — ready to use.");
+    }
+    if (n.includes("warranty")) {
+      angles.push("Warranty available.");
+    }
   }
 
   return angles.join(" ");
@@ -314,13 +300,13 @@ function buildOnDeviceValueContext(laptop: Laptop): string {
 // ─── Platform-specific instructions for on-device LLM ──
 
 const ON_DEVICE_PLATFORM_RULES: Record<Platform, string> = {
-  whatsapp: `WHATSAPP FORMAT: Max 500 chars total. Use *bold* and _italic_. Lead with the biggest selling point. Top 3 specs only. Bold price line. One urgent CTA ("DM now"). 2-3 emojis max. Every line must earn its space. No generic phrases.`,
+  whatsapp: `WHATSAPP FORMAT: Max 500 chars total. Use *bold* and _italic_. Lead with laptop name and condition. Only include specs that are provided. Bold price line. Include location and WhatsApp if provided. One urgent CTA ("DM now"). 2-3 emojis max. Every line must earn its space. DO NOT guess or add any specs.`,
 
-  facebook: `FACEBOOK FORMAT: Full listing 300-600 words. Title with brand+model+spec+price. Open with strongest benefit (not fact). Use emoji headers: Specs, Condition, Why Buy, Perfect For, What's Included. Add trust signals: well maintained, original charger, smoke-free. Include competitive price context. Close with CTA + delivery info.`,
+  facebook: `FACEBOOK FORMAT: Full listing. Title: brand+model+price. Use emoji headers: Specs, Features, Price. ONLY list specs that are provided — do NOT guess. ONLY list features/ports that the user specified — do NOT infer. Include location and WhatsApp if provided. Close with CTA. Heavy emoji use is fine.`,
 
-  gumtree: `GUMTREE FORMAT: Professional classified. Title: Brand+Model+Condition+Price. "FOR SALE:" opener. Clean spec list. HONEST condition section - mention wear upfront. Value justification. Price on own line. "Contact to arrange viewing" CTA. Max 3-4 emojis. Direct, honest, no-nonsense tone.`,
+  gumtree: `GUMTREE FORMAT: Professional classified. Title: Brand+Model+Condition+Price. "FOR SALE:" opener. Clean spec list — ONLY provided specs. HONEST condition. ONLY list features the user specified. Price on own line. "Contact to arrange viewing" CTA. Max 3-4 emojis.`,
 
-  olx: `OLX FORMAT: Price MUST be in title ("Brand Model - R X,XXX"). Sections with emoji headers: Summary, Specs, Condition, Price & Value, What's Included. Short paragraphs. Justify the price. OLX-specific CTA. Professional tone. No ALL CAPS.`,
+  olx: `OLX FORMAT: Price MUST be in title ("Brand Model - R X,XXX"). Sections with emoji headers. ONLY include specs that are provided. ONLY list features the user specified. Short paragraphs. OLX-specific CTA. Professional tone. No ALL CAPS.`,
 };
 
 // ─── Ad generation ──────────────────────────────────────
@@ -364,9 +350,9 @@ function buildLLMPrompt(platform: Platform, laptop: Laptop): string {
 
   // System prompt with /no_think to disable Qwen3 reasoning mode
   const systemContent = `/no_think
-You are a South African marketplace ad writer. Write honest, persuasive, mobile-friendly ads. Use Rands. SA English spelling. You MUST respond ONLY with valid JSON: {"title": "ad title", "body": "ad body"}. No other text. No explanation. Just the JSON object.`;
+You are a South African marketplace ad writer. Write honest, persuasive, mobile-friendly ads using ONLY the laptop data provided. DO NOT guess, infer, or add ANY specs, ports, or features that are not explicitly listed. Use Rands. SA English spelling. You MUST respond ONLY with valid JSON: {"title": "ad title", "body": "ad body"}. No other text. No explanation. Just the JSON object.`;
 
-  const userContent = `Write a ${platform.toUpperCase()} ad for this laptop.\n\n${laptopInfo}\n\n${valueContext}\n\n${platformRules}`;
+  const userContent = `Write a ${platform.toUpperCase()} ad for this laptop. USE ONLY THE DATA BELOW — DO NOT GUESS OR ADD ANY SPECS, PORTS, OR FEATURES.\n\n${laptopInfo}\n\n${buildOnDeviceContext(laptop)}\n\n${platformRules}`;
 
   // Qwen3 ChatML format — manually applied to avoid pipeline chat template issues
   return `<|im_start|>system\n${systemContent}<|im_end|>\n<|im_start|>user\n${userContent}<|im_end|>\n<|im_start|>assistant\n`;

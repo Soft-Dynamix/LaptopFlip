@@ -28,13 +28,17 @@ import {
   Activity,
   Circle,
   MapPin,
+  FileText,
+  CheckCircle2,
+  Send,
+  RotateCcw,
 } from "lucide-react";
 import { toast } from "sonner";
 
 import { useAppStore } from "@/lib/store";
-import { apiDeleteLaptop, apiFetchLaptops, apiCreateLaptop } from "@/lib/api";
-import { formatPrice } from "@/lib/types";
-import type { Laptop } from "@/lib/types";
+import { apiDeleteLaptop, apiFetchLaptops, apiCreateLaptop, apiUpdateListing } from "@/lib/api";
+import { formatPrice, PLATFORMS } from "@/lib/types";
+import type { Laptop, Listing } from "@/lib/types";
 
 import {
   Sheet,
@@ -159,9 +163,30 @@ function getActionIcon(action: string) {
       return { icon: TrendingUp, color: "text-amber-500" };
     case "edited":
       return { icon: Pencil, color: "text-purple-500" };
+    case "ad_posted":
+      return { icon: CheckCircle2, color: "text-emerald-500" };
     default:
       return { icon: Circle, color: "text-muted-foreground" };
   }
+}
+
+function getListingStatusColor(status: string) {
+  switch (status) {
+    case "draft":
+      return "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-700";
+    case "posted":
+      return "bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800";
+    case "removed":
+      return "bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800";
+    default:
+      return "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-700";
+  }
+}
+
+function getPlatformBadge(platform: string) {
+  const p = PLATFORMS.find((pl) => pl.id === platform);
+  if (p) return { name: p.name, color: p.color };
+  return { name: platform, color: "#6b7280" };
 }
 
 // ─── Detail Row ───────────────────────────────────────────
@@ -371,6 +396,8 @@ export function LaptopDetailSheet() {
 
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [listingStatuses, setListingStatuses] = useState<Record<string, string>>({});
+  const [updatingListing, setUpdatingListing] = useState<string | null>(null);
 
   const photos = selectedLaptop ? parsePhotos(selectedLaptop.photos) : [];
   const days = selectedLaptop ? daysSince(selectedLaptop.createdAt) : 0;
@@ -382,6 +409,19 @@ export function LaptopDetailSheet() {
       setGalleryKey((prev) => prev + 1);
     }
   }, [selectedLaptop?.id]);
+
+  // Sync listing statuses when laptop changes
+  useEffect(() => {
+    if (selectedLaptop?.listings) {
+      const statuses: Record<string, string> = {};
+      for (const listing of selectedLaptop.listings) {
+        statuses[listing.id] = listing.status;
+      }
+      setListingStatuses(statuses);
+    } else {
+      setListingStatuses({});
+    }
+  }, [selectedLaptop?.id, selectedLaptop?.listings]);
 
   const handleSheetClose = useCallback(
     (open: boolean) => {
@@ -488,6 +528,68 @@ export function LaptopDetailSheet() {
   const handleOpenDeleteDialog = useCallback(() => {
     setDeleteDialogOpen(true);
   }, [setDeleteDialogOpen]);
+
+  const handleMarkPosted = useCallback(async (listing: Listing) => {
+    if (!selectedLaptop) return;
+    setUpdatingListing(listing.id);
+    try {
+      await apiUpdateListing(listing.id, { status: "posted" });
+      setListingStatuses((prev) => ({ ...prev, [listing.id]: "posted" }));
+      const updatedLaptop: Laptop = {
+        ...selectedLaptop,
+        listings: selectedLaptop.listings?.map((l) =>
+          l.id === listing.id
+            ? { ...l, status: "posted", postedAt: l.postedAt || new Date().toISOString() }
+            : l
+        ),
+      };
+      setSelectedLaptop(updatedLaptop);
+      setLaptops((prev) =>
+        prev.map((l) => (l.id === selectedLaptop.id ? updatedLaptop : l))
+      );
+      addActivityLog({
+        laptopId: selectedLaptop.id,
+        action: "ad_posted",
+        detail: `Ad marked as posted on ${getPlatformBadge(listing.platform).name}`,
+      });
+      toast.success(`Ad posted on ${getPlatformBadge(listing.platform).name}`);
+    } catch {
+      toast.error("Failed to update listing");
+    } finally {
+      setUpdatingListing(null);
+    }
+  }, [selectedLaptop, setSelectedLaptop, setLaptops, addActivityLog]);
+
+  const handleMarkDraft = useCallback(async (listing: Listing) => {
+    if (!selectedLaptop) return;
+    setUpdatingListing(listing.id);
+    try {
+      await apiUpdateListing(listing.id, { status: "draft" });
+      setListingStatuses((prev) => ({ ...prev, [listing.id]: "draft" }));
+      const updatedLaptop: Laptop = {
+        ...selectedLaptop,
+        listings: selectedLaptop.listings?.map((l) =>
+          l.id === listing.id
+            ? { ...l, status: "draft", postedAt: null }
+            : l
+        ),
+      };
+      setSelectedLaptop(updatedLaptop);
+      setLaptops((prev) =>
+        prev.map((l) => (l.id === selectedLaptop.id ? updatedLaptop : l))
+      );
+      addActivityLog({
+        laptopId: selectedLaptop.id,
+        action: "ad_posted",
+        detail: `Ad reverted to draft on ${getPlatformBadge(listing.platform).name}`,
+      });
+      toast.info(`Ad moved to draft`);
+    } catch {
+      toast.error("Failed to update listing");
+    } finally {
+      setUpdatingListing(null);
+    }
+  }, [selectedLaptop, setSelectedLaptop, setLaptops, addActivityLog]);
 
   if (!selectedLaptop) return null;
 
@@ -818,6 +920,125 @@ export function LaptopDetailSheet() {
                     <p className="text-sm leading-relaxed whitespace-pre-wrap text-foreground/80">
                       {selectedLaptop.notes}
                     </p>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )}
+
+            {/* ─── Ad History ─── */}
+            {selectedLaptop.listings && selectedLaptop.listings.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: 0.325 }}
+              >
+                <h3 className="text-sm font-semibold text-emerald-700 dark:text-emerald-400 flex items-center gap-2 mb-3">
+                  <FileText className="size-4" />
+                  Ad History
+                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0 ml-1">
+                    {selectedLaptop.listings.length} ads
+                  </Badge>
+                </h3>
+
+                {/* Posted vs Draft summary */}
+                {(() => {
+                  const posted = selectedLaptop.listings!.filter(
+                    (l) => listingStatuses[l.id] === "posted"
+                  ).length;
+                  const drafts = selectedLaptop.listings!.length - posted;
+                  return (
+                    <div className="flex gap-3 mb-3">
+                      <div className="flex items-center gap-1.5 text-xs">
+                        <CheckCircle2 className="size-3.5 text-emerald-500" />
+                        <span className="font-medium text-emerald-700 dark:text-emerald-400">{posted}</span>
+                        <span className="text-muted-foreground">posted</span>
+                      </div>
+                      <div className="flex items-center gap-1.5 text-xs">
+                        <RotateCcw className="size-3.5 text-gray-400" />
+                        <span className="font-medium text-muted-foreground">{drafts}</span>
+                        <span className="text-muted-foreground">draft</span>
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                <Card className="rounded-xl">
+                  <CardContent className="p-3 space-y-2 max-h-64 overflow-y-auto">
+                    {selectedLaptop.listings.map((listing) => {
+                      const currentStatus = listingStatuses[listing.id] || listing.status;
+                      const platformInfo = getPlatformBadge(listing.platform);
+                      return (
+                        <div
+                          key={listing.id}
+                          className="flex items-center gap-3 p-2.5 rounded-lg bg-muted/40 hover:bg-muted/70 transition-colors"
+                        >
+                          {/* Platform indicator */}
+                          <div
+                            className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0"
+                            style={{ backgroundColor: `${platformInfo.color}20` }}
+                          >
+                            <span className="text-xs font-bold" style={{ color: platformInfo.color }}>
+                              {platformInfo.name.charAt(0)}
+                            </span>
+                          </div>
+
+                          {/* Listing info */}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-xs font-semibold truncate">
+                                {listing.adTitle || `${platformInfo.name} Ad`}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-1.5 mt-0.5">
+                              <span className="text-[10px] text-muted-foreground">
+                                {formatDate(listing.createdAt)}
+                              </span>
+                              {listing.postedAt && (
+                                <>
+                                  <span className="text-[10px] text-muted-foreground">·</span>
+                                  <span className="text-[10px] text-emerald-600 dark:text-emerald-400">
+                                    Posted {formatTimeAgo(listing.postedAt)}
+                                  </span>
+                                </>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Status badge + action */}
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <Badge
+                              className={`text-[10px] px-1.5 py-0 border ${getListingStatusColor(currentStatus)}`}
+                            >
+                              {currentStatus === "posted" ? "Posted" : currentStatus === "removed" ? "Removed" : "Draft"}
+                            </Badge>
+                            {currentStatus === "draft" && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="size-7 p-0 text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/30"
+                                onClick={() => handleMarkPosted(listing)}
+                                disabled={updatingListing === listing.id}
+                                aria-label="Mark as posted"
+                              >
+                                <Send className="size-3" />
+                              </Button>
+                            )}
+                            {currentStatus === "posted" && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="size-7 p-0 text-muted-foreground hover:bg-muted"
+                                onClick={() => handleMarkDraft(listing)}
+                                disabled={updatingListing === listing.id}
+                                aria-label="Revert to draft"
+                              >
+                                <RotateCcw className="size-3" />
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </CardContent>
                 </Card>
               </motion.div>

@@ -3,59 +3,48 @@ import { db } from '@/lib/db';
 import ZAI from 'z-ai-web-dev-sdk';
 import type { CreateChatCompletionBody } from 'z-ai-web-dev-sdk';
 
-// ─── Detailed platform-specific instructions ─────────────
+// ─── Platform-specific formatting instructions ───────────
+// These ONLY cover layout/format/tone — NOT spec guessing or inference.
 
 const PLATFORM_INSTRUCTIONS: Record<string, string> = {
   whatsapp: `WhatsApp Broadcast / Status ad rules:
 - STRICT 500-character limit for the entire message (title + body combined)
 - Use WhatsApp formatting: *bold* for emphasis, _italic_ for subtitles
-- Open with an attention-grabbing hook — lead with the BIGGEST selling point (price, condition, or performance)
-- Only list the TOP 3 specs that matter most for THIS specific laptop — skip irrelevant ones
+- Open with an attention-grabbing hook using the laptop's name and biggest selling point from the provided data
+- Only include specs that are ACTUALLY provided in the laptop details — DO NOT guess or add any specs
 - Include a clear price line: *Price: R X,XXX*
-- Add one compelling REASON to buy NOW (scarcity, price vs retail, demand)
-- Close with ONE urgent CTA: "DM now — won't last long!" or "First come, first served."
-- Use 2-3 emojis maximum, placed strategically at line starts (not randomly scattered)
+- Include the location and WhatsApp number if provided
+- Close with ONE urgent CTA: "DM now — won't last long!" or similar
+- Use 2-3 emojis maximum, placed strategically at line starts
 - NO long paragraphs — every line must earn its space
-- NEVER use generic phrases like "great laptop" or "good condition" without backing them up
-- Tone: energetic but honest, like a friend who found an amazing deal`,
+- Tone: energetic but honest, like a friend who found a great deal`,
 
   facebook: `Facebook Marketplace ad rules — follow this EXACT format:
 
 HEADER FORMAT:
-#NUMBER 💻🔥 Brand Model – Catchy Tagline! 🔥💻
+#N 💻🔥 Brand Model – Catchy Tagline! 🔥💻
 (Example: #9 💻🔥 Dell Latitude E5570 – Fast & Reliable! 🔥💻)
 - Generate a random ad number (#1-#50)
-- The tagline should be catchy and based on the laptop's specs (e.g., "Fast & Reliable!", "Powerhouse Performance!", "Budget-Friendly Beast!", "Gaming Powerhouse!")
+- The tagline should be catchy — use the CONDITION and PRICE to create urgency/value (e.g., "Like New!", "Priced to Sell!", "Amazing Deal!")
 
 ⚡ Specs That Impress:
 - Header must be exactly: "⚡ Specs That Impress:"
-- Each spec on its OWN LINE (no bullet points, just the spec name)
-- Add brief value comments after important specs:
-  - NVMe SSD → add "– super fast!"
-  - Regular SSD → add "– fast & reliable!"
-  - 1TB+ storage → add "– plenty of space!"
-  - 16GB+ RAM → add "– multitasking powerhouse!"
-  - Include OS if mentioned (e.g., "Windows 11 Pro + Office 2021 Pro")
-  - If new battery is mentioned, add "Brand New Battery" as its own line
+- List ONLY the specs that are provided in the laptop details — each on its own line
+- DO NOT add, guess, or infer any specs that are not explicitly listed
+- If a spec is "Not specified", DO NOT include it
 
 🧰 Features / Ports:
 - Header must be exactly: "🧰 Features / Ports:"
-- If the laptop has user-specified Features/Ports, use THOSE EXACTLY as listed — do NOT make up or infer ports
+- ONLY use the Features/Ports that the user has explicitly listed — do NOT make up or infer any ports
+- If no features are provided by the user, skip this section entirely — DO NOT guess ports
 - List each feature/port on its own line
-- If no user-specified features are provided, infer reasonable ports based on brand/model/age:
-    * Older business laptops (Dell Latitude, ThinkPad, HP ProBook/EliteBook): Network Port, VGA Port, HDMI Port, 3 x USB Ports, SIM Card Slot, SD Card Slot
-    * Newer laptops (2020+): USB-C Port, Thunderbolt (if applicable), HDMI Port
-    * All laptops: Audio Jack, Great Sound from Built-in Speakers
-  - Include "Backlit Keyboard – Work in the Dark" if it's a business or higher-end laptop
-- End with a benefit line (e.g., "Lightning-fast performance for work, study, and everyday use")
 
-📍 Location: [read the "Location" field from laptop data, or "Default Location" if no specific location]
+📍 Location: [use the location from laptop data, or omit if not provided]
 💵 Price: R[X,XXX] (formatted with comma separator)
-📲 WhatsApp: [read the "WhatsApp Number" field from laptop data, or "Default WhatsApp Number" if not provided]
+📲 WhatsApp: [use the WhatsApp number from laptop data, or omit if not provided]
 
 🚨 CTA LINE:
-🚨 Grab it before it's gone! Perfect for [target audience]!
-- Target audience examples: "students, professionals, and anyone needing a fast, reliable laptop", "gamers, creators, and power users", "students, school learners, and anyone needing an affordable laptop"
+🚨 Grab it before it's gone! [Create an appropriate call-to-action based on condition and target audience]
 
 STYLE RULES:
 - Heavy emoji use is GOOD — this style is emoji-rich by design
@@ -67,186 +56,95 @@ STYLE RULES:
 
   gumtree: `Gumtree South Africa classified ad rules:
 - Write a TRADITIONAL classified ad with clear, professional structure
-- TITLE: Brand + Model + Condition + Price (e.g., "Dell XPS 15 - Excellent - R12,500") — this is the search hook
-- OPENING: "FOR SALE:" followed by laptop name and a ONE-SENTENCE summary of its strongest selling point
-- SPECIFICATIONS: Use a clean numbered or bulleted list — every spec on its own line, include all available specs
-- CONDITION section: Be thorough and HONEST — describe condition specifically, mention any wear, scratches, or issues UPFRONT. Gumtree buyers reject vague descriptions.
-- INCLUDE: What's in the box, original charger, bag, mouse, any accessories. Missing items must be noted.
-- SELLER NOTES: If notes are provided, weave them naturally into the description — they often contain key selling info
-- VALUE JUSTIFICATION: Briefly explain why the price is fair — compare to retail or mention what similar models go for
+- TITLE: Brand + Model + Condition + Price (e.g., "Dell XPS 15 - Excellent - R12,500")
+- OPENING: "FOR SALE:" followed by laptop name and a ONE-SENTENCE summary
+- SPECIFICATIONS: List ONLY the specs that are provided. Use a clean numbered or bulleted list.
+  - If a spec says "Not specified", DO NOT include it in the listing
+  - DO NOT guess, infer, or add any specifications that are not explicitly given
+- CONDITION section: Use the condition and battery health as provided. Mention repairs if listed. Be HONEST.
+- FEATURES: ONLY list features/ports that the user has explicitly provided. DO NOT guess or infer ports.
+- SELLER NOTES: If notes are provided, include them verbatim or paraphrased naturally
 - PRICE: State clearly on its own line. Mention if negotiable or firm.
-- CTA: Professional closing — "Contact to arrange a viewing", "Call or WhatsApp on [number]", include preferred contact method
-- Tone: Direct, honest, no-nonsense but polite — Gumtree SA buyers are practical and value straightforward communication
+- CTA: Professional closing — "Contact to arrange a viewing", include WhatsApp number if provided
+- Tone: Direct, honest, no-nonsense but polite
 - Avoid excessive emojis — keep it professional (max 3-4 total)
-- NEVER: overstate condition, hide defects, use all caps for the entire ad, or include unrelated keywords`,
+- NEVER: overstate condition, hide defects, use all caps for the entire ad, include unrelated keywords`,
 
   olx: `OLX South Africa listing rules:
-- TITLE must ALWAYS include the price in this exact format: "Brand Model — R X,XXX"
-- Example: "HP ProBook 450 G9 — R8,500" or "MacBook Air M2 — R18,999"
+- TITLE must ALWAYS include the price: "Brand Model — R X,XXX"
 - Write a WELL-STRUCTURED listing with clear headings:
-  📌 Quick Summary (2-3 lines that make the buyer WANT to read more — lead with the deal factor)
-  🖥️ Full Specifications (all specs listed in a clean format)
-  🔋 Battery & Condition (specific details, not vague descriptions)
-  💰 Price & Value (justify the price — mention retail comparison, savings amount, or why it's worth it)
-  📦 What's Included (list everything — charger, bag, peripherals, original box)
-- Highlight 2-3 KEY SELLING POINTS that differentiate this laptop from other OLX listings
-- MENTION if the laptop is: freshly serviced, updated to latest OS, has remaining warranty, comes with accessories, or was recently upgraded
-- Include DELIVERY info: "Can courier nationwide at buyer's cost" or "Collection in [area]"
-- END with: "Message me on OLX for fastest response" or similar OLX-specific CTA
-- Tone: Professional marketplace seller — confident, informative, and responsive
+  📌 Quick Summary (2-3 lines that make the buyer WANT to read more)
+  🖥️ Specifications (list ONLY the specs that are provided — DO NOT guess or add any)
+  🔋 Battery & Condition (use the provided condition and battery health data)
+  💰 Price & Value (include the price clearly)
+  📦 What's Included (only list accessories/features the user has mentioned)
+- ONLY include specifications that are explicitly provided in the laptop data
+- If a spec is "Not specified", DO NOT include it — DO NOT guess what it might be
+- ONLY list Features/Ports that the user has explicitly listed — DO NOT infer or guess
+- Include DELIVERY info if mentioned in notes
+- END with an OLX-specific CTA
+- Tone: Professional marketplace seller — confident, informative, responsive
 - Keep paragraphs SHORT (2-3 sentences max) for mobile readability
-- NEVER: use ALL CAPS, spam keywords, or include unrelated item descriptions`,
+- NEVER: use ALL CAPS, spam keywords, include unrelated item descriptions`,
 };
 
-// ─── Context-aware value proposition builder ─────────────
+// ─── Simple context builder — NO spec guessing ──────────
 
-function buildValueContext(laptop: {
+function buildContext(laptop: {
   condition: string;
-  cpu: string;
-  ram: string;
-  storage: string;
-  gpu: string;
-  screenSize: string;
   askingPrice: number;
   purchasePrice: number;
-  batteryHealth: string;
   notes: string;
-  year: number;
-  repairs: string;
+  repairs?: string;
 }): string {
   const tips: string[] = [];
-  const specs = `${laptop.cpu} ${laptop.ram} ${laptop.gpu} ${laptop.storage} ${laptop.screenSize}`.toLowerCase();
 
-  // ─── Condition-based selling angles ─────────────────
+  // Condition framing only — based on the actual condition value, not specs
   if (laptop.condition === 'Mint') {
-    tips.push('This laptop is in MINT condition — essentially indistinguishable from brand new. Emphasize this as the key differentiator: buyer gets a new laptop experience at a significant discount. Mention no scratches, no dents, original packaging if applicable.');
+    tips.push('Condition is Mint — frame as essentially indistinguishable from new, a significant saving vs retail.');
   } else if (laptop.condition === 'Excellent') {
-    tips.push('Excellent condition with minimal signs of use. Frame as: Barely broken in — someone is going to get an incredible deal compared to buying this new. Highlight specific features that show careful ownership.');
+    tips.push('Condition is Excellent — frame as barely broken in, incredible deal vs buying new.');
   } else if (laptop.condition === 'Good') {
-    tips.push('Good condition with normal signs of daily use — honesty builds trust. Frame as: Well-maintained by a careful owner. Every feature works perfectly. You are paying for the specs, not the looks.');
+    tips.push('Condition is Good — frame as well-maintained, reliable, every feature works perfectly.');
   } else if (laptop.condition === 'Fair') {
-    tips.push('Fair condition with visible wear — honesty is your strongest selling tool here. Acknowledge wear openly, then redirect to value: Cosmetic wear aside, everything works exactly as it should. At this price, the specs speak for themselves.');
+    tips.push('Condition is Fair — be honest about wear, redirect to value: everything works as it should.');
   } else if (laptop.condition === 'Poor') {
-    tips.push('Poor condition — be fully transparent. Frame honestly as ideal for: parts harvesting, DIY repair project, budget buyers who need basic functionality. List EVERY working component.');
+    tips.push('Condition is Poor — be fully transparent, frame as ideal for parts, repairs, or budget buyers.');
   }
 
-  // ─── Pricing psychology ────────────────────────────────
+  // Pricing context — only based on actual price data, not spec interpretation
   if (laptop.purchasePrice && laptop.askingPrice && laptop.purchasePrice > 0) {
     const margin = laptop.askingPrice - laptop.purchasePrice;
     if (margin > 0) {
-      tips.push(`Seller purchased for R${laptop.purchasePrice.toLocaleString()} and is asking R${laptop.askingPrice.toLocaleString()} — this is a resale with a margin, NOT a desperate sale. Frame the price as fair and firm.`);
+      tips.push(`Asking price includes a resale margin — frame the price as fair.`);
     } else {
-      tips.push(`Seller is asking LESS than what they paid (R${laptop.purchasePrice.toLocaleString()}). This is NOT a sign of problems — could be a quick sale, upgrade, or relocation. Frame as: Priced to sell quickly — my loss is your gain.`);
+      tips.push(`Asking price is BELOW the seller's purchase price — frame as "Priced to sell quickly, my loss is your gain".`);
     }
   }
-  if (laptop.askingPrice < 5000) {
-    tips.push('Under R5,000 — budget-friendly. Emphasize: Perfect entry-level laptop or More laptop than you would expect at this price.');
-  } else if (laptop.askingPrice < 10000) {
-    tips.push('R5,000-R10,000 range — the sweet spot for value seekers. Compare implicitly to what R10,000 gets brand new.');
-  } else if (laptop.askingPrice < 20000) {
-    tips.push('R10,000-R20,000 — buyers expect solid performance. Emphasize premium specs, professional capability, and savings vs retail pricing.');
-  } else {
-    tips.push('R20,000+ — premium pricing. Buyers compare against new laptops with warranties. JUSTIFY the value: better specs than new at this price, or near-new condition at a deep discount.');
-  }
 
-  // ─── CPU & performance angles ──────────────────────────
-  if (specs.includes('i9') || specs.includes('ryzen 9')) {
-    tips.push('FLAGSHIP CPU — top-tier performance. Ideal for: heavy video editing, 3D rendering, software development, data science, running multiple VMs.');
-  } else if (specs.includes('i7') || specs.includes('ryzen 7')) {
-    tips.push('High-performance CPU — ideal for professionals, developers, content creators, and power users. Handles demanding workloads without breaking a sweat.');
-  } else if (specs.includes('i5') || specs.includes('ryzen 5')) {
-    tips.push('Mid-range powerhouse — the sweet spot between performance and value. Fast enough for serious work, affordable enough to be a smart buy.');
-  } else if (specs.includes('i3') || specs.includes('celeron') || specs.includes('pentium')) {
-    tips.push('Budget-friendly CPU — perfect for students, school work, office productivity, web browsing, Netflix, and video calls. Not a gaming machine, but incredibly reliable for everyday tasks.');
-  }
-
-  // ─── Apple Silicon ─────────────────────────────────────
-  if (specs.includes('m1') || specs.includes('m2') || specs.includes('m3') || specs.includes('m4')) {
-    tips.push('Apple Silicon chip — MAJOR selling point. Emphasize: All-day battery life, instant wake, dead silent operation, and performance that rivals laptops costing twice as much. Apple Silicon MacBooks hold value extremely well and are in HIGH demand on SA marketplaces.');
-  }
-
-  // ─── GPU angles ────────────────────────────────────────
-  if (specs.includes('rtx 40') || specs.includes('rtx 30')) {
-    tips.push('Modern RTX GPU (30/40 series) — EXCELLENT for gaming and creative work. Plays modern games at high settings and enables GPU-accelerated video editing and AI work. In HIGH demand and significantly increases value.');
-  } else if (specs.includes('rtx') || specs.includes('gtx')) {
-    tips.push('Dedicated NVIDIA GPU — capable of gaming, video editing, and 3D work.');
-  } else if (specs.includes('radeon') || specs.includes('rx')) {
-    tips.push('Dedicated AMD Radeon GPU — good for gaming and creative applications. Excellent value.');
-  }
-
-  // ─── RAM angles ────────────────────────────────────────
-  if (specs.includes('32gb') || specs.includes('64gb')) {
-    tips.push('Professional-grade RAM (32GB+) — run multiple VMs, massive datasets, or dozens of browser tabs without slowdown. Most laptops in this price range only have 16GB.');
-  } else if (specs.includes('16gb')) {
-    tips.push('16GB RAM — the current standard for comfortable multitasking. No upgrade needed — future-proof for years of use.');
-  } else if (specs.includes('8gb')) {
-    tips.push('8GB RAM — adequate for everyday use. Handles daily tasks smoothly. Mention if upgradeable.');
-  } else if (specs.includes('4gb')) {
-    tips.push('4GB RAM — basic but functional. Suitable for: browsing, documents, email, streaming. NOT for multitasking or demanding software.');
-  }
-
-  // ─── Storage angles ────────────────────────────────────
-  if (specs.includes('2tb') || specs.includes('1tb')) {
-    tips.push('Large storage — no need to worry about storage for years. Room for all files, apps, games, photos, and videos.');
-  } else if (specs.includes('512gb') || specs.includes('512 gb')) {
-    tips.push('512GB SSD — good capacity for most users. Emphasize fast SSD speeds, not just capacity.');
-  } else if (specs.includes('256gb') || specs.includes('128gb')) {
-    tips.push('Smaller SSD — still infinitely faster than any HDD. Mention cloud storage or SD card slot as expansion options if available.');
-  }
-
-  // ─── Screen & display angles ───────────────────────────
-  if (specs.includes('4k') || specs.includes('uhd')) {
-    tips.push('4K/UHD display — premium screen for creative professionals and media lovers. Stunning visuals for photo editing, video editing, and media.');
-  } else if (specs.includes('oled')) {
-    tips.push('OLED display — PREMIUM feature. Perfect blacks, vibrant colours, incredible contrast. Better than any LCD screen. Significantly increases value.');
-  } else if (specs.includes('touch') || specs.includes('touchscreen')) {
-    tips.push('Touchscreen — adds versatility for presentations, drawing, note-taking, and tablet-style use.');
-  } else if (specs.includes('15.6') || specs.includes('16') || specs.includes('17')) {
-    tips.push('Large screen — great for productivity, multitasking, and media. Desktop-replacement capability.');
-  } else if (specs.includes('13') || specs.includes('14')) {
-    tips.push('Compact screen — ultra-portable. Perfect for on-the-go use, slides into any bag, lightweight for commuting.');
-  }
-
-  // ─── Battery health angles ─────────────────────────────
-  if (laptop.batteryHealth?.toLowerCase().includes('excellent') || laptop.batteryHealth?.toLowerCase().includes('95') || laptop.batteryHealth?.toLowerCase().includes('100')) {
-    tips.push('Excellent battery health — KEY selling point. Emphasize all-day battery life or battery barely degraded from new.');
-  } else if (laptop.batteryHealth?.toLowerCase().includes('good') || laptop.batteryHealth?.toLowerCase().includes('80')) {
-    tips.push('Good battery health — still provides solid hours of use.');
-  }
-
-  // ─── Repair context ────────────────────────────────────
+  // Repairs transparency
   if (laptop.repairs) {
-    tips.push(`This laptop has had repairs: ${laptop.repairs}. Be TRANSPARENT — repairs BUILD trust if framed correctly: Professionally repaired, repaired with genuine parts, issue fully resolved. Never hide repairs.`);
+    tips.push('Repairs have been done — be TRANSPARENT about them in the ad. This builds trust.');
   }
 
-  // ─── Year context ──────────────────────────────────────
-  if (laptop.year && laptop.year >= 2023) {
-    tips.push(`Recent model (${laptop.year}) — relatively new. Emphasize: Still current generation with latest specs.`);
-  } else if (laptop.year && laptop.year <= 2018) {
-    tips.push(`Older model (${laptop.year}) — be realistic about age. Frame as: Proven reliable workhorse or Classic model that still delivers. Focus on what it CAN do, not its age.`);
-  }
-
-  // ─── Seller notes intelligence ─────────────────────────
+  // Notes intelligence — only if seller actually mentioned these things
   if (laptop.notes) {
     const notes = laptop.notes.toLowerCase();
-    if (notes.includes('upgrade') || notes.includes('upgraded')) {
-      tips.push('Seller mentions upgrades — upgrades ADD significant value. Detail every upgrade: RAM, SSD, battery, etc. Each upgrade justifies a higher price.');
-    }
     if (notes.includes('fresh') || notes.includes('clean install') || notes.includes('factory reset')) {
-      tips.push('Fresh/clean OS install — trust signal: Ready to use from day one, no previous owner data.');
+      tips.push('Fresh OS install mentioned — include as a trust signal.');
     }
     if (notes.includes('warranty')) {
-      tips.push('Warranty mentioned — HUGE for used laptop sales. Be specific about remaining duration and what it covers.');
+      tips.push('Warranty mentioned — highlight this, it adds significant value.');
     }
     if (notes.includes('receipt') || notes.includes('proof of purchase')) {
-      tips.push('Receipt/proof of purchase available — confirms legitimate purchase and builds trust.');
+      tips.push('Receipt/proof of purchase available — include as trust signal.');
     }
   }
 
   return tips.join(' ');
 }
 
-// ─── Prompt builder with advanced copywriting ────────────
+// ─── Prompt builder ────────────────────────────────────
 
 function buildPrompt(platform: string, laptop: {
   brand: string;
@@ -269,11 +167,11 @@ function buildPrompt(platform: string, laptop: {
   defaultLocation?: string;
 }): string {
   const platformGuide = PLATFORM_INSTRUCTIONS[platform] || PLATFORM_INSTRUCTIONS.facebook;
-  const valueContext = buildValueContext(laptop);
+  const context = buildContext(laptop);
 
-  return `Generate a ${platform.toUpperCase()} marketplace ad for this laptop being sold in South Africa:
+  return `Generate a ${platform.toUpperCase()} marketplace ad for this laptop being sold in South Africa.
 
-━━━ LAPTOP DETAILS ━━━
+━━━ LAPTOP DETAILS (USE ONLY THESE — DO NOT GUESS OR ADD ANYTHING) ━━━
 Brand: ${laptop.brand}
 Model: ${laptop.model}
 CPU: ${laptop.cpu || 'Not specified'}
@@ -283,14 +181,21 @@ GPU: ${laptop.gpu || 'Not specified'}
 Screen Size: ${laptop.screenSize ? laptop.screenSize + '"' : 'Not specified'}
 Condition: ${laptop.condition}
 Battery Health: ${laptop.batteryHealth}
-Asking Price: R${laptop.askingPrice.toLocaleString()}${laptop.purchasePrice ? `\nPurchase Price: R${laptop.purchasePrice.toLocaleString()} (for pricing context)` : ''}${laptop.color ? `\nColour: ${laptop.color}` : ''}${laptop.year ? `\nYear: ${laptop.year}` : ''}${laptop.repairs ? `\nRepairs: ${laptop.repairs}` : ''}
+Asking Price: R${laptop.askingPrice.toLocaleString()}${laptop.purchasePrice ? `\nPurchase Price: R${laptop.purchasePrice.toLocaleString()} (for pricing context only)` : ''}${laptop.color ? `\nColour: ${laptop.color}` : ''}${laptop.year ? `\nYear: ${laptop.year}` : ''}${laptop.repairs ? `\nRepairs: ${laptop.repairs}` : ''}
 Location: ${laptop.location || 'Not specified'}
 WhatsApp Number: ${laptop.whatsappNumber || 'Not provided'}
 Default Location: ${laptop.defaultLocation || 'Not specified'}${(laptop as Record<string, unknown>).features ? `\nFeatures / Ports (user-specified): ${(laptop as Record<string, unknown>).features}` : ''}
 ${laptop.notes ? `\nSeller Notes: ${laptop.notes}` : ''}
 
-━━━ SELLING CONTEXT & ANGLES ━━━
-${valueContext}
+━━━ WRITING CONTEXT ━━━
+${context}
+
+━━━ CRITICAL RULES ━━━
+1. ONLY use the laptop data provided above. DO NOT guess, infer, or add ANY specifications, ports, or features that are not explicitly listed.
+2. If a spec says "Not specified", DO NOT include it in the ad and DO NOT guess what it might be.
+3. DO NOT add generic selling angles like "great for gaming" or "perfect for students" UNLESS the specs clearly support it (e.g., RTX GPU exists in the data → gaming is fair to mention).
+4. Your job is to make the ad TEXT persuasive and well-written — use strong copywriting, emotional appeal, urgency, and professional formatting.
+5. DO NOT make up ports or features. If the user hasn't listed any Features/Ports, either skip that section or say "Contact for full specifications".
 
 ━━━ PLATFORM RULES ━━━
 ${platformGuide}
@@ -302,70 +207,50 @@ Return ONLY valid JSON: { "title": "...", "body": "..." }
 Do NOT include explanations, markdown code fences, or any text outside the JSON.`;
 }
 
-// ─── Improved fallback ad builder ─────────────────────────
+// ─── Fallback ad builder (uses ONLY provided data) ──────
 
 function buildFallbackAd(
   platform: string,
-  laptop: { brand: string; model: string; cpu: string; ram: string; storage: string; gpu: string; screenSize: string; condition: string; batteryHealth: string; askingPrice: number; purchasePrice: number; notes: string; color?: string; year?: number; repairs?: string; location?: string; whatsappNumber?: string; defaultLocation?: string }
+  laptop: { brand: string; model: string; cpu: string; ram: string; storage: string; gpu: string; screenSize: string; condition: string; batteryHealth: string; askingPrice: number; purchasePrice: number; notes: string; color?: string; year?: number; repairs?: string; location?: string; whatsappNumber?: string; defaultLocation?: string; features?: string }
 ): { platform: string; title: string; body: string; price: number } {
   const priceStr = `R${laptop.askingPrice.toLocaleString()}`;
+
+  // Only include specs that are actually provided (not empty)
   const specs = [
-    laptop.cpu && `CPU: ${laptop.cpu}`,
-    laptop.ram && `RAM: ${laptop.ram}`,
-    laptop.storage && `Storage: ${laptop.storage}`,
-    laptop.gpu && `GPU: ${laptop.gpu}`,
-    laptop.screenSize && `Screen: ${laptop.screenSize}"`,
+    laptop.cpu && laptop.cpu.trim() && `CPU: ${laptop.cpu}`,
+    laptop.ram && laptop.ram.trim() && `RAM: ${laptop.ram}`,
+    laptop.storage && laptop.storage.trim() && `Storage: ${laptop.storage}`,
+    laptop.gpu && laptop.gpu.trim() && `GPU: ${laptop.gpu}`,
+    laptop.screenSize && laptop.screenSize.trim() && `Screen: ${laptop.screenSize}"`,
   ].filter(Boolean);
 
-  const specsLine = specs.join(" | ");
-
-  const conditionLine = `Condition: ${laptop.condition} | Battery: ${laptop.batteryHealth}`;
-  const extraLines = [
+  const extraInfo = [
     laptop.year && `Year: ${laptop.year}`,
     laptop.color && `Colour: ${laptop.color}`,
     laptop.repairs && `Repairs: ${laptop.repairs}`,
   ].filter(Boolean).join(" | ");
 
-  // Compute a value angle
-  const specStr = `${laptop.cpu} ${laptop.ram} ${laptop.gpu}`.toLowerCase();
-  let valueAngle = "Well-maintained and ready for a new owner. Great value for money.";
-  let useCase = "Versatile laptop ready for work or play.";
+  // User-specified features only — NO inference
+  const userFeatures = laptop.features && laptop.features.trim()
+    ? laptop.features.split(/[,.\n]+/).map(f => f.trim()).filter(Boolean)
+    : [];
 
-  if (laptop.condition === 'Mint' || laptop.condition === 'Excellent') {
-    valueAngle = "Looks and performs like new - save thousands vs retail price!";
-  } else if (laptop.condition === 'Fair') {
-    valueAngle = "Fully operational with normal wear - priced to sell fast.";
-  } else if (laptop.condition === 'Poor') {
-    valueAngle = "Ideal for parts, repairs, or budget buyers. Priced accordingly.";
-  }
-
-  if (specStr.includes('rtx') || specStr.includes('gtx')) {
-    useCase = "Perfect for gaming, video editing, and 3D rendering";
-  } else if (specStr.includes('i7') || specStr.includes('i9') || specStr.includes('ryzen 7') || specStr.includes('ryzen 9')) {
-    useCase = "Ideal for professionals, developers, and power users";
-  } else if (specStr.includes('m1') || specStr.includes('m2') || specStr.includes('m3')) {
-    useCase = "Perfect for creatives, students, and everyday productivity";
-  } else if (specStr.includes('i3') || specStr.includes('celeron') || specStr.includes('pentium')) {
-    useCase = "Great for students, office work, and everyday browsing";
-  } else if (specStr.includes('i5') || specStr.includes('ryzen 5')) {
-    useCase = "Solid all-rounder - work, study, and entertainment";
-  }
-
-  // Profit/margin context
   const savingsNote = (laptop.purchasePrice && laptop.purchasePrice > laptop.askingPrice)
-    ? `\nPriced BELOW cost - urgent sale!`
+    ? `Priced BELOW cost - urgent sale!`
     : '';
 
   if (platform === "whatsapp") {
     const topSpecs = specs.slice(0, 3).map(s => s.split(": ")[1]).join(" | ");
     const title = `${laptop.brand} ${laptop.model} - ${priceStr}`;
     const body = [
-      `*${laptop.brand} ${laptop.model}* ${laptop.condition === 'Mint' ? '✨' : laptop.condition === 'Excellent' ? '🌟' : '💻'}`,
+      `*${laptop.brand} ${laptop.model}*`,
       `_${laptop.condition} condition | Battery: ${laptop.batteryHealth}_`,
       "",
-      topSpecs || "Great specs for the price",
+      topSpecs || "Contact for specifications",
       `*Price: ${priceStr}*`,
       savingsNote || "",
+      (laptop.location || laptop.defaultLocation) ? `📍 ${laptop.location || laptop.defaultLocation}` : null,
+      (laptop.whatsappNumber) ? `📲 ${laptop.whatsappNumber}` : null,
       "",
       "DM now - won't last long! 📲",
     ].filter(Boolean).join("\n");
@@ -376,71 +261,28 @@ function buildFallbackAd(
     const adNumber = `#${Math.floor(Math.random() * 50) + 1}`;
     const title = `${laptop.brand} ${laptop.model} - ${priceStr}`;
 
-    // Generate tagline based on specs
-    let tagline = "Fast & Reliable!";
-    if (specStr.includes("rtx 40") || specStr.includes("rtx 30")) tagline = "Gaming Powerhouse!";
-    else if (specStr.includes("rtx") || specStr.includes("gtx")) tagline = "Gaming & Creative Beast!";
-    else if (specStr.includes("i9") || specStr.includes("ryzen 9")) tagline = "Ultimate Performance!";
-    else if (specStr.includes("i7") || specStr.includes("ryzen 7")) tagline = "Powerhouse Performance!";
-    else if (specStr.includes("m1") || specStr.includes("m2") || specStr.includes("m3")) tagline = "Blazing Fast & All-Day Battery!";
-    else if (specStr.includes("i3") || specStr.includes("celeron") || specStr.includes("pentium")) tagline = "Budget-Friendly Beast!";
-    else if (laptop.condition === "Mint") tagline = "Like New Condition!";
+    // Simple tagline based on condition and price only
+    let tagline = "Great Deal!";
+    if (laptop.condition === "Mint") tagline = "Like New Condition!";
     else if (laptop.condition === "Excellent") tagline = "Barely Used - Amazing Deal!";
+    else if (laptop.purchasePrice && laptop.purchasePrice > laptop.askingPrice) tagline = "Priced to Sell!";
+    else if (laptop.condition === "Good") tagline = "Well Maintained!";
 
-    // Build spec lines with value comments
-    const fbSpecLines: string[] = [];
-    if (laptop.cpu) fbSpecLines.push(laptop.cpu);
-    if (laptop.ram) {
-      const ramL = laptop.ram.toLowerCase();
-      if (ramL.includes("16gb") || ramL.includes("32gb") || ramL.includes("64gb")) {
-        fbSpecLines.push(`${laptop.ram} - multitasking powerhouse!`);
-      } else {
-        fbSpecLines.push(laptop.ram);
-      }
-    }
-    if (laptop.storage) {
-      const storL = laptop.storage.toLowerCase();
-      if (storL.includes("nvme")) fbSpecLines.push(`${laptop.storage} - super fast!`);
-      else if (storL.includes("ssd")) fbSpecLines.push(`${laptop.storage} - fast & reliable!`);
-      else if (storL.includes("1tb") || storL.includes("2tb")) fbSpecLines.push(`${laptop.storage} - plenty of space!`);
-      else fbSpecLines.push(laptop.storage);
-    }
-    if (laptop.gpu) fbSpecLines.push(laptop.gpu);
-    if (fbSpecLines.length === 0) fbSpecLines.push("Contact for full specifications");
-
-    // Use user-specified features if available, otherwise infer
-    const userFeatures = (laptop as Record<string, unknown>).features as string | undefined;
-    let fbFeatures: string[];
-    if (userFeatures && userFeatures.trim()) {
-      fbFeatures = userFeatures.split(/[,.\n]+/).map(f => f.trim()).filter(Boolean);
-    } else {
-      fbFeatures = ["Webcam", "Bluetooth & Wi-Fi", "Network Port", "HDMI Port", "3 x USB Ports", "Audio Jack & Great Sound from Built-in Speakers", "SD Card Slot", "Backlit Keyboard - Work in the Dark"];
-    }
-
-    // Determine target audience
-    let targetAudience = "students, professionals, and anyone needing a fast, reliable laptop";
-    if (specStr.includes("rtx") || specStr.includes("gtx")) targetAudience = "gamers, creators, and power users looking for serious performance";
-    else if (specStr.includes("i7") || specStr.includes("i9")) targetAudience = "professionals, developers, and power users";
-    else if (specStr.includes("i3") || specStr.includes("celeron") || specStr.includes("pentium")) targetAudience = "students, school learners, and anyone needing an affordable, reliable laptop";
-
-    const location = (laptop as Record<string, unknown>).location as string || (laptop as Record<string, unknown>).defaultLocation as string || "";
-    const whatsapp = (laptop as Record<string, unknown>).whatsappNumber as string || "";
+    const location = laptop.location || laptop.defaultLocation || "";
+    const whatsapp = laptop.whatsappNumber || "";
 
     const body = [
       `${adNumber} 💻🔥 ${laptop.brand} ${laptop.model} – ${tagline} 🔥💻`,
       "",
       "⚡ Specs That Impress:",
-      ...fbSpecLines,
+      ...specs,
       "",
-      "🧰 Features / Ports:",
-      ...fbFeatures,
-      "Lightning-fast performance for work, study, and everyday use",
-      "",
+      ...(userFeatures.length > 0 ? ["🧰 Features / Ports:", ...userFeatures, ""] : []),
       location ? `📍 Location: ${location}` : null,
       `💵 Price: ${priceStr}`,
       whatsapp ? `📲 WhatsApp: ${whatsapp}` : null,
       "",
-      `🚨 Grab it before it's gone! Perfect for ${targetAudience}!`,
+      `🚨 Grab it before it's gone!`,
     ].filter(Boolean).join("\n");
     return { platform, title, body, price: laptop.askingPrice };
   }
@@ -452,17 +294,18 @@ function buildFallbackAd(
       "",
       `Condition: ${laptop.condition}`,
       `Battery Health: ${laptop.batteryHealth}`,
-      extraLines,
+      extraInfo,
       "",
       "Specifications:",
       ...specs.map((s, i) => `  ${i + 1}. ${s}`),
       "",
-      `🛡️ ${valueAngle}`,
-      `🎯 ${useCase}`,
-      laptop.notes ? `\nSeller Notes: ${laptop.notes}` : null,
+      ...(userFeatures.length > 0 ? [`Features / Ports:`, ...userFeatures.map(f => `  • ${f}`), ""] : []),
+      laptop.notes ? `Seller Notes: ${laptop.notes}` : null,
       "",
       `Asking Price: ${priceStr}`,
       savingsNote || "",
+      (laptop.location || laptop.defaultLocation) ? `📍 Location: ${laptop.location || laptop.defaultLocation}` : null,
+      (laptop.whatsappNumber) ? `📲 WhatsApp: ${laptop.whatsappNumber}` : null,
       "",
       "Contact to arrange a viewing. Serious buyers only please.",
     ].filter(Boolean).join("\n");
@@ -477,15 +320,15 @@ function buildFallbackAd(
     `💰 Price: ${priceStr}`,
     savingsNote || "",
     "",
-    "🖥️ Full Specifications:",
+    "🖥️ Specifications:",
     ...specs.map(s => `  • ${s}`),
     "",
     `🔋 Battery: ${laptop.batteryHealth}`,
-    extraLines,
+    extraInfo,
     "",
-    `💡 ${valueAngle}`,
-    `🎯 ${useCase}`,
-    laptop.notes ? `\n📝 Notes: ${laptop.notes}` : null,
+    ...(userFeatures.length > 0 ? [`🧰 Features / Ports:`, ...userFeatures.map(f => `  • ${f}`), ""] : []),
+    laptop.notes ? `📝 Notes: ${laptop.notes}` : null,
+    (laptop.location || laptop.defaultLocation) ? `📍 Location: ${laptop.location || laptop.defaultLocation}` : null,
     "",
     "Message me on OLX for more details or to arrange a viewing.",
   ].filter(Boolean).join("\n");
@@ -521,77 +364,68 @@ function extractJson(text: string): { title: string; body: string } | null {
   return null;
 }
 
-// ─── System prompt with advanced copywriting framework ────
+// ─── System prompt — focused on ad copy quality, NOT spec guessing ────
 
-const SYSTEM_PROMPT = `You are a senior marketplace ad copywriter specialising in second-hand electronics in South Africa. You write ads that SELL — they are persuasive, honest, and optimised for each platform's audience. You understand South African buyer psychology and marketplace dynamics.
+const SYSTEM_PROMPT = `You are a senior marketplace ad copywriter specialising in second-hand electronics in South Africa. Your SOLE job is to write persuasive, well-formatted ad text using ONLY the laptop data provided to you.
 
-YOUR COPYWRITING FRAMEWORK:
+YOUR #1 RULE: USE ONLY PROVIDED DATA
+- ONLY include specifications that are explicitly listed in the laptop details.
+- If a spec says "Not specified", DO NOT include it and DO NOT guess what it might be.
+- DO NOT guess, infer, or add ANY ports, features, or specifications that are not listed.
+- DO NOT add generic selling angles like "great for gaming" UNLESS a gaming-capable GPU is explicitly listed.
+- DO NOT add "16GB RAM = multitasking powerhouse" type comments UNLESS the RAM is actually 16GB.
+- If no Features/Ports are provided by the user, skip that section or write "Contact for full specifications".
 
-1. HONESTY FIRST (Non-negotiable)
-   - Never exaggerate specs or condition. SA buyers value transparency and will walk away from misleading ads.
-   - If condition is "Good", say "good" — do not upgrade it to "excellent" in the ad copy.
-   - Mention any repairs, defects, or wear UPFRONT — this builds trust and prevents returns/wasted viewings.
+YOUR COPYWRITING PRINCIPLES:
+
+1. HONESTY FIRST
+   - Never exaggerate condition. If "Good", say "good" — do not upgrade it.
+   - Mention any repairs, defects, or wear UPFRONT.
+   - Transparency builds trust and prevents returns.
 
 2. THE HOOK (First 2 seconds)
-   - The first line must stop the scroll. You have ONE sentence to grab attention.
-   - Effective hooks: a question ("Looking for a laptop that won't break the bank?"), a bold value claim ("Save R8,000 vs retail"), or a lifestyle benefit ("Edit videos, run VS Code, and still have battery left").
-   - AVOID weak hooks: "Selling my laptop", "Good laptop for sale", "Check this out" (too vague).
+   - The first line must stop the scroll. ONE sentence to grab attention.
+   - Use: a question, a bold value claim, or a lifestyle benefit.
+   - AVOID weak hooks: "Selling my laptop", "Good laptop for sale".
 
-3. SPECIFICATIONS THAT SELL
-   - Include EVERY available spec — SA marketplace buyers compare specs obsessively.
-   - Don't just list specs — EXPLAIN what they mean for the buyer: "16GB RAM = run 20+ browser tabs + Slack + Excel without lag".
-   - Highlight the TOP 3 specs that matter most for THIS laptop and THIS price point.
+3. USE PROVIDED SPECS ACCURATELY
+   - Include EVERY spec that is provided — buyers compare specs.
+   - List them cleanly, formatted for the platform.
+   - Do NOT add commentary on specs that aren't there.
 
-4. EMOTIONAL BENEFITS (Paint a picture)
-   - Help the buyer IMAGINE owning this laptop. What will their day look like?
-   - Instead of "good for students" → "Ace your assignments, join online classes seamlessly, and still have battery for Netflix at night."
-   - Instead of "gaming laptop" → "Play Valorant, CS2, and GTA V at high settings. No lag, no overheating."
+4. EMOTIONAL BENEFITS
+   - Help the buyer IMAGINE owning this laptop.
+   - Base benefits on ACTUAL specs provided (e.g., if battery health is "Excellent", mention long battery life).
 
 5. TRUST ARCHITECTURE
-   - Include 2-3 subtle trust signals naturally woven into the copy.
-   - Examples: "well maintained", "always kept in a case", "clean Windows install", "original charger included", "receipt available", "smoke-free home".
-   - For repairs: "Professionally repaired with genuine parts" — never hide repairs.
+   - Weave 2-3 trust signals naturally into the copy.
+   - Use data from notes: "clean install", "original charger", "receipt available", etc.
+   - For repairs: "Professionally repaired" — never hide them.
 
-6. URGENCY & SCARCITY (Without desperation)
-   - Subtly suggest limited availability: "Priced to sell fast", "Won't stay listed long", "Only one available".
-   - NEVER sound desperate — desperation makes buyers suspicious. "Urgent sale" can signal problems.
-   - Instead frame as opportunity: "At this price, it won't last" or "Similar specs are going for R5,000 more."
+6. URGENCY & SCARCITY
+   - Subtly suggest limited availability WITHOUT sounding desperate.
+   - Frame as opportunity, not desperation.
 
-7. VALUE ANCHORING (Pricing psychology)
-   - Frame the price as a SMART DEAL, not a cheap option.
-   - Implicitly compare to retail: "You'd pay R25,000+ for this spec brand new."
-   - For laptops below purchase price: "Seller upgraded and wants a quick sale — your gain."
-   - For budget laptops: "More laptop than you'd expect at this price point."
+7. VALUE ANCHORING
+   - Frame the price as a SMART DEAL.
+   - Use the condition to justify value.
 
-8. COMPETITIVE DIFFERENTIATION
-   - What makes THIS listing better than the 50 others on the same platform?
-   - Focus on: condition, included accessories, upgrades, battery health, pricing, availability.
-   - Specific differentiators beat vague claims: "Recently upgraded to 16GB RAM" beats "fast laptop".
+8. MOBILE-FIRST FORMATTING
+   - 80%+ of SA marketplace browsing is on phones.
+   - Short paragraphs, generous line breaks, clean spec lists.
 
-9. MOBILE-FIRST FORMATTING
-   - 80%+ of SA marketplace browsing happens on phones.
-   - Short paragraphs (2-3 sentences max).
-   - Generous line breaks between sections.
-   - Bullet points for specs (not dense paragraphs).
-   - Emoji headers for section breaks (platform permitting).
+9. SOUTH AFRICAN CONTEXT
+   - Use Rands (R). SA English spelling: colour, programme, centre.
+   - SA norms: "DM me", "WhatsApp preferred", "Can courier".
 
-10. SOUTH AFRICAN MARKETPLACE CONTEXT
-    - Use Rands (R) for all prices — never USD or EUR.
-    - South African English spelling: colour (not color), programme, centre.
-    - SA marketplace norms: "DM me", "WhatsApp preferred", "Can courier", "Collection in [area]".
-    - Avoid Americanisms: "shipping" → "delivery/courier", "bucks" → "Rands".
+10. WHAT TO AVOID
+    - NEVER: use clickbait, ALL CAPS body, excessive emojis, false urgency, unrelated keywords.
+    - NEVER: guess specs, infer ports, add features not listed, or write "Not specified" in the ad.
+    - NEVER: include personal phone numbers or addresses not in the provided data.
 
-11. WHAT TO AVOID (Anti-patterns)
-    - NEVER: use clickbait titles, ALL CAPS body text, excessive emojis, unrelated keywords for SEO, false urgency ("LAST ONE!!!"), or vague descriptions ("works well").
-    - NEVER: copy-paste the same ad for every platform — each platform has different norms and audiences.
-    - NEVER: include personal phone numbers, email addresses, or addresses in the ad body.
-    - NEVER: use generic phrases without backing them up ("great laptop" — WHY is it great?).
-
-12. OUTPUT FORMAT
+11. OUTPUT FORMAT
     - ALWAYS respond with valid JSON only: { "title": "...", "body": "..." }
-    - Do NOT include explanations, markdown code fences, or any text outside the JSON.
-    - The title should be optimised for the platform's search/discovery mechanism.
-    - The body should follow the specific platform rules provided in the prompt.`;
+    - Do NOT include explanations, markdown code fences, or any text outside the JSON.`;
 
 // POST /api/generate-ad — Generate AI ads for specified platforms
 export async function POST(request: NextRequest) {
@@ -664,7 +498,7 @@ export async function POST(request: NextRequest) {
 
         const parsed = extractJson(content);
         if (!parsed) {
-          // Fallback: create a compelling ad using the improved template
+          // Fallback: create ad using provided data only
           results.push(buildFallbackAd(platform, laptop));
           continue;
         }
