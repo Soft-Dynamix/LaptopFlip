@@ -8,15 +8,14 @@ import {
   Camera,
   Plus,
   Package,
-  Sun,
-  Moon,
+  Settings,
 } from "lucide-react";
-import { useTheme } from "next-themes";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAppStore } from "@/lib/store";
 import { Dashboard } from "@/components/tabs/Dashboard";
 import { PhotoGuide } from "@/components/tabs/PhotoGuide";
 import { Inventory } from "@/components/tabs/Inventory";
+import { Settings } from "@/components/tabs/Settings";
 import { LaptopFormSheet } from "@/components/laptop/LaptopFormSheet";
 import { AdCreatorSheet } from "@/components/ad/AdCreatorSheet";
 import { AdPreviewSheet } from "@/components/ad/AdPreviewSheet";
@@ -28,7 +27,7 @@ const tabs = [
   { id: "photos", label: "Photos", icon: Camera },
   { id: "add", label: "", icon: Plus },
   { id: "inventory", label: "Stock", icon: Package },
-  { id: "theme", label: "", icon: Sun },
+  { id: "settings", label: "Settings", icon: Settings },
 ] as const;
 
 export default function Home() {
@@ -36,7 +35,6 @@ export default function Home() {
   const setActiveTab = useAppStore((s) => s.setActiveTab);
   const setIsFormOpen = useAppStore((s) => s.setIsFormOpen);
   const setEditingLaptopId = useAppStore((s) => s.setEditingLaptopId);
-  const { theme, setTheme } = useTheme();
 
   const handleTabClick = useCallback(
     (tabId: string) => {
@@ -45,13 +43,9 @@ export default function Home() {
         setIsFormOpen(true);
         return;
       }
-      if (tabId === "theme") {
-        setTheme(theme === "dark" ? "light" : "dark");
-        return;
-      }
       setActiveTab(tabId);
     },
-    [setActiveTab, setIsFormOpen, setEditingLaptopId, theme, setTheme]
+    [setActiveTab, setIsFormOpen, setEditingLaptopId]
   );
 
   return (
@@ -70,6 +64,7 @@ export default function Home() {
             {activeTab === "dashboard" && <Dashboard />}
             {activeTab === "photos" && <PhotoGuide />}
             {activeTab === "inventory" && <Inventory />}
+            {activeTab === "settings" && <Settings />}
           </motion.div>
         </AnimatePresence>
       </main>
@@ -80,9 +75,7 @@ export default function Home() {
           {tabs.map((tab) => {
             const isActive = tab.id === activeTab;
             const isAdd = tab.id === "add";
-            const isTheme = tab.id === "theme";
-            const Icon =
-              isTheme && theme === "dark" ? Moon : tab.icon;
+            const Icon = tab.icon;
 
             if (isAdd) {
               return (
@@ -116,7 +109,7 @@ export default function Home() {
                   </span>
                 )}
                 {/* Active indicator: small pill below the label */}
-                {isActive && !isTheme && (
+                {isActive && (
                   <motion.div
                     layoutId="activeTabPill"
                     className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-5 h-1 bg-emerald-600 dark:bg-emerald-400 rounded-full"

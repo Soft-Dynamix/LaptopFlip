@@ -240,6 +240,19 @@ export function Dashboard() {
     }
   };
 
+  // Recently sold laptops (last 3)
+  const recentSold = [...laptops]
+    .filter((l: LaptopType) => l.status === "sold")
+    .sort((a: LaptopType, b: LaptopType) =>
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    )
+    .slice(0, 3);
+
+  // Laptops with generated ads
+  const laptopsWithAds = laptops.filter((l: LaptopType) =>
+    l.listings && Array.isArray(l.listings) && l.listings.length > 0
+  );
+
   if (loading) {
     return <DashboardSkeleton />;
   }
@@ -389,13 +402,13 @@ export function Dashboard() {
                 <p className="text-xs text-muted-foreground">Average Days to Sell</p>
                 <p className="text-sm font-semibold">
                   {soldLaptops.length > 0
-                    ? `${Math.round(
+                    ? `~${Math.round(
                         soldLaptops.reduce((sum: number, l: LaptopType) => {
                           const created = new Date(l.createdAt).getTime();
                           return sum + Math.max(0, (Date.now() - created) / (1000 * 60 * 60 * 24));
                         }, 0) / soldLaptops.length
-                      )} days`
-                    : "No data yet"}
+                      )} days (est.)`
+                    : "No sales yet"}
                 </p>
               </div>
             </div>
@@ -523,6 +536,71 @@ export function Dashboard() {
           </div>
         )}
       </motion.div>
+
+      {/* Recently Sold (only shown if there are sold items) */}
+      {recentSold.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.35 }}
+          className="space-y-3"
+        >
+          <div className="flex items-center justify-between">
+            <h2 className="text-base font-semibold flex items-center gap-2">
+              <CheckCircle2 className="size-4 text-blue-500" />
+              Recently Sold
+            </h2>
+            <Badge variant="secondary" className="text-[10px]">
+              {recentSold.length} item{recentSold.length > 1 ? "s" : ""}
+            </Badge>
+          </div>
+
+          <div className="space-y-2">
+            {recentSold.map((laptop, index) => {
+              const profit = laptop.askingPrice - (laptop.purchasePrice || 0);
+              const margin = laptop.purchasePrice > 0
+                ? Math.round((profit / laptop.purchasePrice) * 100)
+                : 0;
+              return (
+                <motion.div
+                  key={laptop.id}
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.2, delay: index * 0.05 }}
+                >
+                  <Card className="rounded-xl py-3 shadow-md border-l-4 border-l-blue-500">
+                    <CardContent className="p-0 px-4">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium truncate">
+                            {laptop.brand} {laptop.model}
+                          </p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <p className="text-xs text-muted-foreground">
+                              {laptop.ram} · {laptop.storage}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <p className="text-sm font-bold text-emerald-600 dark:text-emerald-400">
+                            {formatPrice(laptop.askingPrice)}
+                          </p>
+                          {profit > 0 && (
+                            <p className="text-[10px] text-emerald-500 dark:text-emerald-400 flex items-center justify-end gap-0.5">
+                              <TrendingUp className="size-2.5" />
+                              +{formatPrice(profit)} ({margin}%)
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              );
+            })}
+          </div>
+        </motion.div>
+      )}
     </div>
   );
 }
