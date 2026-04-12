@@ -62,3 +62,12 @@ server.log
 
 # Mini services (runtime)
 mini-services/*/node_modules
+
+# Capacitor / Android
+android/.gradle/
+android/build/
+android/app/build/
+android/captures/
+*.apk
+*.aab
+*.keystore
