@@ -141,3 +141,40 @@ Stage Summary:
 - Each step: take photo (camera), upload from gallery, or skip
 - Photos automatically carry over to laptop listing form
 - ESLint clean, dev server compiling successfully
+
+---
+Task ID: 5
+Agent: Main
+Task: Integrate guided photo capture into the Add Laptop flow
+
+Work Log:
+- Created `/src/lib/photo-steps.ts` as shared module for photo step data and prep tips
+- Completely rewrote `LaptopFormSheet.tsx` as a multi-step form:
+  - Step 1 (Photos): Guided photo capture flow embedded in the form sheet
+  - Step 2 (Details): Laptop specs, condition, pricing, notes form
+  - Step indicator pills in the header showing Photos → Details progress
+  - When adding new laptop: starts at Step 1 (photo capture)
+  - When editing: skips directly to Step 2 (details)
+  - "Back to photos" button in Step 2 with photo count badge
+- PhotoCaptureStep subcomponent with full guided flow:
+  - Preparation screen with tips and step overview before starting
+  - Active session: step-by-step camera/upload/skip per step
+  - Progress bar, step dots, back/next/retake navigation
+  - "Skip photos & fill in details" option at any time
+  - Photos collected and passed to Step 2
+- Rewrote `PhotoGuide.tsx` as a reference/learning page:
+  - "Start Adding Laptop" CTA that opens the form in photo mode
+  - How it works, prep tips, required/optional photo steps
+  - Pro tips by category, Do's & Don'ts grid
+  - Multiple CTAs to start adding a laptop
+- Cleaned up unused photo session state from Zustand store
+- ESLint clean (0 errors), dev server compiling successfully
+
+Stage Summary:
+- The "Add New Laptop" flow now has two steps: Photos → Details
+- When user taps "+", they are guided through 12 photo steps first
+- Each photo step: camera capture, gallery upload, or skip with retake
+- Photos auto-carry to the details form step
+- Photo Guide tab is now a learning reference with CTAs
+- Clean architecture with shared photo-steps module
+- Store cleaned up (removed unused photo session state)
