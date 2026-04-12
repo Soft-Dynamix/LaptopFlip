@@ -309,3 +309,71 @@ Stage Summary:
 - Pencil icon in Inventory still opens the edit form directly
 - Detail view has: photo gallery, specs, condition, pricing with profit/loss, notes, action buttons
 - All animations, dark mode, and accessibility properly handled
+
+---
+Task ID: 11
+Agent: Main
+Task: QA review, bug fixes, sort/export, and styling improvements
+
+Work Log:
+- Performed thorough code review of all components (Dashboard, Inventory, PhotoGuide, LaptopFormSheet, AdCreatorSheet, AdPreviewSheet, page.tsx, store.ts, api.ts, types.ts)
+- Browser QA not possible due to network namespace isolation between app and agent-browser
+- Fixed bugs:
+  - Removed unused `useEffect` import in page.tsx
+  - Removed unused `STATUSES` import in Inventory.tsx
+  - Added toast notification for status changes in Inventory ("Dell X1 → Sold")
+  - Status dropdown menu now shows target status name ("Mark as Sold" instead of "Change Status")
+- Added Inventory enhancements:
+  - Sort options: Newest, Oldest, Price High/Low, Brand A-Z (via DropdownMenuRadioGroup in search bar)
+  - CSV Export: Download icon in header, generates laptopflip-inventory-{date}.csv with 16 columns
+  - Days ago indicator: Shows "3d ago", "2w ago", "1m ago" on inventory cards
+- Added LaptopDetailSheet (722 lines): Full read-only detail view with photo gallery, specs, pricing, notes, action buttons
+- Updated Dashboard and Inventory: Card tap opens detail view, pencil icon opens edit
+- Added `isDetailOpen`/`setIsDetailOpen` to Zustand store
+- Committed and pushed to GitHub (commit 2c19a5c)
+
+Stage Summary:
+- 5 new features added: Detail View, Sort, Export CSV, Days Ago indicator, Status toast
+- 3 bugs fixed: unused imports, missing toast for status changes, unclear status menu label
+- All code compiles successfully (GET / 200)
+- ESLint clean on all modified files
+- Pushed to GitHub: https://github.com/Soft-Dynamix/LaptopFlip
+
+## Current Project Status
+
+### Project: LaptopFlip - Mobile-First Laptop Resale App
+### Status: Feature-rich MVP with recent enhancements
+
+### Completed Features (10 total):
+1. **Dashboard** - Stats grid (5 cards), gradient header, quick actions, recent listings, refresh button
+2. **Guided Photo Session** - Step-by-step 12-shot wizard with camera/upload/skip per step, auto-carries to laptop form
+3. **Inventory** - Search + filter + sort, laptop cards with profit/loss indicators, edit/create ad/delete, status cycling, CSV export, days-ago indicator
+4. **Laptop Detail View** - Read-only sheet with photo gallery, specs, condition, pricing, notes, action buttons
+5. **Laptop Form** - Full bottom sheet with brand/model/specs/condition/pricing/photos, real camera capture
+6. **AI Ad Creator** - Platform selection, AI generation via glm-4-flash, ad cards with preview/copy/share
+7. **Ad Preview** - Realistic Facebook/WhatsApp/Gumtree/OLX previews, share to WhatsApp/Facebook, copy, Web Share API
+8. **API Routes** - Full CRUD for laptops, AI ad generation with fallback templates, photo upload
+9. **Dark Mode** - Full support via next-themes
+10. **Animations** - Framer Motion throughout (page transitions, list animations, micro-interactions)
+
+### Tech Stack:
+- Next.js 16 + TypeScript + Tailwind CSS 4 + shadcn/ui
+- Zustand state management
+- Prisma ORM (SQLite)
+- z-ai-web-dev-sdk (AI ad generation)
+- Framer Motion (animations)
+- Capacitor (Android APK)
+
+### Unresolved/Risks:
+- Photos stored as base64 in SQLite (works for demo, would need CDN/cloud storage for production)
+- Ad generation depends on z-ai-web-dev SDK availability
+- No user authentication (single-user app)
+- Auto-posting to platforms not implemented (manual copy/paste workflow)
+
+### Next Phase Recommendations:
+1. Add multi-user support with NextAuth
+2. Cloud photo storage (S3/Cloudflare R2)
+3. Scheduled auto-relist for stale listings
+4. Price trend analytics with charts
+5. Buyer contact management / mini CRM
+6. Push notifications for price drops on watched listings
