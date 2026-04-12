@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { Laptop, LaptopFormData, AdPreview, Platform, ActivityLogEntry, AppNotification } from "./types";
+import type { Laptop, LaptopFormData, AdPreview, Platform, ActivityLogEntry, AppNotification, BuyerContact } from "./types";
 import { defaultLaptopForm, PLATFORMS } from "./types";
 import type { ModelProgress } from "./on-device-llm";
 
@@ -85,6 +85,17 @@ interface AppState {
   setNotifications: (notifications: AppNotification[]) => void;
   dismissNotification: (id: string) => void;
   clearNotifications: () => void;
+
+  // Buyer contacts (CRM)
+  contacts: BuyerContact[];
+  setContacts: (contacts: BuyerContact[]) => void;
+  addContact: (contact: Omit<BuyerContact, 'id' | 'createdAt'>) => void;
+  updateContact: (id: string, updates: Partial<BuyerContact>) => void;
+  deleteContact: (id: string) => void;
+  isContactsSheetOpen: boolean;
+  setContactsSheetOpen: (open: boolean) => void;
+  contactsSheetLaptopId: string | null;
+  setContactsSheetLaptopId: (id: string | null) => void;
 }
 
 const defaultChecklist: Record<string, boolean> = {
@@ -251,4 +262,51 @@ export const useAppStore = create<AppState>((set, get) => ({
       ),
     })),
   clearNotifications: () => set({ notifications: [] }),
+
+  // Buyer contacts (CRM)
+  contacts: [],
+  setContacts: (contacts) => {
+    set({ contacts });
+    if (typeof window !== "undefined") {
+      try { localStorage.setItem("laptopflip_contacts", JSON.stringify(contacts)); } catch { /* ignore */ }
+    }
+  },
+  addContact: (contact) => {
+    set((state) => {
+      const newContact: BuyerContact = {
+        ...contact,
+        id: `contact-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        createdAt: new Date().toISOString(),
+      };
+      const updated = [newContact, ...state.contacts];
+      if (typeof window !== "undefined") {
+        try { localStorage.setItem("laptopflip_contacts", JSON.stringify(updated)); } catch { /* ignore */ }
+      }
+      return { contacts: updated };
+    });
+  },
+  updateContact: (id, updates) => {
+    set((state) => {
+      const updated = state.contacts.map((c) =>
+        c.id === id ? { ...c, ...updates } : c
+      );
+      if (typeof window !== "undefined") {
+        try { localStorage.setItem("laptopflip_contacts", JSON.stringify(updated)); } catch { /* ignore */ }
+      }
+      return { contacts: updated };
+    });
+  },
+  deleteContact: (id) => {
+    set((state) => {
+      const updated = state.contacts.filter((c) => c.id !== id);
+      if (typeof window !== "undefined") {
+        try { localStorage.setItem("laptopflip_contacts", JSON.stringify(updated)); } catch { /* ignore */ }
+      }
+      return { contacts: updated };
+    });
+  },
+  isContactsSheetOpen: false,
+  setContactsSheetOpen: (open) => set({ isContactsSheetOpen: open }),
+  contactsSheetLaptopId: null,
+  setContactsSheetLaptopId: (id) => set({ contactsSheetLaptopId: id }),
 }));

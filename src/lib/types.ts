@@ -113,6 +113,18 @@ export interface ActivityLogEntry {
   timestamp: string;
 }
 
+export interface BuyerContact {
+  id: string;
+  laptopId: string;
+  name: string;
+  phone: string;
+  email: string;
+  platform: string;
+  message: string;
+  status: 'new' | 'contacted' | 'interested' | 'not_interested' | 'sold_to';
+  createdAt: string;
+}
+
 // ─── Currency & Locale helpers ─────────────────────────
 
 export type CurrencyCode = "ZAR" | "USD" | "GBP" | "EUR";
@@ -168,3 +180,19 @@ export interface AppNotification {
   timestamp: string;
   dismissed: boolean;
 }
+
+export const CONTACT_STATUSES = [
+  { value: "new", label: "New", color: "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400" },
+  { value: "contacted", label: "Contacted", color: "bg-sky-100 dark:bg-sky-900/40 text-sky-700 dark:text-sky-300" },
+  { value: "interested", label: "Interested", color: "bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300" },
+  { value: "not_interested", label: "Not Interested", color: "bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300" },
+  { value: "sold_to", label: "Sold To", color: "bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300" },
+] as const;
+
+export const CONTACT_PLATFORMS = [
+  { value: "whatsapp", label: "WhatsApp" },
+  { value: "facebook", label: "Facebook" },
+  { value: "gumtree", label: "Gumtree" },
+  { value: "olx", label: "OLX" },
+  { value: "other", label: "Other" },
+] as const;
