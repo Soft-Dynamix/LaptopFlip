@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useCallback } from "react";
+// Initialize Capacitor runtime so window.Capacitor is available for native detection
+import "@capacitor/core";
 import {
   LayoutDashboard,
   Camera,
