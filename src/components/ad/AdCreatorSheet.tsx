@@ -29,7 +29,6 @@ import type { Laptop, AdPreview, Platform } from "@/lib/types";
 import { PLATFORMS } from "@/lib/types";
 import {
   loadModel,
-  isModelReady,
   onModelProgress,
   getModelStatus,
   type ModelProgress,
@@ -340,10 +339,8 @@ export function AdCreatorSheet() {
   const setPreviewPlatform = useAppStore((s) => s.setPreviewPlatform);
 
   const [laptop, setLaptop] = useState<Laptop | null>(null);
-  const [modelProgress, setModelProgressState] = useState<ModelProgress>({
-    status: "idle",
-    progress: 0,
-  });
+  // Initialize from actual model state (handles remount when model is already loaded)
+  const [modelProgress, setModelProgressState] = useState<ModelProgress>(() => getModelStatus());
   const [adSources, setAdSources] = useState<Record<string, "ai" | "template">>({});
   const [isDownloadingModel, setIsDownloadingModel] = useState(false);
 
@@ -467,7 +464,8 @@ export function AdCreatorSheet() {
   };
 
   const isOffline = isLocalMode();
-  const modelReady = isModelReady();
+  // Derive from React state to stay in sync with UI (not module-level variable)
+  const modelReady = modelProgress.status === "ready";
 
   return (
     <Sheet open={isAdCreatorOpen} onOpenChange={handleSheetClose}>
