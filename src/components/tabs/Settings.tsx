@@ -19,11 +19,14 @@ import {
   Upload,
   Lightbulb,
   ChevronLeft,
+  Phone,
+  MapPin,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -76,6 +79,7 @@ export function Settings() {
   const setLaptops = useAppStore((s) => s.setLaptops);
   const appSettings = useAppStore((s) => s.appSettings);
   const setAppSettings = useAppStore((s) => s.setAppSettings);
+  const setContacts = useAppStore((s) => s.setContacts);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Hydration safety for theme
@@ -124,6 +128,14 @@ export function Settings() {
       toast.error("Failed to export data");
     }
   };
+
+  // Load contacts from localStorage on mount
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("laptopflip_contacts");
+      if (raw) setContacts(JSON.parse(raw));
+    } catch { /* ignore */ }
+  }, [setContacts]);
 
   const handleImportData = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -324,7 +336,7 @@ export function Settings() {
             <Separator />
 
             {/* Region Selector */}
-            <div className="px-4 py-3 rounded-b-xl">
+            <div className="px-4 py-3">
               <div className="flex items-center justify-between">
                 <div className="min-w-0">
                   <p className="text-sm font-medium">Marketplace Region</p>
@@ -347,6 +359,46 @@ export function Settings() {
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* WhatsApp Number */}
+            <div className="px-4 py-3">
+              <div className="flex items-center justify-between gap-4">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium">WhatsApp Number</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Shown in generated ads
+                  </p>
+                </div>
+                <Input
+                  placeholder="076 748 8988"
+                  className="w-auto max-w-[180px] rounded-lg text-sm"
+                  value={appSettings.whatsappNumber}
+                  onChange={(e) => setAppSettings({ whatsappNumber: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* Default Location */}
+            <div className="px-4 py-3 rounded-b-xl">
+              <div className="flex items-center justify-between gap-4">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium">Default Location</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Pre-filled when adding laptops
+                  </p>
+                </div>
+                <Input
+                  placeholder="e.g. Potchefstroom"
+                  className="w-auto max-w-[180px] rounded-lg text-sm"
+                  value={appSettings.defaultLocation}
+                  onChange={(e) => setAppSettings({ defaultLocation: e.target.value })}
+                />
               </div>
             </div>
           </CardContent>

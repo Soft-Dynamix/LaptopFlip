@@ -69,6 +69,7 @@ export async function POST(request: NextRequest) {
         year: Number(body.year) || 0,
         serialNumber: body.serialNumber ?? '',
         repairs: body.repairs ?? '',
+        location: body.location || null,
       },
       include: { listings: true },
     });

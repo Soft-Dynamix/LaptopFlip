@@ -15,6 +15,7 @@ export interface LaptopFormData {
   year: string;
   serialNumber: string;
   repairs: string;
+  location: string;
 }
 
 export const defaultLaptopForm: LaptopFormData = {
@@ -34,6 +35,7 @@ export const defaultLaptopForm: LaptopFormData = {
   year: "",
   serialNumber: "",
   repairs: "",
+  location: "",
 };
 
 export interface Laptop {
@@ -56,6 +58,7 @@ export interface Laptop {
   year: number;
   serialNumber: string;
   repairs: string;
+  location: string;
   createdAt: string;
   updatedAt: string;
   listings?: Listing[];

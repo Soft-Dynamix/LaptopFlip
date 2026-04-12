@@ -14,6 +14,7 @@ import {
   Tag,
   Image,
   StickyNote,
+  MapPin,
   SkipForward,
   RotateCcw,
   Check,
@@ -635,6 +636,7 @@ export function LaptopFormSheet() {
   const setLaptops = useAppStore((s) => s.setLaptops);
   const laptops = useAppStore((s) => s.laptops);
   const addActivityLog = useAppStore((s) => s.addActivityLog);
+  const appSettings = useAppStore((s) => s.appSettings);
 
   const [formData, setFormData] = useState<LaptopFormData>(defaultLaptopForm);
   const [customBrandInput, setCustomBrandInput] = useState("");
@@ -671,6 +673,7 @@ export function LaptopFormSheet() {
         year: laptop.year?.toString() || "",
         serialNumber: laptop.serialNumber || "",
         repairs: laptop.repairs || "",
+        location: laptop.location || "",
       };
       setFormData(form);
       if (laptop.photos) {
@@ -702,7 +705,7 @@ export function LaptopFormSheet() {
       } else {
         // Adding new: start with photo capture step
         setFormStep("photos");
-        setFormData(defaultLaptopForm);
+        setFormData({ ...defaultLaptopForm, location: appSettings?.defaultLocation || "" });
         setCustomBrandInput("");
         setPhotos([]);
       }
@@ -1196,6 +1199,17 @@ export function LaptopFormSheet() {
                           <span className="text-[10px] font-medium">Add Photo</span>
                         </button>
                       </div>
+                    </FormSection>
+
+                    {/* Location */}
+                    <FormSection icon={MapPin} title="Location">
+                      <FormField label="Location">
+                        <Input
+                          placeholder="e.g. Potchefstroom, Johannesburg"
+                          value={formData.location}
+                          onChange={(e) => updateField("location", e.target.value)}
+                        />
+                      </FormField>
                     </FormSection>
 
                     {/* Notes */}

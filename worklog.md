@@ -775,3 +775,97 @@ Stage Summary:
 - **1 safety improvement**: Generation timeout prevents infinite hangs
 - On-device AI model download now accessible in online mode for testing
 - ESLint clean, dev server compiling, no console errors
+
+---
+Task ID: 20
+Agent: Prompt Agent
+Task: Overhaul Facebook ad template to match user's exact style
+
+Work Log:
+- Analyzed user's Facebook ad format and identified key patterns
+- Rewrote generateFacebookAd() in local-api.ts to match exact format
+- Added getFacebookTagline() helper for catchy tagline generation
+- Added inferPorts() helper for brand/model/age-based port inference
+- Added getLocalSettings() helper to read whatsapp/location from localStorage
+- Rewrote Facebook platform instructions in route.ts to describe exact format
+- Updated buildPrompt() to include location, whatsappNumber, defaultLocation fields
+- Updated buildFallbackAd() for Facebook to new emoji-rich style
+- Updated WhatsApp template with location and contact info
+- Integrated SalesAnalytics component into Dashboard
+
+Stage Summary:
+- Facebook ads now generated in user's exact emoji-rich style
+- Template includes: #NUMBER header, emoji bookends, specs section, features/ports, location, price, WhatsApp, CTA
+- SalesAnalytics charts now visible on Dashboard
+- WhatsApp ads include location and contact info
+
+---
+Task ID: 19-20
+Agent: Main (with sub-agents)
+Task: Add Location & WhatsApp fields, overhaul Facebook ad template to match user's exact style, integrate SalesAnalytics
+
+Work Log:
+- Added `location` field to Prisma schema, types, local-api CRUD, API routes (POST/PUT)
+- Added `whatsappNumber` and `defaultLocation` to AppSettings in Zustand store (persisted to localStorage)
+- Added WhatsApp Number input and Default Location input to Settings > Marketplace section
+- Added Location field to LaptopFormSheet with MapPin icon, pre-fills from Settings defaults
+- Added Location display in LaptopDetailSheet details card
+- Completely rewrote Facebook ad template (`generateFacebookAd`) to match user's exact format:
+  - `#N 💻🔥 Brand Model – Tagline! 🔥💻` emoji header
+  - `⚡ Specs That Impress:` with value comments (NVMe → "super fast!", 16GB → "multitasking powerhouse!")
+  - `🧰 Features / Ports:` with inferred ports based on brand/model/age
+  - `📍 Location:`, `💵 Price:`, `📲 WhatsApp:`, `🚨 CTA` sections
+- Added `getFacebookTagline()` helper for catchy tagline generation based on specs
+- Added `inferPorts()` helper for intelligent port inference
+- Added `getLocalSettings()` helper to read WhatsApp/location from localStorage
+- Updated WhatsApp template with Location and WhatsApp number lines
+- Updated Gumtree template with Location and WhatsApp number lines
+- Updated OLX template with Location line
+- Rewrote server-side Facebook platform instructions to match user's style
+- Updated `buildPrompt()` to include location and whatsappNumber in AI prompt
+- Updated `buildFallbackAd()` Facebook section to new emoji-rich style
+- Integrated SalesAnalytics component into Dashboard (price distribution, condition pie chart, status bars, weekly trend line chart)
+- Location priority: laptop's own location > default from Settings > no location shown
+
+Stage Summary:
+- Facebook ads now generated in user's exact emoji-rich, structured format
+- All 4 ad templates (Facebook, WhatsApp, Gumtree, OLX) include Location and WhatsApp contact
+- Settings page has WhatsApp Number and Default Location fields (persisted)
+- Laptop form has Location field, auto-pre-filled from Settings
+- SalesAnalytics charts visible on Dashboard as expandable accordion
+- v1.2.1 features complete
+
+## Current Project Status
+
+### Project: LaptopFlip - Mobile-First Laptop Resale App
+### Status: Feature-rich MVP v1.2.1, all core features working
+
+### Completed Features (16 total):
+1. **Dashboard** - Stats grid (5 cards, animated counters), gradient header, quick actions, profit insights, pricing calculator
+2. **Sales Analytics** - Price distribution bar chart, condition pie chart, status bars, weekly trend line chart (Recharts)
+3. **Pricing Calculator** - Collapsible calculator with condition/age/accessories markup, suggested price range
+4. **Guided Photo Session** - Step-by-step 12-shot wizard with camera/upload/skip
+5. **Inventory** - Search + filter + sort, profit/loss indicators, CSV export, duplicate, undo delete
+6. **Laptop Detail View** - Photo gallery, specs, condition, pricing, activity timeline, location
+7. **Laptop Form** - Multi-step (Photos → Details), brand/model/specs/condition/pricing/location
+8. **AI Ad Creator** - 3-tier generation, model download UI, platform selector
+9. **Ad Preview** - Realistic platform previews, share/copy
+10. **Facebook Ads (User Style)** - `#N 💻🔥` header, `⚡ Specs`, `🧰 Ports`, `📍 Location`, `📲 WhatsApp`, `🚨 CTA`
+11. **3-Tier AI Ads** - Server (GLM-4-Flash) → On-device (Qwen3-0.6B) → Templates
+12. **API Routes** - Full CRUD, AI generation, photo upload
+13. **Dark Mode** - Full support via next-themes
+14. **Animations** - Framer Motion throughout
+15. **Activity Log** - Lifecycle tracking per laptop
+16. **Notification Center** - Stale listings, below-cost alerts, welcome back
+17. **Settings** - Currency, region, WhatsApp number, default location, theme, data management, import/export
+
+### Tech Stack:
+- Next.js 16 + TypeScript + Tailwind CSS 4 + shadcn/ui
+- Zustand, Prisma (SQLite), z-ai-web-dev-sdk
+- @huggingface/transformers v4 (Qwen3-0.6B ONNX)
+- Framer Motion, Recharts, Capacitor (Android APK)
+
+### Unresolved/Risks:
+- Photos stored as base64 (needs cloud storage for production)
+- No user authentication (single-user app)
+- New APK not yet built with location/WhatsApp features

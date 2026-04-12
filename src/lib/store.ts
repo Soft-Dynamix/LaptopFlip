@@ -6,6 +6,8 @@ import type { ModelProgress } from "./on-device-llm";
 interface AppSettings {
   currency: string;
   region: string;
+  whatsappNumber: string;
+  defaultLocation: string;
 }
 
 interface AppState {
@@ -130,7 +132,7 @@ let _activityCounter = 0;
 
 /** Load persisted settings from localStorage */
 function loadAppSettings(): AppSettings {
-  if (typeof window === "undefined") return { currency: "ZAR", region: "south-africa" };
+  if (typeof window === "undefined") return { currency: "ZAR", region: "south-africa", whatsappNumber: "", defaultLocation: "" };
   try {
     const raw = localStorage.getItem("laptopflip_settings");
     if (raw) {
@@ -138,12 +140,14 @@ function loadAppSettings(): AppSettings {
       return {
         currency: parsed.currency || "ZAR",
         region: parsed.region || "south-africa",
+        whatsappNumber: parsed.whatsappNumber || "",
+        defaultLocation: parsed.defaultLocation || "",
       };
     }
   } catch {
     // ignore
   }
-  return { currency: "ZAR", region: "south-africa" };
+  return { currency: "ZAR", region: "south-africa", whatsappNumber: "", defaultLocation: "" };
 }
 
 /** Persist settings to localStorage */

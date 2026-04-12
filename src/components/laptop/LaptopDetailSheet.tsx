@@ -25,6 +25,7 @@ import {
   AlertCircle,
   Activity,
   Circle,
+  MapPin,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -637,6 +638,12 @@ export function LaptopDetailSheet() {
                     icon={Calendar}
                     label="Last Updated"
                     value={formatDate(selectedLaptop.updatedAt)}
+                  />
+                  <DetailRow
+                    icon={MapPin}
+                    label="Location"
+                    value={selectedLaptop.location}
+                    iconColor="text-emerald-600 dark:text-emerald-400"
                   />
                 </CardContent>
               </Card>

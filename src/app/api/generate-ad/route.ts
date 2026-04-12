@@ -19,23 +19,51 @@ const PLATFORM_INSTRUCTIONS: Record<string, string> = {
 - NEVER use generic phrases like "great laptop" or "good condition" without backing them up
 - Tone: energetic but honest, like a friend who found an amazing deal`,
 
-  facebook: `Facebook Marketplace ad rules:
-- Write a FULL, RICH marketplace listing (300-600 words)
-- TITLE: Must be descriptive and searchable — include brand, model, key spec, AND price. This is the most important line for search visibility.
-- OPENING HOOK: Start with the most compelling selling point. Frame it as a BENEFIT, not just a fact. "Save R8,000 vs buying new" is better than "i7 processor included."
-- STRUCTURE with clear sections using emoji headers:
-  📋 Full Specifications (detailed bullet list — include EVERY spec, buyers compare obsessively)
-  ✅ Condition & Battery Health (be specific — "95% battery", not just "good battery")
-  💡 Why This Is a Great Deal (2-3 compelling reasons tied directly to the specs and price)
-  🎯 Perfect For (name 2-3 specific use cases with realistic scenarios: "running VS Code and 20 browser tabs", not just "programming")
-  📦 What's Included (charger, bag, box, mouse, any extras)
-- Mention ANY upgrades: RAM upgrade, SSD upgrade, fresh Windows install, new battery
-- Add TRUST SIGNALS that South African buyers care about: "Well looked after", "Smoke-free home", "Receipt available", "Reason for selling: upgrading"
-- Include COMPETITIVE CONTEXT: "Priced R3,000 below similar listings" or "Similar specs retail for R18,000+"
-- CLOSE with: urgency + clear CTA + delivery/collection info + response time expectation
-- Tone: friendly, trustworthy, enthusiastic — like a proud owner who took great care of their laptop
-- Use line breaks generously for readability on mobile
-- NEVER use clickbait or misleading claims — SA Facebook buyers are savvy and will call out fakes`,
+  facebook: `Facebook Marketplace ad rules — follow this EXACT format:
+
+HEADER FORMAT:
+#NUMBER 💻🔥 Brand Model – Catchy Tagline! 🔥💻
+(Example: #9 💻🔥 Dell Latitude E5570 – Fast & Reliable! 🔥💻)
+- Generate a random ad number (#1-#50)
+- The tagline should be catchy and based on the laptop's specs (e.g., "Fast & Reliable!", "Powerhouse Performance!", "Budget-Friendly Beast!", "Gaming Powerhouse!")
+
+⚡ Specs That Impress:
+- Header must be exactly: "⚡ Specs That Impress:"
+- Each spec on its OWN LINE (no bullet points, just the spec name)
+- Add brief value comments after important specs:
+  - NVMe SSD → add "– super fast!"
+  - Regular SSD → add "– fast & reliable!"
+  - 1TB+ storage → add "– plenty of space!"
+  - 16GB+ RAM → add "– multitasking powerhouse!"
+  - Include OS if mentioned (e.g., "Windows 11 Pro + Office 2021 Pro")
+  - If new battery is mentioned, add "Brand New Battery" as its own line
+
+🧰 Features / Ports:
+- Header must be exactly: "🧰 Features / Ports:"
+- List connectivity and physical features on their own lines:
+  - Webcam, Bluetooth & Wi-Fi
+  - Infer reasonable ports based on brand/model/age:
+    * Older business laptops (Dell Latitude, ThinkPad, HP ProBook/EliteBook): Network Port, VGA Port, HDMI Port, 3 x USB Ports, SIM Card Slot, SD Card Slot
+    * Newer laptops (2020+): USB-C Port, Thunderbolt (if applicable), HDMI Port
+    * All laptops: Audio Jack, Great Sound from Built-in Speakers
+  - Include "Backlit Keyboard – Work in the Dark" if it's a business or higher-end laptop
+- End with a benefit line (e.g., "Lightning-fast performance for work, study, and everyday use")
+
+📍 Location: [read the "Location" field from laptop data, or "Default Location" if no specific location]
+💵 Price: R[X,XXX] (formatted with comma separator)
+📲 WhatsApp: [read the "WhatsApp Number" field from laptop data, or "Default WhatsApp Number" if not provided]
+
+🚨 CTA LINE:
+🚨 Grab it before it's gone! Perfect for [target audience]!
+- Target audience examples: "students, professionals, and anyone needing a fast, reliable laptop", "gamers, creators, and power users", "students, school learners, and anyone needing an affordable laptop"
+
+STYLE RULES:
+- Heavy emoji use is GOOD — this style is emoji-rich by design
+- Keep it organised with clear section breaks
+- Do NOT use bullet points (•) — list items directly on their own lines
+- Each section separated by a blank line
+- Be honest about condition but enthusiastic about the deal
+- Use South African context (Rands, SA spelling)`,
 
   gumtree: `Gumtree South Africa classified ad rules:
 - Write a TRADITIONAL classified ad with clear, professional structure
@@ -236,6 +264,9 @@ function buildPrompt(platform: string, laptop: {
   color?: string;
   year?: number;
   repairs?: string;
+  location?: string;
+  whatsappNumber?: string;
+  defaultLocation?: string;
 }): string {
   const platformGuide = PLATFORM_INSTRUCTIONS[platform] || PLATFORM_INSTRUCTIONS.facebook;
   const valueContext = buildValueContext(laptop);
@@ -253,6 +284,9 @@ Screen Size: ${laptop.screenSize ? laptop.screenSize + '"' : 'Not specified'}
 Condition: ${laptop.condition}
 Battery Health: ${laptop.batteryHealth}
 Asking Price: R${laptop.askingPrice.toLocaleString()}${laptop.purchasePrice ? `\nPurchase Price: R${laptop.purchasePrice.toLocaleString()} (for pricing context)` : ''}${laptop.color ? `\nColour: ${laptop.color}` : ''}${laptop.year ? `\nYear: ${laptop.year}` : ''}${laptop.repairs ? `\nRepairs: ${laptop.repairs}` : ''}
+Location: ${laptop.location || 'Not specified'}
+WhatsApp Number: ${laptop.whatsappNumber || 'Not provided'}
+Default Location: ${laptop.defaultLocation || 'Not specified'}
 ${laptop.notes ? `\nSeller Notes: ${laptop.notes}` : ''}
 
 ━━━ SELLING CONTEXT & ANGLES ━━━
@@ -272,7 +306,7 @@ Do NOT include explanations, markdown code fences, or any text outside the JSON.
 
 function buildFallbackAd(
   platform: string,
-  laptop: { brand: string; model: string; cpu: string; ram: string; storage: string; gpu: string; screenSize: string; condition: string; batteryHealth: string; askingPrice: number; purchasePrice: number; notes: string; color?: string; year?: number; repairs?: string }
+  laptop: { brand: string; model: string; cpu: string; ram: string; storage: string; gpu: string; screenSize: string; condition: string; batteryHealth: string; askingPrice: number; purchasePrice: number; notes: string; color?: string; year?: number; repairs?: string; location?: string; whatsappNumber?: string; defaultLocation?: string }
 ): { platform: string; title: string; body: string; price: number } {
   const priceStr = `R${laptop.askingPrice.toLocaleString()}`;
   const specs = [
@@ -339,30 +373,68 @@ function buildFallbackAd(
   }
 
   if (platform === "facebook") {
-    const title = `${laptop.brand} ${laptop.model} (${laptop.condition}) - ${priceStr}`;
+    const adNumber = `#${Math.floor(Math.random() * 50) + 1}`;
+    const title = `${laptop.brand} ${laptop.model} - ${priceStr}`;
+
+    // Generate tagline based on specs
+    let tagline = "Fast & Reliable!";
+    if (specStr.includes("rtx 40") || specStr.includes("rtx 30")) tagline = "Gaming Powerhouse!";
+    else if (specStr.includes("rtx") || specStr.includes("gtx")) tagline = "Gaming & Creative Beast!";
+    else if (specStr.includes("i9") || specStr.includes("ryzen 9")) tagline = "Ultimate Performance!";
+    else if (specStr.includes("i7") || specStr.includes("ryzen 7")) tagline = "Powerhouse Performance!";
+    else if (specStr.includes("m1") || specStr.includes("m2") || specStr.includes("m3")) tagline = "Blazing Fast & All-Day Battery!";
+    else if (specStr.includes("i3") || specStr.includes("celeron") || specStr.includes("pentium")) tagline = "Budget-Friendly Beast!";
+    else if (laptop.condition === "Mint") tagline = "Like New Condition!";
+    else if (laptop.condition === "Excellent") tagline = "Barely Used - Amazing Deal!";
+
+    // Build spec lines with value comments
+    const fbSpecLines: string[] = [];
+    if (laptop.cpu) fbSpecLines.push(laptop.cpu);
+    if (laptop.ram) {
+      const ramL = laptop.ram.toLowerCase();
+      if (ramL.includes("16gb") || ramL.includes("32gb") || ramL.includes("64gb")) {
+        fbSpecLines.push(`${laptop.ram} - multitasking powerhouse!`);
+      } else {
+        fbSpecLines.push(laptop.ram);
+      }
+    }
+    if (laptop.storage) {
+      const storL = laptop.storage.toLowerCase();
+      if (storL.includes("nvme")) fbSpecLines.push(`${laptop.storage} - super fast!`);
+      else if (storL.includes("ssd")) fbSpecLines.push(`${laptop.storage} - fast & reliable!`);
+      else if (storL.includes("1tb") || storL.includes("2tb")) fbSpecLines.push(`${laptop.storage} - plenty of space!`);
+      else fbSpecLines.push(laptop.storage);
+    }
+    if (laptop.gpu) fbSpecLines.push(laptop.gpu);
+    if (fbSpecLines.length === 0) fbSpecLines.push("Contact for full specifications");
+
+    // Infer ports/features
+    const fbFeatures: string[] = ["Webcam", "Bluetooth & Wi-Fi", "Network Port", "HDMI Port", "3 x USB Ports", "Audio Jack & Great Sound from Built-in Speakers", "SD Card Slot", "Backlit Keyboard - Work in the Dark"];
+
+    // Determine target audience
+    let targetAudience = "students, professionals, and anyone needing a fast, reliable laptop";
+    if (specStr.includes("rtx") || specStr.includes("gtx")) targetAudience = "gamers, creators, and power users looking for serious performance";
+    else if (specStr.includes("i7") || specStr.includes("i9")) targetAudience = "professionals, developers, and power users";
+    else if (specStr.includes("i3") || specStr.includes("celeron") || specStr.includes("pentium")) targetAudience = "students, school learners, and anyone needing an affordable, reliable laptop";
+
+    const location = (laptop as Record<string, unknown>).location as string || (laptop as Record<string, unknown>).defaultLocation as string || "";
+    const whatsapp = (laptop as Record<string, unknown>).whatsappNumber as string || "";
+
     const body = [
-      `Looking for a reliable laptop that won't break the bank? Check this out 👇`,
+      `${adNumber} 💻🔥 ${laptop.brand} ${laptop.model} – ${tagline} 🔥💻`,
       "",
-      `✨ ${laptop.brand} ${laptop.model} — ${laptop.condition} Condition`,
+      "⚡ Specs That Impress:",
+      ...fbSpecLines,
       "",
-      "📋 Specifications:",
-      ...specs.map(s => `  • ${s}`),
+      "🧰 Features / Ports:",
+      ...fbFeatures,
+      "Lightning-fast performance for work, study, and everyday use",
       "",
-      `✅ ${conditionLine}`,
-      extraLines ? `📌 ${extraLines}` : null,
+      location ? `📍 Location: ${location}` : null,
+      `💵 Price: ${priceStr}`,
+      whatsapp ? `📲 WhatsApp: ${whatsapp}` : null,
       "",
-      `💡 Why This Is a Great Deal`,
-      valueAngle,
-      "",
-      `🎯 Perfect For`,
-      useCase,
-      laptop.notes ? `\n📝 ${laptop.notes}` : null,
-      "",
-      `💰 Asking Price: ${priceStr}`,
-      savingsNote || "Priced to sell - first come, first served!",
-      "",
-      "📲 DM me if interested or comment below.",
-      "📦 Can arrange delivery or collection.",
+      `🚨 Grab it before it's gone! Perfect for ${targetAudience}!`,
     ].filter(Boolean).join("\n");
     return { platform, title, body, price: laptop.askingPrice };
   }

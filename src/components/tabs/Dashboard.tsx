@@ -28,6 +28,7 @@ import { apiFetchLaptops } from "@/lib/api";
 import { formatPrice } from "@/lib/types";
 import type { Laptop as LaptopType } from "@/lib/types";
 import { PricingCalculator } from "@/components/dashboard/PricingCalculator";
+import { SalesAnalytics } from "@/components/dashboard/SalesAnalytics";
 import { NotificationCenter } from "@/components/notifications/NotificationCenter";
 
 // ─── Animated Counter Hook ─────────────────────────
@@ -736,6 +737,9 @@ export function Dashboard() {
           </div>
         </motion.div>
       )}
+
+      {/* Sales Analytics Charts */}
+      <SalesAnalytics laptops={laptops} loading={loading} />
     </div>
   );
 }
