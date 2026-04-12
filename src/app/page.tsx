@@ -103,7 +103,7 @@ export default function Home() {
                 key={tab.id}
                 onClick={() => handleTabClick(tab.id)}
                 className={cn(
-                  "flex flex-col items-center justify-center gap-0.5 py-1 px-3 rounded-xl transition-all duration-200 min-w-[3.5rem]",
+                  "relative flex flex-col items-center justify-center gap-0.5 py-1 px-3 rounded-xl transition-all duration-200 min-w-[3.5rem]",
                   isActive
                     ? "text-emerald-600 dark:text-emerald-400"
                     : "text-muted-foreground hover:text-foreground"
@@ -115,10 +115,11 @@ export default function Home() {
                     {tab.label}
                   </span>
                 )}
+                {/* Active indicator: small pill below the label */}
                 {isActive && !isTheme && (
                   <motion.div
-                    layoutId="activeTab"
-                    className="absolute -top-px left-3 right-3 h-0.5 bg-emerald-600 dark:bg-emerald-400 rounded-full"
+                    layoutId="activeTabPill"
+                    className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-5 h-1 bg-emerald-600 dark:bg-emerald-400 rounded-full"
                     transition={{
                       type: "spring",
                       stiffness: 400,

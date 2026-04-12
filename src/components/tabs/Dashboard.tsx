@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import {
   Laptop,
@@ -13,6 +13,10 @@ import {
   Sparkles,
   PackageOpen,
   RefreshCw,
+  ArrowRight,
+  Trophy,
+  Clock,
+  Wallet,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
@@ -23,7 +27,6 @@ import { useAppStore } from "@/lib/store";
 import { apiFetchLaptops } from "@/lib/api";
 import { formatPrice } from "@/lib/types";
 import type { Laptop as LaptopType } from "@/lib/types";
-import { useCallback } from "react";
 
 const statCards = [
   {
@@ -51,15 +54,15 @@ const statCards = [
     key: "totalRevenue" as const,
     label: "Revenue",
     icon: DollarSign,
-    accent: "text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/30 border-purple-200 dark:border-purple-800",
-    iconColor: "text-purple-600 dark:text-purple-400",
+    accent: "text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/30 border-rose-200 dark:border-rose-800",
+    iconColor: "text-rose-600 dark:text-rose-400",
   },
   {
     key: "totalProfit" as const,
     label: "Total Profit",
     icon: TrendingUp,
-    accent: "text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/30 border-rose-200 dark:border-rose-800",
-    iconColor: "text-rose-600 dark:text-rose-400",
+    accent: "text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800",
+    iconColor: "text-emerald-600 dark:text-emerald-400",
   },
 ];
 
@@ -105,7 +108,7 @@ function DashboardSkeleton() {
         ))}
       </div>
       {/* Quick actions skeleton */}
-      <Skeleton className="h-12 rounded-xl" />
+      <Skeleton className="h-32 rounded-xl" />
       {/* Recent listings skeleton */}
       <div className="space-y-3">
         {Array.from({ length: 3 }).map((_, i) => (
@@ -115,6 +118,30 @@ function DashboardSkeleton() {
     </div>
   );
 }
+
+const quickActions = [
+  {
+    label: "Add Laptop",
+    icon: Plus,
+    gradient: "from-emerald-500 to-emerald-700",
+    shadow: "shadow-emerald-500/25",
+    action: "add" as const,
+  },
+  {
+    label: "Photo Guide",
+    icon: Camera,
+    gradient: "from-teal-500 to-emerald-600",
+    shadow: "shadow-teal-500/25",
+    action: "photos" as const,
+  },
+  {
+    label: "My Stock",
+    icon: Sparkles,
+    gradient: "from-emerald-600 to-teal-700",
+    shadow: "shadow-emerald-600/25",
+    action: "inventory" as const,
+  },
+];
 
 export function Dashboard() {
   const {
@@ -190,6 +217,29 @@ export function Dashboard() {
     )
     .slice(0, 3);
 
+  // Profit insights calculations
+  const soldLaptops = laptops.filter((l: LaptopType) => l.status === "sold");
+  const bestSeller = soldLaptops.length > 0
+    ? soldLaptops.reduce((best: LaptopType, l: LaptopType) => {
+        const bestProfit = best.askingPrice - (best.purchasePrice || 0);
+        const lProfit = l.askingPrice - (l.purchasePrice || 0);
+        return lProfit > bestProfit ? l : best;
+      })
+    : null;
+  const totalInventoryValue = laptops.reduce(
+    (sum: number, l: LaptopType) => sum + l.askingPrice,
+    0
+  );
+
+  const handleQuickAction = (action: string) => {
+    if (action === "add") {
+      useAppStore.getState().setEditingLaptopId(null);
+      setIsFormOpen(true);
+    } else {
+      setActiveTab(action);
+    }
+  };
+
   if (loading) {
     return <DashboardSkeleton />;
   }
@@ -246,7 +296,7 @@ export function Dashboard() {
           return (
             <Card
               key={stat.key}
-              className="gap-0 py-4 px-4 rounded-xl border shadow-sm"
+              className="gap-0 py-4 px-4 rounded-xl border shadow-sm relative overflow-hidden"
             >
               <CardContent className="p-0">
                 <div className="flex items-start justify-between">
@@ -254,7 +304,7 @@ export function Dashboard() {
                     <p className="text-xs font-medium text-muted-foreground">
                       {stat.label}
                     </p>
-                    <p className="text-xl font-bold">{value}</p>
+                    <p className="text-2xl font-bold tracking-tight">{value}</p>
                   </div>
                   <div
                     className={`rounded-lg border p-2 ${stat.accent}`}
@@ -263,6 +313,8 @@ export function Dashboard() {
                   </div>
                 </div>
               </CardContent>
+              {/* Gradient border-bottom accent */}
+              <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-400 via-teal-400 to-emerald-500 dark:from-emerald-600 dark:via-teal-600 dark:to-emerald-700 opacity-60" />
             </Card>
           );
         })}
@@ -276,34 +328,93 @@ export function Dashboard() {
         className="space-y-3"
       >
         <h2 className="text-base font-semibold">Quick Actions</h2>
-        <div className="flex gap-2">
-          <Button
-            onClick={() => {
-              useAppStore.getState().setEditingLaptopId(null);
-              setIsFormOpen(true);
-            }}
-            className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl h-11"
-          >
-            <Plus className="size-4" />
-            Add Laptop
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => setActiveTab("photos")}
-            className="flex-1 rounded-xl h-11"
-          >
-            <Camera className="size-4" />
-            Photo Guide
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => setActiveTab("inventory")}
-            className="flex-1 rounded-xl h-11"
-          >
-            <Sparkles className="size-4" />
-            My Stock
-          </Button>
+        <div className="grid grid-cols-3 gap-3">
+          {quickActions.map((action) => {
+            const Icon = action.icon;
+            return (
+              <motion.button
+                key={action.label}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => handleQuickAction(action.action)}
+                className={`flex flex-col items-center justify-center gap-2 p-4 rounded-xl bg-gradient-to-br ${action.gradient} text-white shadow-lg ${action.shadow} active:shadow-md transition-shadow duration-200`}
+              >
+                <div className="size-10 rounded-full bg-white/20 flex items-center justify-center">
+                  <Icon className="size-5" />
+                </div>
+                <span className="text-xs font-semibold">{action.label}</span>
+              </motion.button>
+            );
+          })}
         </div>
+      </motion.div>
+
+      {/* Profit Insights Widget */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: 0.25 }}
+        className="space-y-3"
+      >
+        <h2 className="text-base font-semibold flex items-center gap-2">
+          <TrendingUp className="size-4 text-emerald-600 dark:text-emerald-400" />
+          Profit Insights
+        </h2>
+        <Card className="rounded-xl border shadow-sm overflow-hidden">
+          <CardContent className="p-4 space-y-3">
+            {/* Best Seller */}
+            <div className="flex items-center gap-3">
+              <div className="size-9 rounded-lg bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center shrink-0">
+                <Trophy className="size-4 text-emerald-600 dark:text-emerald-400" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs text-muted-foreground">Best Seller</p>
+                {bestSeller ? (
+                  <p className="text-sm font-semibold truncate">
+                    {bestSeller.brand} {bestSeller.model}
+                    <span className="ml-1.5 text-xs font-medium text-emerald-600 dark:text-emerald-400">
+                      +{formatPrice(bestSeller.askingPrice - (bestSeller.purchasePrice || 0))}
+                    </span>
+                  </p>
+                ) : (
+                  <p className="text-sm text-muted-foreground">No sales yet</p>
+                )}
+              </div>
+            </div>
+            {/* Avg Days to Sell */}
+            <div className="flex items-center gap-3">
+              <div className="size-9 rounded-lg bg-teal-100 dark:bg-teal-900/40 flex items-center justify-center shrink-0">
+                <Clock className="size-4 text-teal-600 dark:text-teal-400" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs text-muted-foreground">Average Days to Sell</p>
+                <p className="text-sm font-semibold">
+                  {soldLaptops.length > 0
+                    ? `${Math.round(
+                        soldLaptops.reduce((sum: number, l: LaptopType) => {
+                          const created = new Date(l.createdAt).getTime();
+                          return sum + Math.max(0, (Date.now() - created) / (1000 * 60 * 60 * 24));
+                        }, 0) / soldLaptops.length
+                      )} days`
+                    : "No data yet"}
+                </p>
+              </div>
+            </div>
+            {/* Total Inventory Value */}
+            <div className="flex items-center gap-3">
+              <div className="size-9 rounded-lg bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center shrink-0">
+                <Wallet className="size-4 text-emerald-600 dark:text-emerald-400" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs text-muted-foreground">Total Inventory Value</p>
+                <p className="text-sm font-bold text-emerald-700 dark:text-emerald-400">
+                  {formatPrice(totalInventoryValue)}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+          {/* Bottom accent */}
+          <div className="h-0.5 bg-gradient-to-r from-emerald-400 via-teal-400 to-emerald-500 dark:from-emerald-600 dark:via-teal-600 dark:to-emerald-700 opacity-60" />
+        </Card>
       </motion.div>
 
       {/* Recent Listings */}
@@ -313,7 +424,18 @@ export function Dashboard() {
         transition={{ duration: 0.3, delay: 0.3 }}
         className="space-y-3"
       >
-        <h2 className="text-base font-semibold">Recent Listings</h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-base font-semibold">Recent Listings</h2>
+          {recentLaptops.length > 0 && (
+            <button
+              onClick={() => setActiveTab("inventory")}
+              className="text-xs font-medium text-emerald-600 dark:text-emerald-400 flex items-center gap-1 hover:underline"
+            >
+              View All
+              <ArrowRight className="size-3" />
+            </button>
+          )}
+        </div>
 
         {recentLaptops.length === 0 ? (
           <Card className="rounded-xl border-dashed border-2 border-muted py-10">
@@ -349,7 +471,8 @@ export function Dashboard() {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.2, delay: index * 0.05 }}
               >
-                <Card className="rounded-xl py-3 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
+                <Card
+                  className="rounded-xl py-3 shadow-md hover:shadow-lg transition-shadow cursor-pointer"
                   onClick={() => {
                     useAppStore.getState().setSelectedLaptop(laptop);
                     useAppStore.getState().setIsDetailOpen(true);
@@ -361,9 +484,11 @@ export function Dashboard() {
                         <p className="text-sm font-medium truncate">
                           {laptop.brand} {laptop.model}
                         </p>
-                        <p className="text-xs text-muted-foreground">
-                          {laptop.ram} · {laptop.storage}
-                        </p>
+                        <div className="flex items-center gap-1.5 mt-1">
+                          <p className="text-xs text-muted-foreground">
+                            {laptop.ram} · {laptop.storage}
+                          </p>
+                        </div>
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
                         <Badge
@@ -379,6 +504,16 @@ export function Dashboard() {
                         <span className="text-sm font-semibold text-emerald-700 dark:text-emerald-400">
                           {formatPrice(laptop.askingPrice)}
                         </span>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            useAppStore.getState().setSelectedLaptop(laptop);
+                            useAppStore.getState().setIsDetailOpen(true);
+                          }}
+                          className="text-xs font-medium text-emerald-600 dark:text-emerald-400 hover:underline ml-1"
+                        >
+                          View
+                        </button>
                       </div>
                     </div>
                   </CardContent>

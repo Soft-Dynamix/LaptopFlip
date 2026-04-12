@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { Laptop, LaptopFormData, AdPreview, Platform } from "./types";
+import type { Laptop, LaptopFormData, AdPreview, Platform, ActivityLogEntry } from "./types";
 import { defaultLaptopForm, PLATFORMS } from "./types";
 import type { ModelProgress } from "./on-device-llm";
 
@@ -65,6 +65,11 @@ interface AppState {
   // On-device LLM
   modelProgress: ModelProgress;
   setModelProgress: (progress: ModelProgress) => void;
+
+  // Activity log
+  activityLogs: ActivityLogEntry[];
+  addActivityLog: (entry: Omit<ActivityLogEntry, "id" | "timestamp">) => void;
+  getActivityLogs: (laptopId: string) => ActivityLogEntry[];
 }
 
 const defaultChecklist: Record<string, boolean> = {
@@ -95,7 +100,9 @@ const defaultChecklist: Record<string, boolean> = {
   "quality-honest": false,
 };
 
-export const useAppStore = create<AppState>((set) => ({
+let _activityCounter = 0;
+
+export const useAppStore = create<AppState>((set, get) => ({
   // Navigation
   activeTab: "dashboard",
   setActiveTab: (tab) => set({ activeTab: tab }),
@@ -166,4 +173,20 @@ export const useAppStore = create<AppState>((set) => ({
     progress: 0,
   },
   setModelProgress: (progress) => set({ modelProgress: progress }),
+
+  // Activity log
+  activityLogs: [],
+  addActivityLog: (entry) =>
+    set((state) => ({
+      activityLogs: [
+        ...state.activityLogs,
+        {
+          ...entry,
+          id: `act-${++_activityCounter}`,
+          timestamp: new Date().toISOString(),
+        },
+      ],
+    })),
+  getActivityLogs: (laptopId) =>
+    get().activityLogs.filter((log) => log.laptopId === laptopId),
 }));

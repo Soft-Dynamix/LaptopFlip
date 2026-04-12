@@ -1,10 +1,10 @@
 /**
  * On-Device LLM for offline ad generation.
- * Uses @huggingface/transformers to run Qwen2.5-0.5B-Instruct (quantized)
+ * Uses @huggingface/transformers v4 to run Qwen3-0.6B (quantized)
  * directly in the browser/WebView via WebAssembly.
  *
  * Flow:
- * 1. First call: downloads model (~300MB) to IndexedDB (cached for future)
+ * 1. First call: downloads model (~350MB) to IndexedDB (cached for future)
  * 2. Subsequent calls: loads from cache, generates ads locally
  * 3. Fallback: smart templates if model fails to load
  */
@@ -32,7 +32,7 @@ export interface ModelProgress {
 
 // ─── Model config ───────────────────────────────────────
 
-const MODEL_ID = "Xenova/Qwen2.5-0.5B-Instruct";
+const MODEL_ID = "onnx-community/Qwen3-0.6B-ONNX";
 
 // ─── State (module-level, not React state) ──────────────
 
@@ -225,7 +225,7 @@ const ON_DEVICE_PLATFORM_RULES: Record<Platform, string> = {
 
 // ─── Ad generation ──────────────────────────────────────
 
-function buildLLMPrompt(platform: Platform, laptop: Laptop): string {
+function buildLLMPrompt(platform: Platform, laptop: Laptop): Array<{ role: string; content: string }> {
   const platformRules = ON_DEVICE_PLATFORM_RULES[platform];
   const priceStr = formatPrice(laptop.askingPrice);
   const valueContext = buildOnDeviceValueContext(laptop);
@@ -238,20 +238,29 @@ function buildLLMPrompt(platform: Platform, laptop: Laptop): string {
     laptop.screenSize && `Screen: ${laptop.screenSize}"`,
   ].filter(Boolean).join(", ");
 
-  return `You are a South African marketplace ad writer. Write a ${platform.toUpperCase()} ad for this laptop. Be honest, persuasive, mobile-friendly. Use Rands. SA English spelling.
+  const laptopInfo = [
+    `LAPTOP: ${laptop.brand} ${laptop.model}`,
+    `Condition: ${laptop.condition}`,
+    `Battery: ${laptop.batteryHealth}`,
+    `Specs: ${specs || "Contact for specs"}`,
+    `Price: ${priceStr}`,
+    laptop.year ? `Year: ${laptop.year}` : null,
+    laptop.color ? `Colour: ${laptop.color}` : null,
+    laptop.notes ? `Notes: ${laptop.notes}` : null,
+    laptop.repairs ? `Repairs: ${laptop.repairs} (be transparent)` : null,
+  ].filter(Boolean).join("\n");
 
-SELLING ANGLES: ${valueContext}
-
-LAPTOP: ${laptop.brand} ${laptop.model}
-Condition: ${laptop.condition}
-Battery: ${laptop.batteryHealth}
-Specs: ${specs || "Contact for specs"}
-Price: ${priceStr}${laptop.year ? ` | Year: ${laptop.year}` : ""}${laptop.color ? ` | Colour: ${laptop.color}` : ""}${laptop.notes ? ` | Notes: ${laptop.notes}` : ""}
-${laptop.repairs ? `Repairs: ${laptop.repairs} (be transparent about this)` : ""}
-
-${platformRules}
-
-Respond ONLY with valid JSON: {"title": "ad title", "body": "ad body"}`;
+  // Qwen3 uses chat format — use messages array for proper template application
+  return [
+    {
+      role: "system",
+      content: `You are a South African marketplace ad writer. Write honest, persuasive, mobile-friendly ads. Use Rands. SA English spelling. You MUST respond ONLY with valid JSON: {"title": "ad title", "body": "ad body"}. No other text.`,
+    },
+    {
+      role: "user",
+      content: `Write a ${platform.toUpperCase()} ad for this laptop.\n\n${laptopInfo}\n\n${valueContext}\n\n${platformRules}`,
+    },
+  ];
 }
 
 function extractJsonFromLLM(text: string): { title: string; body: string } | null {
@@ -287,6 +296,8 @@ export async function generateAdWithLLM(
   try {
     const prompt = buildLLMPrompt(platform, laptop);
 
+    // Qwen3 with chat messages: pipeline auto-applies chat template
+    // return_full_text is false for chat input, so we get only the response
     const result = await pipeline(prompt, {
       max_new_tokens: 512,
       temperature: 0.7,
@@ -294,8 +305,19 @@ export async function generateAdWithLLM(
       do_sample: true,
     });
 
-    const generated = result[0]?.generated_text || "";
-    // Extract only the assistant response (after the last occurrence of the JSON)
+    // With chat input, result[0] is an array of messages.
+    // The last message (assistant) contains the generated text.
+    let generated = "";
+    if (Array.isArray(result[0])) {
+      const lastMsg = result[0][result[0].length - 1];
+      if (lastMsg && typeof lastMsg === "object" && "content" in lastMsg) {
+        generated = String(lastMsg.content);
+      }
+    } else if (result[0] && typeof result[0] === "object" && "generated_text" in result[0]) {
+      generated = String(result[0].generated_text);
+    }
+
+    // Extract JSON from the response
     const responsePart = generated.includes("{")
       ? generated.substring(generated.lastIndexOf("{"))
       : generated;

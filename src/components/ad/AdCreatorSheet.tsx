@@ -45,7 +45,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -256,7 +255,7 @@ function ModelDownloadCard({
               <div>
                 <h4 className="text-sm font-semibold">On-Device AI Model</h4>
                 <p className="text-[11px] text-muted-foreground">
-                  Qwen2.5-0.5B · ~300MB · Runs locally
+                  Qwen3-0.6B · ~350MB · Runs locally
                 </p>
               </div>
             </div>
@@ -538,6 +537,11 @@ export function AdCreatorSheet() {
             </motion.div>
           )}
 
+          {/* Gradient divider between laptop info and platform selector */}
+          {laptop && !isOffline && (
+            <div className="h-1 rounded-full bg-gradient-to-r from-emerald-400 via-teal-400 to-emerald-500 dark:from-emerald-600 dark:via-teal-600 dark:to-emerald-700 opacity-50" />
+          )}
+
           {/* On-device LLM download card (only in offline mode) */}
           {isOffline && (
             <AnimatePresence>
@@ -568,7 +572,7 @@ export function AdCreatorSheet() {
                 ) : (
                   <>
                     <Download className="size-4" />
-                    Download On-Device AI Model (~300MB)
+                    Download On-Device AI Model (~350MB)
                   </>
                 )}
               </Button>
@@ -613,22 +617,30 @@ export function AdCreatorSheet() {
                 const Icon = platformIcons[platform.id];
                 const isSelected = selectedPlatforms.includes(platform.id);
                 return (
-                  <motion.button
+                  <motion.div
                     key={platform.id}
-                    type="button"
+                    role="button"
+                    tabIndex={0}
                     whileTap={{ scale: 0.97 }}
                     onClick={() => togglePlatform(platform.id)}
-                    className={`relative flex items-center gap-2.5 p-3 rounded-xl border-2 transition-all text-left ${
+                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); togglePlatform(platform.id); } }}
+                    className={`relative flex items-center gap-2.5 p-3 rounded-xl border-2 transition-all text-left cursor-pointer select-none ${
                       isSelected
                         ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-950/30"
                         : "border-border hover:border-muted-foreground/30"
                     }`}
                   >
-                    <Checkbox
-                      checked={isSelected}
-                      onCheckedChange={() => togglePlatform(platform.id)}
-                      className="pointer-events-none"
-                    />
+                    <div className={`size-4 rounded-[4px] border-2 shrink-0 flex items-center justify-center transition-colors ${
+                      isSelected
+                        ? "bg-emerald-600 border-emerald-600"
+                        : "border-muted-foreground/40"
+                    }`}>
+                      {isSelected && (
+                        <svg className="size-3 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                      )}
+                    </div>
                     <div
                       className="size-7 rounded-full flex items-center justify-center text-white shrink-0"
                       style={{ backgroundColor: platform.color }}
@@ -636,7 +648,7 @@ export function AdCreatorSheet() {
                       <Icon className="size-3.5" />
                     </div>
                     <span className="text-sm font-medium">{platform.name}</span>
-                  </motion.button>
+                  </motion.div>
                 );
               })}
             </div>

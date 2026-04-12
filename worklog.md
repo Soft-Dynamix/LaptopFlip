@@ -637,3 +637,89 @@ Stage Summary:
 3. Add multi-user support with NextAuth
 4. Cloud photo storage (S3/Cloudflare R2)
 5. Price trend analytics with charts
+
+---
+Task ID: 17
+Agent: Main + FullStack SubAgent
+Task: Fix on-device model access, improve styling, add features
+
+Work Log:
+
+**Bug Fix: On-Device LLM "Unauthorized access"**
+- `Xenova/Qwen2.5-0.5B-Instruct` became restricted on HuggingFace (returns 401)
+- Replaced with `onnx-community/Qwen3-0.6B-ONNX` (public, v4 library's default model)
+- Updated model ID in `on-device-llm.ts`
+- Adapted `buildLLMPrompt()` to return messages array (system + user) for Qwen3's chat template
+- Updated `generateAdWithLLM()` output parsing: handles both chat format (messages array) and legacy string format
+- Updated UI text: "Qwen3-0.6B · ~350MB · Runs locally"
+
+**Bug Fix: Nested `<button>` hydration warning**
+- AdCreatorSheet platform selector had `motion.button` wrapping `Checkbox` (both render as `<button>`)
+- Replaced `motion.button` with `motion.div` with `role="button"`, `tabIndex={0}`, keyboard handler
+- Replaced `Checkbox` component with custom SVG checkmark indicator (4x4 rounded div with emerald check)
+- Removed unused `Checkbox` import
+- Verified: zero console errors and warnings after fix
+
+**Bug Fix: `laptops.filter is not a function` crash**
+- Added `Array.isArray()` safety check in `filteredLaptops` computation
+- Added `Array.isArray()` guard in `fetchLaptops` before `setLaptops(data)`
+
+**Styling Improvements:**
+1. **Dashboard Quick Actions** — Enhanced with gradient cards (emerald tones), icon holders, `whileTap` animation, shadow-lg
+2. **Dashboard Recent Listings** — Improved card elevation (shadow-md hover:shadow-lg), spec chip spacing, added "View" text link + "View All" button
+3. **Dashboard Stats Grid** — Added gradient border-bottom (emerald-teal), upgraded number typography to text-2xl bold tracking-tight
+4. **Bottom Tab Navigation** — Added animated pill indicator below active tab using `layoutId` spring animation
+5. **Ad Creator Sheet** — Added gradient divider between laptop info card and platform selector
+
+**New Features:**
+1. **Duplicate Laptop** — "Duplicate" menu item in Inventory's More Options dropdown, creates copy with "- Copy" suffix, opens edit form
+2. **Activity Log** — `ActivityLogEntry` type in types.ts, `addActivityLog()`/`getActivityLogs()` in store, tracked on create/edit/status-change/duplicate, displayed as vertical timeline in LaptopDetailSheet
+3. **Profit Insights Widget** — New Dashboard section: Best Seller, Average Days to Sell, Total Inventory Value (R34,499 shown)
+
+Stage Summary:
+- On-device LLM model replaced with publicly accessible Qwen3-0.6B
+- All hydration warnings eliminated (0 errors, 0 warnings in console)
+- Duplicate laptop feature fully functional (tested, creates copy + opens edit form)
+- Activity log tracks all laptop lifecycle events
+- Profit insights widget provides at-a-glance business metrics
+- Dashboard styling significantly enhanced with gradients, shadows, animations
+- ESLint clean on all modified files, dev server compiling normally
+
+## Current Project Status
+
+### Project: LaptopFlip - Mobile-First Laptop Resale App
+### Status: Feature-rich MVP with polished UI, 3-tier AI ad generation
+
+### Completed Features (13 total):
+1. **Dashboard** - Stats grid (5 cards, gradient borders), gradient header, quick action cards, recent listings with View links, refresh button
+2. **Profit Insights** - Best Seller, Avg Days to Sell, Total Inventory Value
+3. **Guided Photo Session** - Step-by-step 12-shot wizard with camera/upload/skip
+4. **Inventory** - Search + filter + sort, profit/loss indicators, CSV export, duplicate, status cycling, undo delete
+5. **Laptop Detail View** - Photo gallery, specs, condition, pricing, activity timeline, action buttons
+6. **Laptop Form** - Multi-step (Photos → Details), brand/model/specs/condition/pricing/photos
+7. **AI Ad Creator** - Platform selector (custom checkbox), 3-tier generation, model download UI
+8. **Ad Preview** - Realistic platform previews, share/copy functionality
+9. **3-Tier AI Ads** - Server (GLM-4-Flash) → On-device (Qwen3-0.6B) → Templates
+10. **API Routes** - Full CRUD, AI generation, photo upload
+11. **Dark Mode** - Full support via next-themes
+12. **Animations** - Framer Motion throughout
+13. **Activity Log** - Lifecycle tracking per laptop
+
+### Tech Stack:
+- Next.js 16 + TypeScript + Tailwind CSS 4 + shadcn/ui
+- Zustand, Prisma (SQLite), z-ai-web-dev-sdk
+- @huggingface/transformers v4 (Qwen3-0.6B ONNX)
+- Framer Motion, Capacitor (Android APK)
+
+### Unresolved/Risks:
+- Photos stored as base64 (needs cloud storage for production)
+- No user authentication (single-user app)
+- Auto-posting to platforms not implemented
+- New APK not yet built with Qwen3 model change
+
+### Next Phase Recommendations:
+1. Build new APK with Qwen3 model + all recent fixes
+2. Add multi-user support with NextAuth
+3. Cloud photo storage (S3/Cloudflare R2)
+4. Price trend analytics with charts
+5. Buyer contact management / mini CRM

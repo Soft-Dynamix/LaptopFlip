@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Pencil,
@@ -23,6 +23,8 @@ import {
   Clock,
   ImageIcon,
   AlertCircle,
+  Activity,
+  Circle,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -127,6 +129,36 @@ function formatDate(dateString: string): string {
     month: "short",
     year: "numeric",
   });
+}
+
+function formatTimeAgo(dateString: string): string {
+  const now = new Date();
+  const date = new Date(dateString);
+  const diffMs = now.getTime() - date.getTime();
+  const diffMinutes = Math.floor(diffMs / (1000 * 60));
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+  if (diffMinutes < 1) return "just now";
+  if (diffMinutes < 60) return `${diffMinutes}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffDays < 7) return `${diffDays}d ago`;
+  return formatDate(dateString);
+}
+
+function getActionIcon(action: string) {
+  switch (action) {
+    case "created":
+      return { icon: Sparkles, color: "text-emerald-500" };
+    case "status_change":
+      return { icon: Activity, color: "text-sky-500" };
+    case "price_update":
+      return { icon: TrendingUp, color: "text-amber-500" };
+    case "edited":
+      return { icon: Pencil, color: "text-purple-500" };
+    default:
+      return { icon: Circle, color: "text-muted-foreground" };
+  }
 }
 
 // ─── Detail Row ───────────────────────────────────────────
@@ -262,6 +294,58 @@ function PhotoGallery({ photos }: { photos: string[] }) {
           </button>
         </div>
       )}
+    </div>
+  );
+}
+
+// ─── Activity Timeline ────────────────────────────────────
+
+function ActivityTimeline({ laptopId }: { laptopId: string }) {
+  const getActivityLogs = useAppStore((s) => s.getActivityLogs);
+  const logs = useMemo(() => getActivityLogs(laptopId), [getActivityLogs, laptopId]);
+
+  // Show the most recent entries first, limit to 10
+  const displayLogs = [...logs].reverse().slice(0, 10);
+
+  if (displayLogs.length === 0) {
+    return (
+      <div className="text-center py-4">
+        <p className="text-xs text-muted-foreground">No activity recorded yet</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative">
+      {/* Vertical line */}
+      <div className="absolute left-[11px] top-2 bottom-2 w-px bg-border" />
+
+      <div className="space-y-3">
+        {displayLogs.map((log, index) => {
+          const { icon: ActionIcon, color } = getActionIcon(log.action);
+          return (
+            <motion.div
+              key={log.id}
+              initial={{ opacity: 0, x: -8 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.2, delay: index * 0.05 }}
+              className="flex gap-3 relative"
+            >
+              {/* Icon dot */}
+              <div className="relative z-10 size-[22px] rounded-full bg-background border-2 border-border flex items-center justify-center shrink-0 mt-0.5">
+                <ActionIcon className={`size-3 ${color}`} />
+              </div>
+              {/* Content */}
+              <div className="flex-1 min-w-0 pb-1">
+                <p className="text-sm font-medium">{log.detail}</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">
+                  {formatTimeAgo(log.timestamp)}
+                </p>
+              </div>
+            </motion.div>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -658,6 +742,23 @@ export function LaptopDetailSheet() {
                 </Card>
               </motion.div>
             )}
+
+            {/* ─── Activity Log ─── */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: 0.35 }}
+            >
+              <h3 className="text-sm font-semibold text-emerald-700 dark:text-emerald-400 flex items-center gap-2 mb-3">
+                <Activity className="size-4" />
+                Activity
+              </h3>
+              <Card className="rounded-xl">
+                <CardContent className="p-4">
+                  <ActivityTimeline laptopId={selectedLaptop.id} />
+                </CardContent>
+              </Card>
+            </motion.div>
           </div>
 
           {/* ─── Action Buttons ─── */}

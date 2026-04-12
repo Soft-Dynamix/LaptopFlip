@@ -43,6 +43,7 @@ import {
   STORAGE_OPTIONS,
   CONDITIONS,
   BATTERY_HEALTH,
+  formatPrice,
 } from "@/lib/types";
 import { photoSteps, prepTips } from "@/lib/photo-steps";
 
@@ -633,6 +634,7 @@ export function LaptopFormSheet() {
   const setEditingLaptopId = useAppStore((s) => s.setEditingLaptopId);
   const setLaptops = useAppStore((s) => s.setLaptops);
   const laptops = useAppStore((s) => s.laptops);
+  const addActivityLog = useAppStore((s) => s.addActivityLog);
 
   const [formData, setFormData] = useState<LaptopFormData>(defaultLaptopForm);
   const [customBrandInput, setCustomBrandInput] = useState("");
@@ -778,6 +780,33 @@ export function LaptopFormSheet() {
         : await apiCreateLaptop(payload);
 
       if (!savedLaptop) throw new Error("Failed to save laptop");
+
+      // Activity logging
+      if (isEditing) {
+        const existingLaptop = laptops.find((l) => l.id === editingLaptopId);
+        if (existingLaptop) {
+          // Check for price change
+          const newAskingPrice = formData.askingPrice ? Number(formData.askingPrice) : 0;
+          if (existingLaptop.askingPrice !== newAskingPrice && newAskingPrice > 0) {
+            addActivityLog({
+              laptopId: editingLaptopId!,
+              action: "price_update",
+              detail: `Price updated from ${formatPrice(existingLaptop.askingPrice)} to ${formatPrice(newAskingPrice)}`,
+            });
+          }
+          addActivityLog({
+            laptopId: editingLaptopId!,
+            action: "edited",
+            detail: "Laptop details updated",
+          });
+        }
+      } else {
+        addActivityLog({
+          laptopId: savedLaptop.id,
+          action: "created",
+          detail: `${resolvedBrand} ${formData.model.trim()} created`,
+        });
+      }
 
       toast.success(
         isEditing ? "Laptop updated successfully" : "Laptop added successfully"

@@ -105,6 +105,14 @@ export const STORAGE_OPTIONS = [
   "256GB HDD", "500GB HDD", "1TB HDD", "2TB HDD",
 ];
 
+export interface ActivityLogEntry {
+  id: string;
+  laptopId: string;
+  action: string;
+  detail: string;
+  timestamp: string;
+}
+
 export function formatPrice(amount: number): string {
   return new Intl.NumberFormat("en-ZA", {
     style: "currency",

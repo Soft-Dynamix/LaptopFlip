@@ -15,6 +15,7 @@ import {
   TrendingDown,
   ArrowUpDown,
   Download,
+  Copy,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
@@ -171,6 +172,7 @@ export function Inventory() {
     setSelectedLaptop,
     isDetailOpen,
     setIsDetailOpen,
+    addActivityLog,
   } = useAppStore();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -178,6 +180,7 @@ export function Inventory() {
   const [deleting, setDeleting] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>("newest");
   const [debouncedQuery, setDebouncedQuery] = useState(searchQuery);
+  const [duplicating, setDuplicating] = useState(false);
   const deletedLaptopRef = useRef<LaptopType | null>(null);
 
   // Debounce search query
@@ -192,7 +195,7 @@ export function Inventory() {
     try {
       setLoading(true);
       const data = await apiFetchLaptops();
-      setLaptops(data);
+      setLaptops(Array.isArray(data) ? data : []);
     } catch {
       // Error silently handled
     } finally {
@@ -217,7 +220,7 @@ export function Inventory() {
     }
   }, [setLaptops]);
 
-  const filteredLaptops = laptops
+  const filteredLaptops = (Array.isArray(laptops) ? laptops : [])
     .filter((laptop) => {
       const matchesStatus =
         filterStatus === "all" || laptop.status === filterStatus;
@@ -322,6 +325,36 @@ export function Inventory() {
     setIsAdCreatorOpen(true);
   };
 
+  const handleDuplicate = async (laptop: LaptopType) => {
+    setDuplicating(true);
+    try {
+      const duplicated = await apiCreateLaptop({
+        ...laptop,
+        id: undefined,
+        model: `${laptop.model} - Copy`,
+        status: "draft",
+      });
+      if (duplicated) {
+        setLaptops((prev: LaptopType[]) => [duplicated, ...prev]);
+        addActivityLog({
+          laptopId: duplicated.id,
+          action: "created",
+          detail: `Duplicated from ${laptop.brand} ${laptop.model}`,
+        });
+        toast.success(`Duplicated ${laptop.brand} ${laptop.model}`);
+        // Open edit form for the duplicated laptop
+        setIsDetailOpen(false);
+        setSelectedLaptop(null);
+        setEditingLaptopId(duplicated.id);
+        setIsFormOpen(true);
+      }
+    } catch {
+      toast.error("Failed to duplicate laptop");
+    } finally {
+      setDuplicating(false);
+    }
+  };
+
   const handleDelete = async () => {
     if (!deleteTarget) return;
     try {
@@ -370,6 +403,11 @@ export function Inventory() {
         setLaptops(
           laptops.map((l) => (l.id === laptop.id ? updated : l))
         );
+        addActivityLog({
+          laptopId: laptop.id,
+          action: "status_change",
+          detail: `Status changed to ${statusLabels[newStatus] || newStatus}`,
+        });
         toast.success(
           `${laptop.brand} ${laptop.model} → ${statusLabels[newStatus] || newStatus}`
         );
@@ -433,7 +471,7 @@ export function Inventory() {
         transition={{ duration: 0.3, delay: 0.05 }}
         className="relative"
       >
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
         <Input
           placeholder="Search by brand, model, status..."
           value={searchQuery}
@@ -652,6 +690,13 @@ export function Inventory() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
+                              <DropdownMenuItem
+                                onClick={() => handleDuplicate(laptop)}
+                                disabled={duplicating}
+                              >
+                                <Copy className="size-4" />
+                                {duplicating ? "Duplicating..." : "Duplicate"}
+                              </DropdownMenuItem>
                               <DropdownMenuItem
                                 onClick={() => handleChangeStatus(laptop)}
                               >
