@@ -673,6 +673,7 @@ export function LaptopFormSheet() {
         year: laptop.year?.toString() || "",
         serialNumber: laptop.serialNumber || "",
         repairs: laptop.repairs || "",
+        features: (laptop as Record<string, unknown>).features ? String((laptop as Record<string, unknown>).features) : "",
         location: laptop.location || "",
       };
       setFormData(form);
@@ -1112,6 +1113,22 @@ export function LaptopFormSheet() {
                           onChange={(e) => updateField("repairs", e.target.value)}
                           rows={2}
                         />
+                      </FormField>
+                    </FormSection>
+
+                    {/* Features & Ports */}
+                    <FormSection icon={Sparkles} title="Features & Ports">
+                      <FormField label="Features / Ports">
+                        <Textarea
+                          placeholder="e.g. HDMI, USB-C, 3x USB-A, Network Port, VGA, SIM Card Slot, SD Card Slot, Webcam, Backlit Keyboard, Bluetooth, Wi-Fi..."
+                          value={formData.features}
+                          onChange={(e) => updateField("features", e.target.value)}
+                          rows={3}
+                          className="text-sm"
+                        />
+                        <p className="text-[11px] text-muted-foreground mt-1">
+                          List the ports, connectivity, and special features of this laptop. These will appear in your generated ads.
+                        </p>
                       </FormField>
                     </FormSection>
 

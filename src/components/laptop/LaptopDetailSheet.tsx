@@ -638,6 +638,39 @@ export function LaptopDetailSheet() {
               </Card>
             </motion.div>
 
+            {/* ─── Features & Ports ─── */}
+            {selectedLaptop.features && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: 0.175 }}
+              >
+                <h3 className="text-sm font-semibold text-emerald-700 dark:text-emerald-400 flex items-center gap-2 mb-3">
+                  <Wrench className="size-4" />
+                  Features & Ports
+                </h3>
+                <Card className="rounded-xl">
+                  <CardContent className="p-4">
+                    <div className="flex flex-wrap gap-1.5">
+                      {selectedLaptop.features.split(/[,\n]+/).map((feature, i) => {
+                        const trimmed = feature.trim();
+                        if (!trimmed) return null;
+                        return (
+                          <Badge
+                            key={i}
+                            variant="secondary"
+                            className="text-xs px-2.5 py-1 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 dark:hover:bg-emerald-900/50"
+                          >
+                            {trimmed}
+                          </Badge>
+                        );
+                      })}
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )}
+
             {/* ─── Details ─── */}
             <motion.div
               initial={{ opacity: 0, y: 10 }}

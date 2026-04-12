@@ -15,6 +15,7 @@ export interface LaptopFormData {
   year: string;
   serialNumber: string;
   repairs: string;
+  features: string;
   location: string;
 }
 
@@ -35,6 +36,7 @@ export const defaultLaptopForm: LaptopFormData = {
   year: "",
   serialNumber: "",
   repairs: "",
+  features: "",
   location: "",
 };
 
@@ -58,6 +60,7 @@ export interface Laptop {
   year: number;
   serialNumber: string;
   repairs: string;
+  features: string;
   location: string;
   createdAt: string;
   updatedAt: string;

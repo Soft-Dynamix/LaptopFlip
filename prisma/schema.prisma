@@ -27,6 +27,7 @@ model Laptop {
   year          Int      @default(0)
   serialNumber  String   @default("")
   repairs       String   @default("")
+  features      String   @default("") // Ports, connectivity, special features (user-entered)
   location      String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt

@@ -40,9 +40,9 @@ HEADER FORMAT:
 
 🧰 Features / Ports:
 - Header must be exactly: "🧰 Features / Ports:"
-- List connectivity and physical features on their own lines:
-  - Webcam, Bluetooth & Wi-Fi
-  - Infer reasonable ports based on brand/model/age:
+- If the laptop has user-specified Features/Ports, use THOSE EXACTLY as listed — do NOT make up or infer ports
+- List each feature/port on its own line
+- If no user-specified features are provided, infer reasonable ports based on brand/model/age:
     * Older business laptops (Dell Latitude, ThinkPad, HP ProBook/EliteBook): Network Port, VGA Port, HDMI Port, 3 x USB Ports, SIM Card Slot, SD Card Slot
     * Newer laptops (2020+): USB-C Port, Thunderbolt (if applicable), HDMI Port
     * All laptops: Audio Jack, Great Sound from Built-in Speakers
@@ -286,7 +286,7 @@ Battery Health: ${laptop.batteryHealth}
 Asking Price: R${laptop.askingPrice.toLocaleString()}${laptop.purchasePrice ? `\nPurchase Price: R${laptop.purchasePrice.toLocaleString()} (for pricing context)` : ''}${laptop.color ? `\nColour: ${laptop.color}` : ''}${laptop.year ? `\nYear: ${laptop.year}` : ''}${laptop.repairs ? `\nRepairs: ${laptop.repairs}` : ''}
 Location: ${laptop.location || 'Not specified'}
 WhatsApp Number: ${laptop.whatsappNumber || 'Not provided'}
-Default Location: ${laptop.defaultLocation || 'Not specified'}
+Default Location: ${laptop.defaultLocation || 'Not specified'}${(laptop as Record<string, unknown>).features ? `\nFeatures / Ports (user-specified): ${(laptop as Record<string, unknown>).features}` : ''}
 ${laptop.notes ? `\nSeller Notes: ${laptop.notes}` : ''}
 
 ━━━ SELLING CONTEXT & ANGLES ━━━
@@ -408,8 +408,14 @@ function buildFallbackAd(
     if (laptop.gpu) fbSpecLines.push(laptop.gpu);
     if (fbSpecLines.length === 0) fbSpecLines.push("Contact for full specifications");
 
-    // Infer ports/features
-    const fbFeatures: string[] = ["Webcam", "Bluetooth & Wi-Fi", "Network Port", "HDMI Port", "3 x USB Ports", "Audio Jack & Great Sound from Built-in Speakers", "SD Card Slot", "Backlit Keyboard - Work in the Dark"];
+    // Use user-specified features if available, otherwise infer
+    const userFeatures = (laptop as Record<string, unknown>).features as string | undefined;
+    let fbFeatures: string[];
+    if (userFeatures && userFeatures.trim()) {
+      fbFeatures = userFeatures.split(/[,.\n]+/).map(f => f.trim()).filter(Boolean);
+    } else {
+      fbFeatures = ["Webcam", "Bluetooth & Wi-Fi", "Network Port", "HDMI Port", "3 x USB Ports", "Audio Jack & Great Sound from Built-in Speakers", "SD Card Slot", "Backlit Keyboard - Work in the Dark"];
+    }
 
     // Determine target audience
     let targetAudience = "students, professionals, and anyone needing a fast, reliable laptop";
