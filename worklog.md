@@ -743,3 +743,35 @@ Stage Summary:
 - Thinking mode disabled via /no_think in system prompt
 - Output parsing handles multiple formats and strips chat markers
 - ESLint clean, dev server compiling
+
+---
+Task ID: 18
+Agent: Main
+Task: Fix "Generate with On-Device AI" button not working
+
+Work Log:
+- Analyzed 4 files: AdCreatorSheet.tsx, on-device-llm.ts, local-api.ts, api.ts
+- Identified 4 root causes:
+  1. **Laptop not in localStorage** (MAIN BUG): When app switches from server to local mode, laptops added via API are in DB but NOT in localStorage. `localFetchLaptop()` returns null → empty ads, no error shown.
+  2. **Misleading success toast**: `handleGenerate()` showed "Ads generated successfully!" even when data was empty array.
+  3. **On-device AI hidden in online mode**: Download button only visible when `isOffline=true`, impossible to test in web dev.
+  4. **Laptop object not passed through chain**: `handleGenerate` only passed laptopId, not the laptop object, forcing localStorage lookup.
+- Fixed `local-api.ts`: `localGenerateAd()` now accepts optional `laptopObj` parameter to skip localStorage lookup
+- Fixed `api.ts`: `apiGenerateAd()` now accepts and passes optional laptop object to local generation
+- Fixed `AdCreatorSheet.tsx`:
+  - `handleGenerate()` now passes `laptop` object directly to `apiGenerateAd()`
+  - Added laptop null check with user-facing error message
+  - Fixed success toast to only show when ads are actually generated
+  - Added count to success toast ("2 ads generated successfully!")
+  - Shows error toast when generation returns empty results
+  - On-device AI download button now visible in BOTH online and offline modes
+  - Added `showOnDeviceSection` flag for proper visibility control
+- Fixed `on-device-llm.ts`: Added 3-minute generation timeout via `Promise.race` to prevent infinite hangs
+- Browser QA verified: page loads correctly, Ad Creator opens, download button visible, model downloads with progress, generate button works, ads generated successfully
+
+Stage Summary:
+- **Critical bug fixed**: On-device AI generation now works by passing laptop data directly instead of relying on localStorage lookup
+- **4 bugs fixed**: localStorage lookup failure, misleading toast, hidden download button, missing laptop data in chain
+- **1 safety improvement**: Generation timeout prevents infinite hangs
+- On-device AI model download now accessible in online mode for testing
+- ESLint clean, dev server compiling, no console errors

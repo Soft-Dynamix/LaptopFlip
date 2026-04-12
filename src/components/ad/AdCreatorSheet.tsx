@@ -417,11 +417,26 @@ export function AdCreatorSheet() {
       return;
     }
 
+    if (!laptop) {
+      toast.error("Laptop data not available. Please try reopening the Ad Creator.");
+      return;
+    }
+
     setIsGenerating(true);
     setAdSources({});
 
     try {
-      const data = await apiGenerateAd(adCreatorLaptopId, selectedPlatforms);
+      console.log("[AdCreatorSheet] Generating ads for", laptop.brand, laptop.model, "platforms:", selectedPlatforms, "modelReady:", modelReady);
+
+      // Pass laptop object directly so local generation doesn't need localStorage lookup
+      const data = await apiGenerateAd(adCreatorLaptopId, selectedPlatforms, laptop);
+
+      if (!data || data.length === 0) {
+        toast.error("No ads were generated. The laptop data may not be available offline.");
+        setAdPreviews([]);
+        return;
+      }
+
       setAdPreviews(data);
 
       // Determine ad sources based on model status
@@ -439,9 +454,11 @@ export function AdCreatorSheet() {
       // Server AI ads — don't tag them specifically
       setAdSources(sources);
 
-      toast.success("Ads generated successfully!");
-    } catch {
-      toast.error("Failed to generate ads. Please try again.");
+      toast.success(`${data.length} ad${data.length > 1 ? "s" : ""} generated successfully!`);
+    } catch (err) {
+      const errMsg = err instanceof Error ? err.message : "Unknown error";
+      console.error("[AdCreatorSheet] Generation error:", errMsg);
+      toast.error(`Failed to generate ads: ${errMsg}`);
     } finally {
       setIsGenerating(false);
     }
@@ -501,6 +518,9 @@ export function AdCreatorSheet() {
   // Derive from React state to stay in sync with UI.
   // Also call isModelReady() which has a safety net that auto-fixes stale status.
   const modelReady = modelProgress.status === "ready" || isModelReady();
+  // Show on-device AI section always when model is downloading/ready/error,
+  // or when offline (to allow downloading)
+  const showOnDeviceSection = isOffline || modelProgress.status !== "idle";
 
   return (
     <Sheet open={isAdCreatorOpen} onOpenChange={handleSheetClose}>
@@ -575,8 +595,8 @@ export function AdCreatorSheet() {
             <div className="h-1 rounded-full bg-gradient-to-r from-emerald-400 via-teal-400 to-emerald-500 dark:from-emerald-600 dark:via-teal-600 dark:to-emerald-700 opacity-50" />
           )}
 
-          {/* On-device LLM download card (only in offline mode) */}
-          {isOffline && (
+          {/* On-device LLM download card — shown when offline or when model is being managed */}
+          {showOnDeviceSection && (
             <AnimatePresence>
               <ModelDownloadCard
                 modelProgress={modelProgress}
@@ -585,8 +605,8 @@ export function AdCreatorSheet() {
             </AnimatePresence>
           )}
 
-          {/* Download AI model button (when offline and model not loaded) */}
-          {isOffline && modelProgress.status === "idle" && (
+          {/* Download AI model button — available both online and offline */}
+          {modelProgress.status === "idle" && (
             <motion.div
               initial={{ opacity: 0, y: 5 }}
               animate={{ opacity: 1, y: 0 }}
@@ -610,13 +630,15 @@ export function AdCreatorSheet() {
                 )}
               </Button>
               <p className="text-[11px] text-muted-foreground mt-1.5 text-center">
-                Runs entirely on your phone — no internet needed for AI ads
+                {isOffline
+                  ? "Runs entirely on your phone — no internet needed for AI ads"
+                  : "Download to use AI ad generation even when offline"}
               </p>
             </motion.div>
           )}
 
           {/* Model ready banner */}
-          {isOffline && modelReady && modelProgress.status !== "generating" && (
+          {modelReady && modelProgress.status !== "generating" && (
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -695,8 +717,10 @@ export function AdCreatorSheet() {
               className="w-full bg-emerald-600 hover:bg-emerald-700 text-white h-11 rounded-xl font-semibold"
             >
               <Sparkles className="size-4" />
-              {isOffline && modelReady
-                ? "Generate with On-Device AI"
+              {modelReady
+                ? isOffline
+                  ? "Generate with On-Device AI"
+                  : "Generate Ads with AI"
                 : isOffline
                   ? "Generate Ads (Templates)"
                   : "Generate Ads with AI"}

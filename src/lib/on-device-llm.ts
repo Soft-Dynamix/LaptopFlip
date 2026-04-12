@@ -325,6 +325,18 @@ const ON_DEVICE_PLATFORM_RULES: Record<Platform, string> = {
 
 // ─── Ad generation ──────────────────────────────────────
 
+/** Maximum time to wait for on-device generation (3 minutes) */
+const GENERATION_TIMEOUT_MS = 180_000;
+
+function createGenerationTimeout(): Promise<never> {
+  return new Promise((_, reject) =>
+    setTimeout(
+      () => reject(new Error("On-device generation timed out after 3 minutes")),
+      GENERATION_TIMEOUT_MS
+    )
+  );
+}
+
 function buildLLMPrompt(platform: Platform, laptop: Laptop): string {
   const platformRules = ON_DEVICE_PLATFORM_RULES[platform];
   const priceStr = formatPrice(laptop.askingPrice);
@@ -397,12 +409,16 @@ export async function generateAdWithLLM(
     const prompt = buildLLMPrompt(platform, laptop);
     log("generateAd", `Generating ad, prompt length: ${prompt.length}`);
 
-    const result = await pipeline(prompt, {
-      max_new_tokens: 1024,
-      temperature: 0.7,
-      top_p: 0.9,
-      do_sample: true,
-    });
+    // Race the generation against a timeout to prevent infinite hangs
+    const result = await Promise.race([
+      pipeline(prompt, {
+        max_new_tokens: 1024,
+        temperature: 0.7,
+        top_p: 0.9,
+        do_sample: true,
+      }),
+      createGenerationTimeout(),
+    ]);
 
     // Extract generated text from various possible output formats
     let generated = "";

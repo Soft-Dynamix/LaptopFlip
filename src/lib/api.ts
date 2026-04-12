@@ -228,10 +228,16 @@ export async function apiDeleteLaptop(id: string): Promise<boolean> {
 /**
  * Generate ads for specified platforms.
  * Returns an array of `AdPreview` objects.
+ *
+ * @param laptopId   - Laptop ID to look up
+ * @param platforms  - Target platforms
+ * @param laptopObj  - Optional pre-fetched laptop object. Passed directly to local
+ *                     generation to avoid localStorage lookup issues.
  */
 export async function apiGenerateAd(
   laptopId: string,
-  platforms: Platform[]
+  platforms: Platform[],
+  laptopObj?: Laptop | null
 ): Promise<AdPreview[]> {
   const serverUp = ensureMode();
   if (serverUp) {
@@ -256,5 +262,5 @@ export async function apiGenerateAd(
     }
     switchToLocalMode();
   }
-  return localGenerateAd(laptopId, platforms);
+  return localGenerateAd(laptopId, platforms, laptopObj);
 }
