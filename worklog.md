@@ -244,3 +244,34 @@ Stage Summary:
 - App ID: com.softdynamix.laptopflip
 - Includes: emerald green icon, splash screen, camera/storage/network permissions
 - Note: APK contains local WebView assets only — for full functionality (API routes, database, AI), the app needs to be deployed to a hosting service and server.url updated in capacitor.config.ts, then rebuild
+
+---
+Task ID: 9
+Agent: Main
+Task: Fix Stock/Inventory tab failure in APK and push new release
+
+Work Log:
+- Diagnosed root cause: Capacitor native detection in api.ts was unreliable
+  - `window.Capacitor` global was not available because `@capacitor/core` was never imported
+  - Server probe (detectServer) had a 2-second timeout causing perceived "freeze"
+  - In Capacitor APK, all /api/ calls would fail since there's no server
+- Rewrote `src/lib/api.ts` with improved native detection:
+  - Strategy 1: Check `window.Capacitor` with `isNativePlatform()` method
+  - Strategy 2: Check `capacitor:` or `ionic:` URL protocol schemes
+  - Strategy 3: Check `https://localhost` with no port (Capacitor androidScheme)
+- Made `ensureMode()` synchronous (no async probe delay)
+- Added timeout + content-type validation on all fetch calls
+- Server probe failure now permanently switches to local mode (no retry delay)
+- Added `import "@capacitor/core"` to page.tsx to initialize Capacitor runtime
+- Moved API routes aside → changed next.config.ts to `output: "export"` → built static export → synced to Capacitor
+- Built APK: 8.6MB with all fixes
+- Uploaded to GitHub Releases as v1.1.0-debug
+- Restored dev config (standalone + API routes) and restarted dev server
+
+Stage Summary:
+- **New APK available**: https://github.com/Soft-Dynamix/LaptopFlip/releases/tag/v1.1.0-debug
+- Stock/Inventory tab should now work correctly in the APK (uses localStorage)
+- Capacitor runtime properly initialized via @capacitor/core import
+- All tabs (Dashboard, Photos, Stock) use localStorage when no server detected
+- Ad generation uses built-in templates when offline
+- Dev server restored to normal mode (standalone + API routes)
