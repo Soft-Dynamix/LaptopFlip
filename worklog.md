@@ -58,7 +58,7 @@ Stage Summary:
 
 ### Completed Features:
 1. **Dashboard** - Stats grid (5 cards), gradient header, quick actions, recent listings, refresh button
-2. **Photo Guide** - Interactive 24-item checklist across 4 sections, progress bar, pro tips, camera integration
+2. **Guided Photo Session** - Step-by-step 12-shot wizard with camera/upload/skip per step, auto-carries to laptop form
 3. **Inventory** - Search + filter, laptop cards with profit/loss indicators, edit/create ad/delete actions, status cycling
 4. **Laptop Form** - Full bottom sheet with brand/model/specs/condition/pricing/photos, real camera capture
 5. **AI Ad Creator** - Platform selection, AI generation via glm-4-flash, ad cards with preview/copy/share
@@ -118,3 +118,26 @@ Stage Summary:
 - Dashboard header is a polished gradient banner with refresh capability
 - Pull-to-refresh simulation via refresh buttons in Dashboard and Inventory
 - AdPreviewSheet dark mode wrapper ensures platform previews look good in dark mode
+
+---
+Task ID: 4
+Agent: Main
+Task: Rebuild Photo Guide into guided step-by-step photo session
+
+Work Log:
+- Added photo session state to Zustand store (isPhotoSessionActive, photoSessionStep, photoSessionPhotos, etc.)
+- Completely rebuilt PhotoGuide.tsx from static checklist to interactive guided wizard
+- Created 12 photo steps: Front closed, Front open, Screen on, Keyboard, Ports L/R, Back, Hinge, Damage front/palm, Charger, Box
+- Each step shows: step label, required badge, instruction card with tip, photo preview area
+- Three action buttons per step: Camera (capture="environment"), Upload (gallery picker), Skip
+- After photo taken: Next/Back/Retake/Skip buttons, photo preview with "Captured" badge
+- Progress bar with dot indicators at top, Cancel/Finish buttons
+- Session complete screen: photo grid with step labels, "Add Laptop with These Photos" button
+- Connected photo session to LaptopFormSheet - photos auto-carry when opening new laptop form
+- Updated worklog feature list
+
+Stage Summary:
+- Photo Guide is now a full guided photo session with 12 steps
+- Each step: take photo (camera), upload from gallery, or skip
+- Photos automatically carry over to laptop listing form
+- ESLint clean, dev server compiling successfully

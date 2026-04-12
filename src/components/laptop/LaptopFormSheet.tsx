@@ -144,16 +144,25 @@ export function LaptopFormSheet() {
     }
   }, [editingLaptopId]);
 
+  const photoSessionPhotos = useAppStore((s) => s.photoSessionPhotos);
+  const resetPhotoSession = useAppStore((s) => s.resetPhotoSession);
+
   useEffect(() => {
     if (isFormOpen) {
       if (editingLaptopId) {
         fetchLaptop();
       } else {
         setFormData(defaultLaptopForm);
-        setPhotos([]);
+        // Carry over photos from guided photo session if available
+        if (photoSessionPhotos.length > 0) {
+          setPhotos([...photoSessionPhotos]);
+          resetPhotoSession();
+        } else {
+          setPhotos([]);
+        }
       }
     }
-  }, [isFormOpen, editingLaptopId, fetchLaptop]);
+  }, [isFormOpen, editingLaptopId, fetchLaptop, photoSessionPhotos, resetPhotoSession]);
 
   const updateField = (field: keyof LaptopFormData, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));

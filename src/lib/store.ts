@@ -42,6 +42,17 @@ interface AppState {
   togglePhotoCheck: (key: string) => void;
   resetPhotoChecklist: () => void;
 
+  // Guided photo session
+  isPhotoSessionActive: boolean;
+  setIsPhotoSessionActive: (active: boolean) => void;
+  photoSessionStep: number;
+  setPhotoSessionStep: (step: number) => void;
+  photoSessionPhotos: string[];
+  setPhotoSessionPhotos: (photos: string[]) => void;
+  addPhotoSessionPhoto: (photo: string) => void;
+  removePhotoSessionPhoto: (index: number) => void;
+  resetPhotoSession: () => void;
+
   // Inventory
   searchQuery: string;
   setSearchQuery: (query: string) => void;
@@ -133,6 +144,28 @@ export const useAppStore = create<AppState>((set) => ({
       },
     })),
   resetPhotoChecklist: () => set({ photoChecklist: { ...defaultChecklist } }),
+
+  // Guided photo session
+  isPhotoSessionActive: false,
+  setIsPhotoSessionActive: (active) => set({ isPhotoSessionActive: active }),
+  photoSessionStep: 0,
+  setPhotoSessionStep: (step) => set({ photoSessionStep: step }),
+  photoSessionPhotos: [],
+  setPhotoSessionPhotos: (photos) => set({ photoSessionPhotos: photos }),
+  addPhotoSessionPhoto: (photo) =>
+    set((state) => ({
+      photoSessionPhotos: [...state.photoSessionPhotos, photo],
+    })),
+  removePhotoSessionPhoto: (index) =>
+    set((state) => ({
+      photoSessionPhotos: state.photoSessionPhotos.filter((_, i) => i !== index),
+    })),
+  resetPhotoSession: () =>
+    set({
+      isPhotoSessionActive: false,
+      photoSessionStep: 0,
+      photoSessionPhotos: [],
+    }),
 
   // Inventory
   searchQuery: "",
