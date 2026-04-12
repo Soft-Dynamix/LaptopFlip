@@ -11,6 +11,7 @@ import {
   localUpdateLaptop,
   localDeleteLaptop,
   localGenerateAd,
+  syncLaptopsToLocalStorage,
 } from "./local-api";
 
 // Cache the detected mode so we don't keep hitting a dead server
@@ -103,6 +104,8 @@ export async function apiFetchLaptops(): Promise<Laptop[]> {
         const ct = res.headers.get("content-type") || "";
         if (ct.includes("application/json")) {
           const data = await res.json();
+          // Dual-write: sync server data to localStorage for offline fallback
+          syncLaptopsToLocalStorage(data as Laptop[]);
           return data as Laptop[];
         }
       }
@@ -159,6 +162,8 @@ export async function apiCreateLaptop(
       clearTimeout(timeout);
       if (res.ok) {
         const result = await res.json();
+        // Dual-write: also save to localStorage for offline fallback
+        try { localCreateLaptop(data); } catch { /* ignore sync failure */ }
         return result as Laptop;
       }
     } catch {
@@ -190,6 +195,8 @@ export async function apiUpdateLaptop(
       clearTimeout(timeout);
       if (res.ok) {
         const result = await res.json();
+        // Dual-write: also update localStorage for offline fallback
+        try { localUpdateLaptop(id, data); } catch { /* ignore sync failure */ }
         return result as Laptop;
       }
       if (res.status === 404) return null;
@@ -215,7 +222,11 @@ export async function apiDeleteLaptop(id: string): Promise<boolean> {
         signal: controller.signal,
       });
       clearTimeout(timeout);
-      if (res.ok) return true;
+      if (res.ok) {
+        // Dual-write: also delete from localStorage for offline consistency
+        try { localDeleteLaptop(id); } catch { /* ignore sync failure */ }
+        return true;
+      }
       if (res.status === 404) return false;
     } catch {
       // fall through to local

@@ -977,3 +977,29 @@ Stage Summary:
 ### Unresolved:
 - Cron auto-dev stopped (manual development mode)
 - worklog.md was root-owned (now owned by user z)
+
+---
+Task ID: 7
+Agent: Main
+Task: Fix "Generate Ads" button not working + dual-write localStorage sync
+
+Work Log:
+- Diagnosed dev server instability: server process dies between bash tool sessions in sandbox
+- Found existing keep-alive.js script, verified it works with double-fork + disown pattern
+- Server confirmed alive and persistent across sessions
+- Tested /api/generate-ad endpoint: returns ads in ~1.7s for Facebook and WhatsApp
+- Implemented dual-write pattern in src/lib/api.ts:
+  - apiFetchLaptops: syncs server data to localStorage on success
+  - apiCreateLaptop: also saves to localStorage on server success
+  - apiUpdateLaptop: also updates localStorage on server success  
+  - apiDeleteLaptop: also removes from localStorage on server success
+- Added syncLaptopsToLocalStorage() function in src/lib/local-api.ts
+- Verified features/ports field already exists in full stack (Prisma, types, form, detail view, ad generation)
+- Verified generate-ad API works end-to-end (tested with curl)
+
+Stage Summary:
+- Root cause: dev server process instability in sandbox environment
+- Fix: dual-write ensures data is cached to localStorage whenever server succeeds
+- Offline resilience: if server dies after initial load, localStorage has the data
+- features/ports field was already implemented in previous session (v1.3.0)
+- Server kept alive via: bash -c 'while true; do npx next dev -p 3000; sleep 2; done' & disown
