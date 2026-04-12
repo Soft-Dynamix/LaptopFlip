@@ -377,3 +377,45 @@ Stage Summary:
 4. Price trend analytics with charts
 5. Buyer contact management / mini CRM
 6. Push notifications for price drops on watched listings
+
+---
+Task ID: 12
+Agent: Main
+Task: Improve ad text generation prompts for better sales copy
+
+Work Log:
+- Rewrote system prompt in `/src/app/api/generate-ad/route.ts`:
+  - 10 detailed writing principles (honesty, hooks, specs, paint a picture, trust signals, urgency, value proposition, mobile-first, SA context, JSON output)
+  - South African marketplace specialist persona
+  - Emphasis on Rands, SA English spelling, local marketplace norms
+- Rewrote all 4 platform-specific instructions:
+  - **WhatsApp**: 500-char limit, WhatsApp formatting (*bold*, _italic_), hook line, 3-4 specs max, urgent CTA, 2-3 emojis
+  - **Facebook**: 300-600 words, emoji headers (📋✅💡🎯), trust signals, "Why buy" section, "Perfect For" use cases, delivery/collection info
+  - **Gumtree**: Professional classified format, "FOR SALE:" opener, honest condition section, accessories included, serious buyers CTA
+  - **OLX**: Price in title mandatory ("Brand Model — R X,XXX"), emoji headers (📌🖥️🔋💰), justify pricing, OLX-specific CTA
+- Added `buildValueContext()` function — context-aware selling angles:
+  - Condition-based angles (Mint→"like new", Good→"well-maintained", Fair→"honest wear", Poor→"parts/repairs")
+  - Spec-based use cases (i7/i9→professionals, RTX/GTX→gaming, 4GB→light use, 16GB+→multitasking, etc.)
+- Enhanced `buildPrompt()` with laptop color, year, repairs, and value context sections
+- Created `buildFallbackAd()` — improved per-platform fallback templates when LLM fails:
+  - WhatsApp: compact specs, bold price, urgent CTA
+  - Facebook: attention hook, specs, trust line, "Why this laptop?", urgency, delivery info
+  - Gumtree: professional classified format, honest condition, viewing CTA
+  - OLX: price-first structure, full specs, OLX-specific CTA
+- Improved all offline template ads in `/src/lib/local-api.ts`:
+  - Added `buildCompactSpecs()` for WhatsApp (compact single-line with · separators)
+  - Added `getUseCase()` — spec-based use case suggestions (gaming, professional, student, budget)
+  - Added `getTrustLine()` — condition-based trust and urgency messages
+  - **Facebook template**: Opens with "Looking for a reliable laptop?", includes trust line + use case + urgency + delivery
+  - **WhatsApp template**: Bold laptop name + condition emoji, compact specs, urgent "DM now" CTA
+  - **Gumtree template**: Professional classified format with use case and trust line
+  - **OLX template**: Price-first structure with emoji headers, use case and trust justification
+
+Stage Summary:
+- AI ad generation now produces significantly more persuasive, platform-optimized sales copy
+- System prompt includes 10 professional copywriting principles tailored to SA marketplaces
+- Each platform has detailed formatting rules (length, structure, tone, CTAs)
+- Context-aware value propositions based on laptop condition and specs
+- Offline templates now include use case suggestions, trust signals, and urgency
+- Fallback ads (when LLM fails) are now compelling instead of generic
+- All changes compile cleanly, dev server running normally
