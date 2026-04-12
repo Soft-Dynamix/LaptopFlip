@@ -113,11 +113,58 @@ export interface ActivityLogEntry {
   timestamp: string;
 }
 
-export function formatPrice(amount: number): string {
-  return new Intl.NumberFormat("en-ZA", {
+// ─── Currency & Locale helpers ─────────────────────────
+
+export type CurrencyCode = "ZAR" | "USD" | "GBP" | "EUR";
+
+export const CURRENCY_OPTIONS: { code: CurrencyCode; symbol: string; label: string; locale: string }[] = [
+  { code: "ZAR", symbol: "R", label: "ZAR (R)", locale: "en-ZA" },
+  { code: "USD", symbol: "$", label: "USD ($)", locale: "en-US" },
+  { code: "GBP", symbol: "£", label: "GBP (£)", locale: "en-GB" },
+  { code: "EUR", symbol: "€", label: "EUR (€)", locale: "de-DE" },
+];
+
+export const REGION_OPTIONS = [
+  { id: "south-africa", label: "South Africa" },
+  { id: "kenya", label: "Kenya" },
+  { id: "nigeria", label: "Nigeria" },
+  { id: "international", label: "International" },
+];
+
+export function formatPrice(amount: number, currency?: CurrencyCode): string {
+  const effectiveCurrency = currency ?? getAppCurrency();
+  const option = CURRENCY_OPTIONS.find((c) => c.code === effectiveCurrency) ?? CURRENCY_OPTIONS[0];
+  return new Intl.NumberFormat(option.locale, {
     style: "currency",
-    currency: "ZAR",
+    currency: option.code,
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(amount);
+}
+
+/** Read the user's preferred currency from localStorage (works on client only) */
+export function getAppCurrency(): CurrencyCode {
+  if (typeof window === "undefined") return "ZAR";
+  try {
+    const raw = localStorage.getItem("laptopflip_settings");
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed?.currency) return parsed.currency as CurrencyCode;
+    }
+  } catch {
+    // ignore
+  }
+  return "ZAR";
+}
+
+// ─── Notifications ─────────────────────────
+
+export interface AppNotification {
+  id: string;
+  type: "stale_listing" | "price_suggestion" | "welcome_back" | "tip";
+  title: string;
+  message: string;
+  laptopId?: string;
+  timestamp: string;
+  dismissed: boolean;
 }

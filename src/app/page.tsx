@@ -8,7 +8,7 @@ import {
   Camera,
   Plus,
   Package,
-  Settings,
+  Settings as SettingsIcon,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAppStore } from "@/lib/store";
@@ -27,7 +27,7 @@ const tabs = [
   { id: "photos", label: "Photos", icon: Camera },
   { id: "add", label: "", icon: Plus },
   { id: "inventory", label: "Stock", icon: Package },
-  { id: "settings", label: "Settings", icon: Settings },
+  { id: "settings", label: "Settings", icon: SettingsIcon },
 ] as const;
 
 export default function Home() {
@@ -69,63 +69,73 @@ export default function Home() {
         </AnimatePresence>
       </main>
 
-      {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 z-40 bg-background/80 backdrop-blur-xl border-t border-border">
-        <div className="max-w-lg mx-auto flex items-center justify-around h-16 px-2">
-          {tabs.map((tab) => {
-            const isActive = tab.id === activeTab;
-            const isAdd = tab.id === "add";
-            const Icon = tab.icon;
+      {/* Bottom Navigation — Frosted glass effect */}
+      <nav className="fixed bottom-0 left-0 right-0 z-40">
+        {/* Gradient top border */}
+        <div className="h-px bg-gradient-to-r from-transparent via-emerald-500 to-transparent opacity-60" />
 
-            if (isAdd) {
+        <div className="bg-background/90 backdrop-blur-2xl">
+          <div className="max-w-lg mx-auto flex items-center justify-around h-16 px-2">
+            {tabs.map((tab) => {
+              const isActive = tab.id === activeTab;
+              const isAdd = tab.id === "add";
+              const Icon = tab.icon;
+
+              if (isAdd) {
+                return (
+                  <motion.button
+                    key={tab.id}
+                    whileTap={{ scale: 0.9 }}
+                    transition={{ duration: 0.1 }}
+                    onClick={() => handleTabClick(tab.id)}
+                    className="relative -mt-7"
+                  >
+                    <div className="w-14 h-14 rounded-full bg-gradient-to-br from-emerald-500 to-emerald-700 hover:from-emerald-600 hover:to-emerald-800 flex items-center justify-center shadow-xl shadow-emerald-600/40 transition-all duration-200">
+                      <Icon className="w-7 h-7 text-white" />
+                    </div>
+                  </motion.button>
+                );
+              }
+
               return (
-                <button
+                <motion.button
                   key={tab.id}
+                  whileTap={{ scale: 0.9 }}
+                  transition={{ duration: 0.1 }}
                   onClick={() => handleTabClick(tab.id)}
-                  className="relative -mt-6"
+                  className={cn(
+                    "relative flex flex-col items-center justify-center gap-0.5 py-1 px-3 rounded-xl transition-all duration-200 min-w-[3.5rem]",
+                    isActive
+                      ? "text-emerald-600 dark:text-emerald-400"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
                 >
-                  <div className="w-14 h-14 rounded-full bg-emerald-600 hover:bg-emerald-700 active:scale-95 flex items-center justify-center shadow-lg shadow-emerald-600/30 transition-all duration-200">
-                    <Icon className="w-7 h-7 text-white" />
-                  </div>
-                </button>
+                  <Icon className="w-5 h-5" />
+                  {tab.label && (
+                    <span className="text-[10px] font-medium leading-tight">
+                      {tab.label}
+                    </span>
+                  )}
+                  {/* Active indicator: small pill below the label */}
+                  {isActive && (
+                    <motion.div
+                      layoutId="activeTabPill"
+                      className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-5 h-1 bg-emerald-600 dark:bg-emerald-400 rounded-full"
+                      transition={{
+                        type: "spring",
+                        stiffness: 400,
+                        damping: 30,
+                      }}
+                    />
+                  )}
+                </motion.button>
               );
-            }
-
-            return (
-              <button
-                key={tab.id}
-                onClick={() => handleTabClick(tab.id)}
-                className={cn(
-                  "relative flex flex-col items-center justify-center gap-0.5 py-1 px-3 rounded-xl transition-all duration-200 min-w-[3.5rem]",
-                  isActive
-                    ? "text-emerald-600 dark:text-emerald-400"
-                    : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                <Icon className="w-5 h-5" />
-                {tab.label && (
-                  <span className="text-[10px] font-medium leading-tight">
-                    {tab.label}
-                  </span>
-                )}
-                {/* Active indicator: small pill below the label */}
-                {isActive && (
-                  <motion.div
-                    layoutId="activeTabPill"
-                    className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-5 h-1 bg-emerald-600 dark:bg-emerald-400 rounded-full"
-                    transition={{
-                      type: "spring",
-                      stiffness: 400,
-                      damping: 30,
-                    }}
-                  />
-                )}
-              </button>
-            );
-          })}
+            })}
+          </div>
         </div>
+
         {/* Safe area padding for iOS */}
-        <div className="h-[env(safe-area-inset-bottom)]" />
+        <div className="h-[env(safe-area-inset-bottom)] bg-background/90" />
       </nav>
 
       {/* Sheets */}

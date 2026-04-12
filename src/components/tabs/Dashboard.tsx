@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { motion } from "framer-motion";
 import {
   Laptop,
@@ -27,7 +27,70 @@ import { useAppStore } from "@/lib/store";
 import { apiFetchLaptops } from "@/lib/api";
 import { formatPrice } from "@/lib/types";
 import type { Laptop as LaptopType } from "@/lib/types";
+import { PricingCalculator } from "@/components/dashboard/PricingCalculator";
+import { NotificationCenter } from "@/components/notifications/NotificationCenter";
 
+// ─── Animated Counter Hook ─────────────────────────
+function useCountUp(target: number, duration: number = 800, enabled: boolean = true) {
+  const rafRef = useRef<number>(0);
+  const startTimeRef = useRef<number>(0);
+  // Compute the displayed value from a ref that updates during animation
+  const [displayValue, setDisplayValue] = useState(0);
+
+  // Compute target when enabled, 0 otherwise
+  const effectiveTarget = enabled ? target : 0;
+
+  useEffect(() => {
+    if (effectiveTarget === 0) return;
+
+    startTimeRef.current = performance.now();
+
+    const animate = (now: number) => {
+      const elapsed = now - startTimeRef.current;
+      const progress = Math.min(elapsed / duration, 1);
+      // Ease out cubic
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setDisplayValue(Math.round(eased * effectiveTarget));
+
+      if (progress < 1) {
+        rafRef.current = requestAnimationFrame(animate);
+      }
+    };
+
+    rafRef.current = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(rafRef.current);
+  }, [effectiveTarget, duration]);
+
+  // When not enabled or target is 0, show 0
+  if (!enabled || effectiveTarget === 0) return 0;
+  return displayValue;
+}
+
+// ─── Time-based Greeting ─────────────────────────
+function getGreeting() {
+  const hour = new Date().getHours();
+  if (hour < 12) return { text: "Good Morning", emoji: "☀️" };
+  if (hour < 17) return { text: "Good Afternoon", emoji: "🌤️" };
+  return { text: "Good Evening", emoji: "🌙" };
+}
+
+// ─── Brand Icon Helper ─────────────────────────
+function getBrandIcon(brand: string): string {
+  const lower = brand.toLowerCase();
+  if (lower.includes("apple") || lower.includes("mac")) return "🍎";
+  if (lower.includes("dell")) return "💻";
+  if (lower.includes("hp")) return "🖥️";
+  if (lower.includes("lenovo")) return "📋";
+  if (lower.includes("asus")) return "🎮";
+  if (lower.includes("acer")) return "💠";
+  if (lower.includes("msi")) return "🐉";
+  if (lower.includes("samsung")) return "📱";
+  if (lower.includes("razer")) return "🐍";
+  if (lower.includes("microsoft")) return "🪟";
+  return "💻";
+}
+
+// ─── Stat Cards Config ─────────────────────────
 const statCards = [
   {
     key: "totalLaptops" as const,
@@ -101,15 +164,13 @@ function getStatusColor(status: string) {
 function DashboardSkeleton() {
   return (
     <div className="space-y-6 p-4">
-      {/* Stats skeleton */}
+      <Skeleton className="h-36 rounded-2xl" />
       <div className="grid grid-cols-2 gap-3">
         {Array.from({ length: 4 }).map((_, i) => (
           <Skeleton key={i} className="h-24 rounded-xl" />
         ))}
       </div>
-      {/* Quick actions skeleton */}
       <Skeleton className="h-32 rounded-xl" />
-      {/* Recent listings skeleton */}
       <div className="space-y-3">
         {Array.from({ length: 3 }).map((_, i) => (
           <Skeleton key={i} className="h-20 rounded-xl" />
@@ -122,6 +183,7 @@ function DashboardSkeleton() {
 const quickActions = [
   {
     label: "Add Laptop",
+    subtitle: "Add inventory",
     icon: Plus,
     gradient: "from-emerald-500 to-emerald-700",
     shadow: "shadow-emerald-500/25",
@@ -129,6 +191,7 @@ const quickActions = [
   },
   {
     label: "Photo Guide",
+    subtitle: "Photo tips",
     icon: Camera,
     gradient: "from-teal-500 to-emerald-600",
     shadow: "shadow-teal-500/25",
@@ -136,6 +199,7 @@ const quickActions = [
   },
   {
     label: "My Stock",
+    subtitle: "Manage stock",
     icon: Sparkles,
     gradient: "from-emerald-600 to-teal-700",
     shadow: "shadow-emerald-600/25",
@@ -154,6 +218,14 @@ export function Dashboard() {
   } = useAppStore();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const greeting = getGreeting();
+
+  // Animated counters
+  const animatedTotal = useCountUp(dashboardStats.totalLaptops, 600, !loading);
+  const animatedActive = useCountUp(dashboardStats.activeListings, 700, !loading);
+  const animatedSold = useCountUp(dashboardStats.sold, 800, !loading);
+  const animatedRevenue = useCountUp(dashboardStats.totalRevenue, 1000, !loading);
+  const animatedProfit = useCountUp(dashboardStats.totalProfit, 1100, !loading);
 
   const fetchLaptops = useCallback(async () => {
     try {
@@ -248,10 +320,17 @@ export function Dashboard() {
     )
     .slice(0, 3);
 
-  // Laptops with generated ads
-  const laptopsWithAds = laptops.filter((l: LaptopType) =>
-    l.listings && Array.isArray(l.listings) && l.listings.length > 0
-  );
+  // Get animated value for stat
+  const getAnimatedValue = (key: string): number => {
+    switch (key) {
+      case "totalLaptops": return animatedTotal;
+      case "activeListings": return animatedActive;
+      case "sold": return animatedSold;
+      case "totalRevenue": return animatedRevenue;
+      case "totalProfit": return animatedProfit;
+      default: return 0;
+    }
+  };
 
   if (loading) {
     return <DashboardSkeleton />;
@@ -259,7 +338,7 @@ export function Dashboard() {
 
   return (
     <div className="space-y-6 p-4 pb-8">
-      {/* Header */}
+      {/* Header with greeting */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
@@ -268,19 +347,26 @@ export function Dashboard() {
         <div className="rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-700 p-5 text-white shadow-lg shadow-emerald-600/20">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold tracking-tight">LaptopFlip</h1>
+              <p className="text-sm text-emerald-100 flex items-center gap-1.5">
+                <span>{greeting.emoji}</span>
+                <span>{greeting.text}</span>
+              </p>
+              <h1 className="text-2xl font-bold tracking-tight mt-0.5">LaptopFlip</h1>
               <p className="text-sm text-emerald-100 mt-1">Your laptop resale command center</p>
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="text-white hover:bg-white/20 hover:text-white"
-              onClick={handleRefresh}
-              disabled={refreshing}
-              aria-label="Refresh data"
-            >
-              <RefreshCw className={`size-5 ${refreshing ? "animate-spin" : ""}`} />
-            </Button>
+            <div className="flex items-center gap-1">
+              <NotificationCenter />
+              <Button
+                variant="ghost"
+                size="icon"
+                className="text-white hover:bg-white/20 hover:text-white"
+                onClick={handleRefresh}
+                disabled={refreshing}
+                aria-label="Refresh data"
+              >
+                <RefreshCw className={`size-5 ${refreshing ? "animate-spin" : ""}`} />
+              </Button>
+            </div>
           </div>
           {dashboardStats.avgMargin > 0 && (
             <div className="mt-3 flex items-center gap-2">
@@ -292,7 +378,7 @@ export function Dashboard() {
         </div>
       </motion.div>
 
-      {/* Stats Grid */}
+      {/* Stats Grid with animated counters & shimmer accent */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
@@ -301,10 +387,10 @@ export function Dashboard() {
       >
         {statCards.map((stat) => {
           const Icon = stat.icon;
-          const value =
-            stat.key === "totalRevenue" || stat.key === "totalProfit"
-              ? formatPrice(dashboardStats[stat.key])
-              : dashboardStats[stat.key].toString();
+          const isPrice = stat.key === "totalRevenue" || stat.key === "totalProfit";
+          const value = isPrice
+            ? formatPrice(getAnimatedValue(stat.key))
+            : getAnimatedValue(stat.key).toString();
 
           return (
             <Card
@@ -326,14 +412,24 @@ export function Dashboard() {
                   </div>
                 </div>
               </CardContent>
-              {/* Gradient border-bottom accent */}
-              <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-400 via-teal-400 to-emerald-500 dark:from-emerald-600 dark:via-teal-600 dark:to-emerald-700 opacity-60" />
+              {/* Animated shimmer gradient accent */}
+              <div className="absolute bottom-0 left-0 right-0 h-1 overflow-hidden">
+                <motion.div
+                  className="h-full w-[200%] bg-gradient-to-r from-transparent via-emerald-400 to-transparent dark:via-emerald-600"
+                  animate={{ x: ["-50%", "50%"] }}
+                  transition={{
+                    duration: 2.5,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                  }}
+                />
+              </div>
             </Card>
           );
         })}
       </motion.div>
 
-      {/* Quick Actions */}
+      {/* Quick Actions with subtitles */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
@@ -349,12 +445,15 @@ export function Dashboard() {
                 key={action.label}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => handleQuickAction(action.action)}
-                className={`flex flex-col items-center justify-center gap-2 p-4 rounded-xl bg-gradient-to-br ${action.gradient} text-white shadow-lg ${action.shadow} active:shadow-md transition-shadow duration-200`}
+                className={`flex flex-col items-center justify-center gap-1.5 p-4 rounded-xl bg-gradient-to-br ${action.gradient} text-white shadow-lg ${action.shadow} active:shadow-md transition-shadow duration-200`}
               >
                 <div className="size-10 rounded-full bg-white/20 flex items-center justify-center">
                   <Icon className="size-5" />
                 </div>
-                <span className="text-xs font-semibold">{action.label}</span>
+                <div className="text-center">
+                  <span className="text-xs font-semibold block">{action.label}</span>
+                  <span className="text-[10px] text-white/70 block">{action.subtitle}</span>
+                </div>
               </motion.button>
             );
           })}
@@ -425,12 +524,20 @@ export function Dashboard() {
               </div>
             </div>
           </CardContent>
-          {/* Bottom accent */}
           <div className="h-0.5 bg-gradient-to-r from-emerald-400 via-teal-400 to-emerald-500 dark:from-emerald-600 dark:via-teal-600 dark:to-emerald-700 opacity-60" />
         </Card>
       </motion.div>
 
-      {/* Recent Listings */}
+      {/* Pricing Calculator */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: 0.27 }}
+      >
+        <PricingCalculator />
+      </motion.div>
+
+      {/* Recent Listings with thumbnail preview */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
@@ -462,17 +569,22 @@ export function Dashboard() {
                   Start by adding your first laptop to get flipping!
                 </p>
               </div>
-              <Button
-                onClick={() => {
-                  useAppStore.getState().setEditingLaptopId(null);
-                  setIsFormOpen(true);
-                }}
-                size="sm"
-                className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl"
+              <motion.div
+                animate={{ scale: [1, 1.05, 1] }}
+                transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
               >
-                <Plus className="size-4" />
-                Add Your First Laptop
-              </Button>
+                <Button
+                  onClick={() => {
+                    useAppStore.getState().setEditingLaptopId(null);
+                    setIsFormOpen(true);
+                  }}
+                  size="sm"
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl"
+                >
+                  <Plus className="size-4" />
+                  Add Your First Laptop
+                </Button>
+              </motion.div>
             </CardContent>
           </Card>
         ) : (
@@ -492,7 +604,25 @@ export function Dashboard() {
                   }}
                 >
                   <CardContent className="p-0 px-4">
-                    <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      {/* Thumbnail brand icon */}
+                      <div className="size-10 rounded-lg bg-muted flex items-center justify-center text-lg shrink-0 border">
+                        {laptop.photos && laptop.photos.length > 0 ? (
+                          <img
+                            src={typeof laptop.photos === "string" ? JSON.parse(laptop.photos)[0] : laptop.photos[0]}
+                            alt=""
+                            className="size-10 rounded-lg object-cover"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).style.display = "none";
+                              (e.target as HTMLImageElement).nextElementSibling?.classList.remove("hidden");
+                            }}
+                          />
+                        ) : null}
+                        <span className={laptop.photos && laptop.photos.length > 0 ? "hidden" : ""}>
+                          {getBrandIcon(laptop.brand)}
+                        </span>
+                      </div>
+
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-medium truncate">
                           {laptop.brand} {laptop.model}
@@ -537,7 +667,7 @@ export function Dashboard() {
         )}
       </motion.div>
 
-      {/* Recently Sold (only shown if there are sold items) */}
+      {/* Recently Sold with confetti emoji */}
       {recentSold.length > 0 && (
         <motion.div
           initial={{ opacity: 0, y: 10 }}
@@ -549,6 +679,7 @@ export function Dashboard() {
             <h2 className="text-base font-semibold flex items-center gap-2">
               <CheckCircle2 className="size-4 text-blue-500" />
               Recently Sold
+              <span className="text-base">🎉</span>
             </h2>
             <Badge variant="secondary" className="text-[10px]">
               {recentSold.length} item{recentSold.length > 1 ? "s" : ""}
@@ -570,7 +701,11 @@ export function Dashboard() {
                 >
                   <Card className="rounded-xl py-3 shadow-md border-l-4 border-l-blue-500">
                     <CardContent className="p-0 px-4">
-                      <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        {/* Thumbnail */}
+                        <div className="size-10 rounded-lg bg-muted flex items-center justify-center text-lg shrink-0 border">
+                          {getBrandIcon(laptop.brand)}
+                        </div>
                         <div className="min-w-0 flex-1">
                           <p className="text-sm font-medium truncate">
                             {laptop.brand} {laptop.model}

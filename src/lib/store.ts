@@ -1,7 +1,12 @@
 import { create } from "zustand";
-import type { Laptop, LaptopFormData, AdPreview, Platform, ActivityLogEntry } from "./types";
+import type { Laptop, LaptopFormData, AdPreview, Platform, ActivityLogEntry, AppNotification } from "./types";
 import { defaultLaptopForm, PLATFORMS } from "./types";
 import type { ModelProgress } from "./on-device-llm";
+
+interface AppSettings {
+  currency: string;
+  region: string;
+}
 
 interface AppState {
   // Navigation
@@ -70,6 +75,16 @@ interface AppState {
   activityLogs: ActivityLogEntry[];
   addActivityLog: (entry: Omit<ActivityLogEntry, "id" | "timestamp">) => void;
   getActivityLogs: (laptopId: string) => ActivityLogEntry[];
+
+  // App settings (persisted to localStorage)
+  appSettings: AppSettings;
+  setAppSettings: (settings: Partial<AppSettings>) => void;
+
+  // Notifications
+  notifications: AppNotification[];
+  setNotifications: (notifications: AppNotification[]) => void;
+  dismissNotification: (id: string) => void;
+  clearNotifications: () => void;
 }
 
 const defaultChecklist: Record<string, boolean> = {
@@ -101,6 +116,34 @@ const defaultChecklist: Record<string, boolean> = {
 };
 
 let _activityCounter = 0;
+
+/** Load persisted settings from localStorage */
+function loadAppSettings(): AppSettings {
+  if (typeof window === "undefined") return { currency: "ZAR", region: "south-africa" };
+  try {
+    const raw = localStorage.getItem("laptopflip_settings");
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      return {
+        currency: parsed.currency || "ZAR",
+        region: parsed.region || "south-africa",
+      };
+    }
+  } catch {
+    // ignore
+  }
+  return { currency: "ZAR", region: "south-africa" };
+}
+
+/** Persist settings to localStorage */
+function persistAppSettings(settings: AppSettings) {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem("laptopflip_settings", JSON.stringify(settings));
+  } catch {
+    // ignore
+  }
+}
 
 export const useAppStore = create<AppState>((set, get) => ({
   // Navigation
@@ -189,4 +232,23 @@ export const useAppStore = create<AppState>((set, get) => ({
     })),
   getActivityLogs: (laptopId) =>
     get().activityLogs.filter((log) => log.laptopId === laptopId),
+
+  // App settings
+  appSettings: loadAppSettings(),
+  setAppSettings: (partial) => {
+    const updated = { ...get().appSettings, ...partial };
+    set({ appSettings: updated });
+    persistAppSettings(updated);
+  },
+
+  // Notifications
+  notifications: [],
+  setNotifications: (notifications) => set({ notifications }),
+  dismissNotification: (id) =>
+    set((state) => ({
+      notifications: state.notifications.map((n) =>
+        n.id === id ? { ...n, dismissed: true } : n
+      ),
+    })),
+  clearNotifications: () => set({ notifications: [] }),
 }));

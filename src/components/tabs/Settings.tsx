@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { motion } from "framer-motion";
+import { useState, useEffect, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Sun,
   Moon,
@@ -15,6 +15,10 @@ import {
   ChevronRight,
   ExternalLink,
   MonitorSmartphone,
+  Globe,
+  Upload,
+  Lightbulb,
+  ChevronLeft,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { toast } from "sonner";
@@ -22,6 +26,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -34,6 +45,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useAppStore } from "@/lib/store";
+import { CURRENCY_OPTIONS, REGION_OPTIONS } from "@/lib/types";
 
 const container = {
   hidden: { opacity: 0 },
@@ -48,17 +60,38 @@ const item = {
   show: { opacity: 1, y: 0, transition: { duration: 0.25 } },
 };
 
+const APP_TIPS = [
+  { icon: "📸", tip: "Take photos near a window for best lighting" },
+  { icon: "💰", tip: "Price competitively — check similar listings first" },
+  { icon: "⚡", tip: "Respond to buyers within 30 minutes for best results" },
+  { icon: "✨", tip: "Mint condition laptops sell 40% faster" },
+  { icon: "📦", tip: "Include the box and charger to increase value" },
+];
+
 export function Settings() {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const [clearingData, setClearingData] = useState(false);
   const laptops = useAppStore((s) => s.laptops);
   const setLaptops = useAppStore((s) => s.setLaptops);
+  const appSettings = useAppStore((s) => s.appSettings);
+  const setAppSettings = useAppStore((s) => s.setAppSettings);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Hydration safety for theme
   useState(() => {
     setMounted(true);
   });
+
+  // Rotating tips
+  const [currentTipIndex, setCurrentTipIndex] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTipIndex((prev) => (prev + 1) % APP_TIPS.length);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, []);
 
   const handleClearData = async () => {
     setClearingData(true);
@@ -90,6 +123,65 @@ export function Settings() {
     } catch {
       toast.error("Failed to export data");
     }
+  };
+
+  const handleImportData = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      try {
+        const text = evt.target?.result as string;
+        const parsed = JSON.parse(text);
+
+        // Validate structure - should be an array
+        if (!Array.isArray(parsed)) {
+          toast.error("Invalid backup file: expected a JSON array");
+          return;
+        }
+
+        // Validate each item has basic laptop fields
+        const isValid = parsed.every(
+          (item: Record<string, unknown>) =>
+            typeof item.id === "string" &&
+            typeof item.brand === "string" &&
+            typeof item.model === "string"
+        );
+
+        if (!isValid) {
+          toast.error("Invalid backup file: some items are missing required fields");
+          return;
+        }
+
+        // Merge: new items by ID, or replace entire set
+        const existing = laptops;
+        const existingIds = new Set(existing.map((l) => l.id));
+        const newItems = parsed.filter(
+          (item: { id: string }) => !existingIds.has(item.id)
+        );
+
+        if (laptops.length === 0) {
+          // No existing data, just import
+          setLaptops(parsed);
+          localStorage.setItem("laptopflip_laptops", JSON.stringify(parsed));
+          toast.success(`Imported ${parsed.length} laptops successfully`);
+        } else {
+          // Merge: add new items to existing
+          const merged = [...existing, ...newItems];
+          setLaptops(merged);
+          localStorage.setItem("laptopflip_laptops", JSON.stringify(merged));
+          toast.success(
+            `Merged ${newItems.length} new laptops. ${existing.length} existing laptops preserved.`
+          );
+        }
+      } catch {
+        toast.error("Failed to parse backup file. Make sure it's a valid JSON file.");
+      }
+    };
+    reader.readAsText(file);
+    // Reset input so the same file can be re-selected
+    e.target.value = "";
   };
 
   const totalStorage = typeof window !== "undefined"
@@ -138,7 +230,7 @@ export function Settings() {
           </div>
           <div className="mt-3 flex items-center gap-2">
             <Badge className="bg-white/15 text-white border-0 text-[10px]">
-              v1.1.0-debug
+              v1.2.0
             </Badge>
             <Badge className="bg-emerald-500/20 text-emerald-300 border-0 text-[10px]">
               {laptops.length} laptops
@@ -147,13 +239,127 @@ export function Settings() {
         </div>
       </motion.div>
 
+      {/* App Tips */}
+      <motion.div variants={item} className="space-y-3">
+        <h2 className="text-base font-semibold flex items-center gap-2">
+          <Lightbulb className="size-4 text-amber-500" />
+          App Tips
+        </h2>
+        <Card className="rounded-xl border shadow-sm overflow-hidden">
+          <CardContent className="p-4">
+            <div className="relative min-h-[60px] flex items-center gap-3">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={currentTipIndex}
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  transition={{ duration: 0.3 }}
+                  className="flex items-center gap-3 w-full"
+                >
+                  <span className="text-2xl shrink-0">
+                    {APP_TIPS[currentTipIndex].icon}
+                  </span>
+                  <p className="text-sm leading-relaxed">
+                    {APP_TIPS[currentTipIndex].tip}
+                  </p>
+                </motion.div>
+              </AnimatePresence>
+            </div>
+            {/* Tip indicators */}
+            <div className="flex items-center justify-center gap-1.5 mt-3">
+              {APP_TIPS.map((_, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => setCurrentTipIndex(idx)}
+                  className={`h-1.5 rounded-full transition-all duration-300 ${
+                    idx === currentTipIndex
+                      ? "w-5 bg-emerald-500"
+                      : "w-1.5 bg-muted-foreground/30"
+                  }`}
+                  aria-label={`Tip ${idx + 1}`}
+                />
+              ))}
+            </div>
+          </CardContent>
+          <div className="h-0.5 bg-gradient-to-r from-amber-300 via-amber-400 to-amber-300 dark:from-amber-600 dark:via-amber-500 dark:to-amber-600 opacity-50" />
+        </Card>
+      </motion.div>
+
+      {/* Marketplace Settings */}
+      <motion.div variants={item} className="space-y-3">
+        <h2 className="text-base font-semibold flex items-center gap-2">
+          <Globe className="size-4 text-emerald-500" />
+          Marketplace
+        </h2>
+        <Card className="rounded-xl border shadow-sm hover:shadow-md transition-shadow duration-200">
+          <CardContent className="p-0">
+            {/* Currency Selector */}
+            <div className="px-4 py-3">
+              <div className="flex items-center justify-between">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium">Default Currency</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Used for price display across the app
+                  </p>
+                </div>
+                <Select
+                  value={appSettings.currency}
+                  onValueChange={(val) => setAppSettings({ currency: val })}
+                >
+                  <SelectTrigger className="w-auto rounded-lg text-sm min-w-[100px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CURRENCY_OPTIONS.map((c) => (
+                      <SelectItem key={c.code} value={c.code}>
+                        {c.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* Region Selector */}
+            <div className="px-4 py-3 rounded-b-xl">
+              <div className="flex items-center justify-between">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium">Marketplace Region</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Affects ad generation suggestions
+                  </p>
+                </div>
+                <Select
+                  value={appSettings.region}
+                  onValueChange={(val) => setAppSettings({ region: val })}
+                >
+                  <SelectTrigger className="w-auto rounded-lg text-sm min-w-[130px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {REGION_OPTIONS.map((r) => (
+                      <SelectItem key={r.id} value={r.id}>
+                        {r.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
+
       {/* Appearance */}
       <motion.div variants={item} className="space-y-3">
         <h2 className="text-base font-semibold flex items-center gap-2">
           <Palette className="size-4 text-violet-500" />
           Appearance
         </h2>
-        <Card className="rounded-xl border shadow-sm">
+        <Card className="rounded-xl border shadow-sm hover:shadow-md transition-shadow duration-200">
           <CardContent className="p-3">
             <div className="grid grid-cols-3 gap-2">
               {themeOptions.map((opt) => {
@@ -191,7 +397,7 @@ export function Settings() {
           <Database className="size-4 text-amber-500" />
           Data Management
         </h2>
-        <Card className="rounded-xl border shadow-sm">
+        <Card className="rounded-xl border shadow-sm hover:shadow-md transition-shadow duration-200">
           <CardContent className="p-0">
             {/* Storage info */}
             <div className="px-4 py-3 flex items-center justify-between">
@@ -229,6 +435,32 @@ export function Settings() {
                 <div className="text-left">
                   <p className="text-sm font-medium">Export Data</p>
                   <p className="text-xs text-muted-foreground">Download backup as JSON</p>
+                </div>
+              </div>
+              <ChevronRight className="size-4 text-muted-foreground" />
+            </button>
+
+            <Separator />
+
+            {/* Import button */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".json"
+              onChange={handleImportData}
+              className="hidden"
+            />
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="w-full px-4 py-3 flex items-center justify-between hover:bg-muted/50 transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <div className="size-9 rounded-lg bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center">
+                  <Upload className="size-4 text-emerald-600 dark:text-emerald-400" />
+                </div>
+                <div className="text-left">
+                  <p className="text-sm font-medium">Import Data</p>
+                  <p className="text-xs text-muted-foreground">Restore from JSON backup</p>
                 </div>
               </div>
               <ChevronRight className="size-4 text-muted-foreground" />
@@ -283,7 +515,7 @@ export function Settings() {
           <Info className="size-4 text-sky-500" />
           About
         </h2>
-        <Card className="rounded-xl border shadow-sm">
+        <Card className="rounded-xl border shadow-sm hover:shadow-md transition-shadow duration-200">
           <CardContent className="p-4 space-y-3">
             <div className="flex items-center gap-3">
               <div className="size-12 rounded-xl bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center text-2xl">
@@ -305,7 +537,7 @@ export function Settings() {
                 iconBg="bg-emerald-100 dark:bg-emerald-900/40"
                 iconColor="text-emerald-600 dark:text-emerald-400"
                 label="Version"
-                value="1.1.0-debug"
+                value="1.2.0"
               />
               <SettingRow
                 icon={Shield}
@@ -320,6 +552,20 @@ export function Settings() {
                 iconColor="text-amber-600 dark:text-amber-400"
                 label="Storage"
                 value="SQLite + localStorage"
+              />
+              <SettingRow
+                icon={Globe}
+                iconBg="bg-emerald-100 dark:bg-emerald-900/40"
+                iconColor="text-emerald-600 dark:text-emerald-400"
+                label="Currency"
+                value={CURRENCY_OPTIONS.find((c) => c.code === appSettings.currency)?.label ?? "ZAR (R)"}
+              />
+              <SettingRow
+                icon={Globe}
+                iconBg="bg-teal-100 dark:bg-teal-900/40"
+                iconColor="text-teal-600 dark:text-teal-400"
+                label="Region"
+                value={REGION_OPTIONS.find((r) => r.id === appSettings.region)?.label ?? "South Africa"}
               />
             </div>
 
