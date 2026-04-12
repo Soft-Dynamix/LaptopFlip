@@ -61,6 +61,7 @@ export interface Laptop {
   serialNumber: string;
   repairs: string;
   features: string;
+  stockId: string;
   location: string;
   createdAt: string;
   updatedAt: string;

@@ -18,6 +18,7 @@ import {
   Clock,
   Wallet,
   Users,
+  Hash,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
@@ -655,9 +656,17 @@ export function Dashboard() {
                       </div>
 
                       <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium truncate">
-                          {laptop.brand} {laptop.model}
-                        </p>
+                        <div className="flex items-center gap-1.5">
+                          <p className="text-sm font-medium truncate">
+                            {laptop.brand} {laptop.model}
+                          </p>
+                          {laptop.stockId && (
+                            <span className="shrink-0 inline-flex items-center gap-0.5 text-[10px] font-mono font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-900/40 px-1.5 py-0 rounded border border-emerald-200 dark:border-emerald-800">
+                              <Hash className="size-2.5" />
+                              {laptop.stockId}
+                            </span>
+                          )}
+                        </div>
                         <div className="flex items-center gap-1.5 mt-1">
                           <p className="text-xs text-muted-foreground">
                             {laptop.ram} · {laptop.storage}
@@ -738,9 +747,17 @@ export function Dashboard() {
                           {getBrandIcon(laptop.brand)}
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className="text-sm font-medium truncate">
-                            {laptop.brand} {laptop.model}
-                          </p>
+                          <div className="flex items-center gap-1.5">
+                            <p className="text-sm font-medium truncate">
+                              {laptop.brand} {laptop.model}
+                            </p>
+                            {laptop.stockId && (
+                              <span className="shrink-0 inline-flex items-center gap-0.5 text-[10px] font-mono font-semibold text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/40 px-1.5 py-0 rounded border border-blue-200 dark:border-blue-800">
+                                <Hash className="size-2.5" />
+                                {laptop.stockId}
+                              </span>
+                            )}
+                          </div>
                           <div className="flex items-center gap-2 mt-1">
                             <p className="text-xs text-muted-foreground">
                               {laptop.ram} · {laptop.storage}

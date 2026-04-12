@@ -12,6 +12,7 @@ const PLATFORM_INSTRUCTIONS: Record<string, string> = {
 - Use WhatsApp formatting: *bold* for emphasis, _italic_ for subtitles
 - Open with an attention-grabbing hook using the laptop's name and biggest selling point from the provided data
 - Only include specs that are ACTUALLY provided in the laptop details — DO NOT guess or add any specs
+- If a Stock ID is provided, include it at the end: "📋 Ref: [Stock ID]"
 - Include a clear price line: *Price: R X,XXX*
 - Include the location and WhatsApp number if provided
 - Close with ONE urgent CTA: "DM now — won't last long!" or similar
@@ -26,6 +27,7 @@ HEADER FORMAT:
 (Example: #9 💻🔥 Dell Latitude E5570 – Fast & Reliable! 🔥💻)
 - Generate a random ad number (#1-#50)
 - The tagline should be catchy — use the CONDITION and PRICE to create urgency/value (e.g., "Like New!", "Priced to Sell!", "Amazing Deal!")
+- If a Stock ID is provided, include it as: 📋 Ref: [Stock ID] (e.g., 📋 Ref: LF-0042)
 
 ⚡ Specs That Impress:
 - Header must be exactly: "⚡ Specs That Impress:"
@@ -58,6 +60,7 @@ STYLE RULES:
 - Write a TRADITIONAL classified ad with clear, professional structure
 - TITLE: Brand + Model + Condition + Price (e.g., "Dell XPS 15 - Excellent - R12,500")
 - OPENING: "FOR SALE:" followed by laptop name and a ONE-SENTENCE summary
+- If a Stock ID is provided, include it after the title: "Ref: [Stock ID]"
 - SPECIFICATIONS: List ONLY the specs that are provided. Use a clean numbered or bulleted list.
   - If a spec says "Not specified", DO NOT include it in the listing
   - DO NOT guess, infer, or add any specifications that are not explicitly given
@@ -72,6 +75,7 @@ STYLE RULES:
 
   olx: `OLX South Africa listing rules:
 - TITLE must ALWAYS include the price: "Brand Model — R X,XXX"
+- If a Stock ID is provided, include it in the title: "Brand Model — R X,XXX (Ref: [Stock ID])"
 - Write a WELL-STRUCTURED listing with clear headings:
   📌 Quick Summary (2-3 lines that make the buyer WANT to read more)
   🖥️ Specifications (list ONLY the specs that are provided — DO NOT guess or add any)
@@ -172,6 +176,7 @@ function buildPrompt(platform: string, laptop: {
   return `Generate a ${platform.toUpperCase()} marketplace ad for this laptop being sold in South Africa.
 
 ━━━ LAPTOP DETAILS (USE ONLY THESE — DO NOT GUESS OR ADD ANYTHING) ━━━
+Stock ID: ${laptop.stockId || 'N/A'}${laptop.stockId ? ' — include this reference number in the ad so buyers can cross-reference across platforms' : ''}
 Brand: ${laptop.brand}
 Model: ${laptop.model}
 CPU: ${laptop.cpu || 'Not specified'}
@@ -211,9 +216,10 @@ Do NOT include explanations, markdown code fences, or any text outside the JSON.
 
 function buildFallbackAd(
   platform: string,
-  laptop: { brand: string; model: string; cpu: string; ram: string; storage: string; gpu: string; screenSize: string; condition: string; batteryHealth: string; askingPrice: number; purchasePrice: number; notes: string; color?: string; year?: number; repairs?: string; location?: string; whatsappNumber?: string; defaultLocation?: string; features?: string }
+  laptop: { brand: string; model: string; cpu: string; ram: string; storage: string; gpu: string; screenSize: string; condition: string; batteryHealth: string; askingPrice: number; purchasePrice: number; notes: string; color?: string; year?: number; repairs?: string; location?: string; whatsappNumber?: string; defaultLocation?: string; features?: string; stockId?: string }
 ): { platform: string; title: string; body: string; price: number } {
   const priceStr = `R${laptop.askingPrice.toLocaleString()}`;
+  const stockRef = laptop.stockId ? `📋 Ref: ${laptop.stockId}` : '';
 
   // Only include specs that are actually provided (not empty)
   const specs = [
@@ -251,6 +257,7 @@ function buildFallbackAd(
       savingsNote || "",
       (laptop.location || laptop.defaultLocation) ? `📍 ${laptop.location || laptop.defaultLocation}` : null,
       (laptop.whatsappNumber) ? `📲 ${laptop.whatsappNumber}` : null,
+      stockRef || null,
       "",
       "DM now - won't last long! 📲",
     ].filter(Boolean).join("\n");
@@ -281,6 +288,7 @@ function buildFallbackAd(
       location ? `📍 Location: ${location}` : null,
       `💵 Price: ${priceStr}`,
       whatsapp ? `📲 WhatsApp: ${whatsapp}` : null,
+      stockRef || null,
       "",
       `🚨 Grab it before it's gone!`,
     ].filter(Boolean).join("\n");
@@ -291,6 +299,7 @@ function buildFallbackAd(
     const title = `${laptop.brand} ${laptop.model} - ${laptop.condition} - ${priceStr}`;
     const body = [
       `FOR SALE: ${laptop.brand} ${laptop.model}`,
+      stockRef || null,
       "",
       `Condition: ${laptop.condition}`,
       `Battery Health: ${laptop.batteryHealth}`,
@@ -313,9 +322,10 @@ function buildFallbackAd(
   }
 
   // OLX fallback
-  const title = `${laptop.brand} ${laptop.model} - ${priceStr}`;
+  const title = `${laptop.brand} ${laptop.model} - ${priceStr}${laptop.stockId ? ` (Ref: ${laptop.stockId})` : ''}`;
   const body = [
     `📌 ${laptop.brand} ${laptop.model} - ${laptop.condition} Condition`,
+    stockRef || null,
     "",
     `💰 Price: ${priceStr}`,
     savingsNote || "",

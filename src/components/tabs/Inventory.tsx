@@ -17,6 +17,7 @@ import {
   Copy,
   Plus,
   Minus,
+  Hash,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
@@ -730,9 +731,17 @@ export function Inventory() {
                       {/* Info */}
                       <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
                         <div>
-                          <p className="text-sm font-semibold truncate">
-                            {laptop.brand} {laptop.model}
-                          </p>
+                          <div className="flex items-center gap-1.5">
+                            <p className="text-sm font-semibold truncate">
+                              {laptop.brand} {laptop.model}
+                            </p>
+                            {laptop.stockId && (
+                              <span className="shrink-0 inline-flex items-center gap-0.5 text-[10px] font-mono font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-900/40 px-1.5 py-0 rounded border border-emerald-200 dark:border-emerald-800">
+                                <Hash className="size-2.5" />
+                                {laptop.stockId}
+                              </span>
+                            )}
+                          </div>
                           <p className="text-xs text-muted-foreground mt-0.5 truncate">
                             {abbreviateCpu(laptop.cpu)}
                             {laptop.cpu && laptop.ram ? " · " : ""}

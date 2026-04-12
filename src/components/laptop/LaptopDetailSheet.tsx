@@ -639,6 +639,14 @@ export function LaptopDetailSheet() {
                 {selectedLaptop.brand} {selectedLaptop.model}
               </h2>
               <div className="flex items-center gap-2 flex-wrap">
+                {selectedLaptop.stockId && (
+                  <Badge
+                    className="text-xs font-mono font-semibold px-2 py-0.5 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 gap-1"
+                  >
+                    <Hash className="size-3" />
+                    {selectedLaptop.stockId}
+                  </Badge>
+                )}
                 <Badge
                   className={`text-xs px-2 py-0.5 border ${getConditionColor(selectedLaptop.condition)}`}
                 >
@@ -785,6 +793,12 @@ export function LaptopDetailSheet() {
               </h3>
               <Card className="rounded-xl">
                 <CardContent className="p-4 space-y-0.5">
+                  <DetailRow
+                    icon={Hash}
+                    label="Stock ID"
+                    value={selectedLaptop.stockId}
+                    iconColor="text-emerald-600 dark:text-emerald-400"
+                  />
                   <DetailRow
                     icon={Calendar}
                     label="Year"

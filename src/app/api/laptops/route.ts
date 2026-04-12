@@ -49,6 +49,11 @@ export async function POST(request: NextRequest) {
     // Stringify photos array if provided
     const photos = Array.isArray(body.photos) ? JSON.stringify(body.photos) : '[]';
 
+    // Generate stock ID: LF-XXXX format (sequential)
+    const laptopCount = await db.laptop.count();
+    const nextNum = laptopCount + 1;
+    const stockId = `LF-${String(nextNum).padStart(4, '0')}`;
+
     const laptop = await db.laptop.create({
       data: {
         brand: body.brand.trim(),
@@ -69,6 +74,8 @@ export async function POST(request: NextRequest) {
         year: Number(body.year) || 0,
         serialNumber: body.serialNumber ?? '',
         repairs: body.repairs ?? '',
+        features: body.features ?? '',
+        stockId,
         location: body.location || null,
       },
       include: { listings: true },

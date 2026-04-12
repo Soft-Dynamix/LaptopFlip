@@ -26,6 +26,7 @@ import {
   CircleDot,
   Sparkles,
   ArrowRight,
+  Hash,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -941,6 +942,21 @@ export function LaptopFormSheet() {
                         )}
                       </Button>
                     )}
+
+                    {/* Stock ID badge (read-only, only when editing) */}
+                    {isEditing && (() => {
+                      const currentLaptop = laptops.find((l) => l.id === editingLaptopId);
+                      if (!currentLaptop?.stockId) return null;
+                      return (
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="inline-flex items-center gap-1 text-xs font-mono font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-900/40 px-2.5 py-1 rounded-lg border border-emerald-200 dark:border-emerald-800">
+                            <Hash className="size-3.5" />
+                            Stock ID: {currentLaptop.stockId}
+                          </span>
+                          <span className="text-[11px] text-muted-foreground">Use this to track across platforms</span>
+                        </div>
+                      );
+                    })()}
 
                     {/* Basic Info */}
                     <FormSection icon={Laptop} title="Basic Info">
