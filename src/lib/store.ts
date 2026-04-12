@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import type { Laptop, LaptopFormData, AdPreview, Platform } from "./types";
 import { defaultLaptopForm, PLATFORMS } from "./types";
+import type { ModelProgress } from "./on-device-llm";
 
 interface AppState {
   // Navigation
@@ -60,6 +61,10 @@ interface AppState {
     avgMargin: number;
   };
   setDashboardStats: (stats: AppState["dashboardStats"]) => void;
+
+  // On-device LLM
+  modelProgress: ModelProgress;
+  setModelProgress: (progress: ModelProgress) => void;
 }
 
 const defaultChecklist: Record<string, boolean> = {
@@ -154,4 +159,11 @@ export const useAppStore = create<AppState>((set) => ({
     avgMargin: 0,
   },
   setDashboardStats: (stats) => set({ dashboardStats: stats }),
+
+  // On-device LLM
+  modelProgress: {
+    status: "idle",
+    progress: 0,
+  },
+  setModelProgress: (progress) => set({ modelProgress: progress }),
 }));
