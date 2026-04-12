@@ -222,3 +222,25 @@ Stage Summary:
 - Custom emerald green app icon and splash screen at all densities
 - Camera/storage permissions configured for photo capture
 - User needs: deploy app to hosting → update server.url → build APK in Android Studio
+
+---
+Task ID: 8
+Agent: Main
+Task: Build debug APK directly in sandbox
+
+Work Log:
+- Verified Java 21 JRE available, installed Oracle JDK 21 (full compiler)
+- Downloaded Android SDK command-line tools (r11076708)
+- Installed: platform-tools, platforms;android-36, build-tools;36.0.0
+- Accepted all SDK licenses
+- Set local.properties SDK path
+- Ran `npx cap sync android` to sync web assets
+- Built debug APK with `./gradlew assembleDebug` — BUILD SUCCESSFUL (213 tasks, 58s)
+- Output: android/app/build/outputs/apk/debug/app-debug.apk (7.8MB)
+- Copied to download/LaptopFlip-debug.apk
+
+Stage Summary:
+- **APK successfully generated**: download/LaptopFlip-debug.apk (7.8MB)
+- App ID: com.softdynamix.laptopflip
+- Includes: emerald green icon, splash screen, camera/storage/network permissions
+- Note: APK contains local WebView assets only — for full functionality (API routes, database, AI), the app needs to be deployed to a hosting service and server.url updated in capacitor.config.ts, then rebuild
