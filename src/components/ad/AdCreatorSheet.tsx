@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Sparkles,
@@ -31,6 +31,7 @@ import {
   loadModel,
   onModelProgress,
   getModelStatus,
+  isModelReady,
   type ModelProgress,
 } from "@/lib/on-device-llm";
 
@@ -343,13 +344,34 @@ export function AdCreatorSheet() {
   const [modelProgress, setModelProgressState] = useState<ModelProgress>(() => getModelStatus());
   const [adSources, setAdSources] = useState<Record<string, "ai" | "template">>({});
   const [isDownloadingModel, setIsDownloadingModel] = useState(false);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Subscribe to model progress
+  // Subscribe to model progress — immediately syncs and stays in sync
   useEffect(() => {
     const unsub = onModelProgress((progress) => {
-      setModelProgressState(progress);
+      console.log("[AdCreatorSheet] Model progress update:", progress.status, progress.progress + "%");
+      setModelProgressState({ ...progress });
     });
     return unsub;
+  }, []);
+
+  // Safety polling: every 2s, re-sync model state from module-level to React state.
+  // This catches edge cases where notifyListeners() might be missed
+  // (e.g., component mounted after model loaded, or callback was GC'd).
+  useEffect(() => {
+    pollRef.current = setInterval(() => {
+      const latest = getModelStatus();
+      setModelProgressState((prev) => {
+        if (prev.status !== latest.status || prev.progress !== latest.progress) {
+          console.log("[AdCreatorSheet] Poll: state drifted — syncing", prev.status, "→", latest.status);
+          return { ...latest };
+        }
+        return prev;
+      });
+    }, 2000);
+    return () => {
+      if (pollRef.current) clearInterval(pollRef.current);
+    };
   }, []);
 
   // Reset ads when sheet opens/closes
@@ -425,16 +447,28 @@ export function AdCreatorSheet() {
     }
   };
 
-  const handleDownloadModel = async () => {
+  const handleDownloadModel = useCallback(async () => {
     setIsDownloadingModel(true);
-    const success = await loadModel();
-    setIsDownloadingModel(false);
-    if (success) {
-      toast.success("AI model loaded! Generate ads for AI-powered copy.");
-    } else {
-      toast.error("Failed to load model. Using templates instead.");
+    try {
+      const success = await loadModel();
+      setIsDownloadingModel(false);
+      if (success) {
+        // Force a state sync after loading
+        setModelProgressState(getModelStatus());
+        toast.success("AI model loaded! Generate ads for AI-powered copy.");
+      } else {
+        const status = getModelStatus();
+        setModelProgressState(status);
+        toast.error(`Failed to load model: ${status.errorMessage || "Unknown error"}. Using templates.`);
+      }
+    } catch (err) {
+      setIsDownloadingModel(false);
+      const errMsg = err instanceof Error ? err.message : "Unknown error";
+      console.error("[AdCreatorSheet] loadModel threw:", errMsg);
+      toast.error(`Model load error: ${errMsg}`);
+      setModelProgressState(getModelStatus());
     }
-  };
+  }, []);
 
   const handleCopyText = async (ad: AdPreview) => {
     const fullText = `${ad.title}\n\n${ad.body}\n\nPrice: R ${ad.price.toLocaleString()}`;
@@ -464,8 +498,9 @@ export function AdCreatorSheet() {
   };
 
   const isOffline = isLocalMode();
-  // Derive from React state to stay in sync with UI (not module-level variable)
-  const modelReady = modelProgress.status === "ready";
+  // Derive from React state to stay in sync with UI.
+  // Also call isModelReady() which has a safety net that auto-fixes stale status.
+  const modelReady = modelProgress.status === "ready" || isModelReady();
 
   return (
     <Sheet open={isAdCreatorOpen} onOpenChange={handleSheetClose}>

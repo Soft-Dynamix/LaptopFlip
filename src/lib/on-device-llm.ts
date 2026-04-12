@@ -17,7 +17,7 @@ import { formatPrice } from "./types";
 export type ModelStatus =
   | "idle"           // Not attempted yet
   | "downloading"    // Downloading model files
-  | "loading"        // Loading into memory
+  | "loading"        // Loading into memory / WASM
   | "ready"          // Model loaded, ready to generate
   | "generating"     // Currently generating
   | "error";         // Failed
@@ -67,6 +67,11 @@ async function importTextGenerationPipeline() {
 
 // ─── Progress tracking ─────────────────────────────────
 
+/** Debug logger — prefix all logs for easy filtering */
+function log(tag: string, ...args: unknown[]) {
+  console.log(`[on-device-llm] [${tag}]`, ...args);
+}
+
 function notifyListeners() {
   const progress: ModelProgress = {
     status: currentStatus,
@@ -75,7 +80,14 @@ function notifyListeners() {
     totalBytes,
     errorMessage,
   };
-  listeners.forEach((fn) => fn(progress));
+  log("notify", `status=${currentStatus} progress=${currentProgress}%`);
+  listeners.forEach((fn) => {
+    try {
+      fn(progress);
+    } catch (err) {
+      console.error("[on-device-llm] Listener callback error:", err);
+    }
+  });
 }
 
 export function onModelProgress(callback: (progress: ModelProgress) => void): () => void {
@@ -103,56 +115,144 @@ export function getModelStatus(): ModelProgress {
 
 // ─── Model loading ──────────────────────────────────────
 
+/**
+ * V4 progress callback handler.
+ * V4 statuses: "initiate" | "download" | "progress" | "progress_total" | "done" | "ready"
+ */
+function handleProgressEvent(event: {
+  status: string;
+  loaded?: number;
+  total?: number;
+  progress?: number;
+  file?: string;
+  name?: string;
+  task?: string;
+  model?: string;
+}) {
+  log("progress-event", JSON.stringify(event));
+
+  switch (event.status) {
+    case "download": {
+      // V4: starting download of a specific file
+      if (currentStatus === "idle") {
+        currentStatus = "downloading";
+      }
+      break;
+    }
+
+    case "progress": {
+      // Per-file download progress (has loaded, total)
+      if (event.loaded != null && event.total != null) {
+        loadedBytes = event.loaded;
+        totalBytes = event.total;
+        currentProgress = Math.round((event.loaded / event.total) * 100);
+        if (currentStatus !== "loading") {
+          currentStatus = "downloading";
+        }
+      }
+      break;
+    }
+
+    case "progress_total": {
+      // V4 aggregate progress across all files
+      if (event.loaded != null && event.total != null) {
+        loadedBytes = event.loaded;
+        totalBytes = event.total;
+        currentProgress = Math.round((event.loaded / event.total) * 100);
+      } else if (event.progress != null) {
+        currentProgress = Math.round(event.progress);
+      }
+      if (currentStatus !== "loading") {
+        currentStatus = "downloading";
+      }
+      break;
+    }
+
+    case "done": {
+      // Single file download complete
+      currentProgress = 100;
+      break;
+    }
+
+    case "initiate": {
+      // Starting to load/parse a file (e.g., from cache into WASM)
+      currentStatus = "loading";
+      currentProgress = 100;
+      log("progress", `Initiating load: ${event.file ?? "unknown"}`);
+      break;
+    }
+
+    case "ready": {
+      // V4: model fully loaded and ready!
+      log("progress", `Model ready! task=${event.task} model=${event.model}`);
+      // Don't set status here — let the await handler do it
+      // so we can also verify the pipeline is valid
+      break;
+    }
+
+    default: {
+      log("progress", `Unknown status: ${event.status}`);
+      break;
+    }
+  }
+
+  notifyListeners();
+}
+
 export async function loadModel(): Promise<boolean> {
-  if (pipeline) return true;
-  if (currentStatus === "downloading" || currentStatus === "loading") return false;
+  // Already loaded
+  if (pipeline) {
+    log("loadModel", "Pipeline already loaded, returning true");
+    return true;
+  }
+  // Prevent concurrent loads
+  if (currentStatus === "downloading" || currentStatus === "loading") {
+    log("loadModel", `Already ${currentStatus}, returning false`);
+    return false;
+  }
 
   try {
     // Setup environment
+    log("loadModel", "Setting up environment...");
     const env = await importEnv();
     env.allowLocalModels = false;
-
-    // Configure cache (IndexedDB on browser)
-    // Default cache dir works for both browser and Capacitor WebView
 
     // Download & load
     currentStatus = "downloading";
     currentProgress = 0;
+    loadedBytes = 0;
+    totalBytes = 0;
+    errorMessage = "";
     notifyListeners();
 
     const textGeneration = await importTextGenerationPipeline();
+    log("loadModel", `Calling pipeline("text-generation", "${MODEL_ID}", {dtype:"q4", device:"wasm"})...`);
 
     pipeline = await textGeneration("text-generation", MODEL_ID, {
       dtype: "q4",
       device: "wasm",
-      progress_callback: (progress: { status: string; loaded?: number; total?: number; progress?: number }) => {
-        if (progress.status === "progress" && progress.loaded && progress.total) {
-          loadedBytes = progress.loaded;
-          totalBytes = progress.total;
-          currentProgress = Math.round((progress.loaded / progress.total) * 100);
-          if (currentStatus !== "loading") {
-            currentStatus = "downloading";
-          }
-        } else if (progress.status === "done") {
-          currentProgress = 100;
-        } else if (progress.status === "initiate") {
-          currentStatus = "loading";
-          currentProgress = 100;
-        }
-        notifyListeners();
-      },
+      progress_callback: handleProgressEvent,
     });
+
+    // Verify the pipeline is actually usable
+    if (!pipeline) {
+      throw new Error("Pipeline resolved but is null/undefined");
+    }
+
+    log("loadModel", "Pipeline loaded successfully!");
 
     currentStatus = "ready";
     currentProgress = 100;
     notifyListeners();
+    log("loadModel", `Status set to "ready". Listeners notified.`);
     return true;
   } catch (err) {
-    console.error("Failed to load on-device model:", err);
+    console.error("[on-device-llm] Failed to load on-device model:", err);
     currentStatus = "error";
     errorMessage = err instanceof Error ? err.message : "Failed to load model";
     pipeline = null;
     notifyListeners();
+    log("loadModel", `FAILED: ${errorMessage}`);
     return false;
   }
 }
@@ -285,15 +385,17 @@ export async function generateAdWithLLM(
   laptop: Laptop,
   platform: Platform
 ): Promise<AdPreview | null> {
-  if (!pipeline || currentStatus !== "ready") return null;
+  if (!pipeline || currentStatus !== "ready") {
+    log("generateAd", "Not ready — skipping", { hasPipeline: !!pipeline, status: currentStatus });
+    return null;
+  }
 
   currentStatus = "generating";
   notifyListeners();
 
   try {
     const prompt = buildLLMPrompt(platform, laptop);
-
-    console.log("[on-device-llm] Generating ad, prompt length:", prompt.length);
+    log("generateAd", `Generating ad, prompt length: ${prompt.length}`);
 
     const result = await pipeline(prompt, {
       max_new_tokens: 1024,
@@ -325,7 +427,7 @@ export async function generateAdWithLLM(
       }
     }
 
-    console.log("[on-device-llm] Raw output length:", generated.length);
+    log("generateAd", `Raw output length: ${generated.length}`);
 
     // Strip prompt echo — remove everything up to the last assistant marker
     const assistantMarker = "<|im_start|>assistant";
@@ -338,7 +440,7 @@ export async function generateAdWithLLM(
     // Strip Qwen3 thinking tags (safety net in case /no_think didn't work)
     generated = generated.replace(/<think\b[^>]*>[\s\S]*?<\/think>\s*/gi, "").trim();
 
-    console.log("[on-device-llm] Cleaned output:", generated.substring(0, 300));
+    log("generateAd", `Cleaned output (${generated.length} chars):`, generated.substring(0, 300));
 
     const parsed = extractJsonFromLLM(generated);
 
@@ -351,6 +453,7 @@ export async function generateAdWithLLM(
 
       currentStatus = "ready";
       notifyListeners();
+      log("generateAd", `Success! Title: "${parsed.title}"`);
 
       return {
         platform,
@@ -360,6 +463,7 @@ export async function generateAdWithLLM(
       };
     }
 
+    log("generateAd", "Failed to parse JSON from output");
     currentStatus = "ready";
     notifyListeners();
     return null;
@@ -377,7 +481,16 @@ export async function generateAdWithLLM(
 // ─── Utility ────────────────────────────────────────────
 
 export function isModelReady(): boolean {
-  return currentStatus === "ready" && pipeline !== null;
+  const ready = currentStatus === "ready" && pipeline !== null;
+  if (!ready && pipeline) {
+    log("isModelReady", `Pipeline exists but status=${currentStatus}, forcing status to ready`);
+    // Safety net: if pipeline is loaded but status is wrong, fix it
+    currentStatus = "ready";
+    currentProgress = 100;
+    notifyListeners();
+    return true;
+  }
+  return ready;
 }
 
 export function resetModel() {
@@ -387,5 +500,6 @@ export function resetModel() {
   loadedBytes = 0;
   totalBytes = 0;
   errorMessage = "";
+  log("resetModel", "Model reset to idle");
   notifyListeners();
 }
