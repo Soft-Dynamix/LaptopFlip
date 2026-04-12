@@ -33,11 +33,6 @@ export interface ModelProgress {
 // ─── Model config ───────────────────────────────────────
 
 const MODEL_ID = "Xenova/Qwen2.5-0.5B-Instruct";
-const MODEL_CONFIG = {
-  model: MODEL_ID,
-  dtype: "q4" as const,
-  device: "wasm",
-};
 
 // ─── State (module-level, not React state) ──────────────
 
@@ -127,7 +122,9 @@ export async function loadModel(): Promise<boolean> {
 
     const textGeneration = await importTextGenerationPipeline();
 
-    pipeline = await textGeneration("text-generation", MODEL_CONFIG, {
+    pipeline = await textGeneration("text-generation", MODEL_ID, {
+      dtype: "q4",
+      device: "wasm",
       progress_callback: (progress: { status: string; loaded?: number; total?: number; progress?: number }) => {
         if (progress.status === "progress" && progress.loaded && progress.total) {
           loadedBytes = progress.loaded;

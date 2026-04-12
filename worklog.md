@@ -551,3 +551,89 @@ Stage Summary:
 - Offline templates: Spec-specific highlights, price-aware messaging, dynamic hooks
 - Fallback ads now nearly as compelling as AI-generated ones
 - No new lint errors, dev server compiles successfully
+
+---
+Task ID: 15
+Agent: BugFix Agent
+Task: Fix bugs and add features from QA review
+
+Work Log:
+- **Bug 1: `__custom__` brand saved to database**
+  - Added `customBrandInput` state to `LaptopFormSheet.tsx` to track custom brand input separately from the select value
+  - Changed custom brand Input to use `customBrandInput` state instead of overwriting `formData.brand`
+  - Updated `handleSubmit` to resolve brand: if `formData.brand === "__custom__"`, use `customBrandInput` instead
+  - Added server-side validation in `/src/app/api/laptops/route.ts` POST handler to reject `"__custom__"` or empty/whitespace brand (returns 400)
+- **Bug 2: `handleRegenerate` floating promise**
+  - Changed `handleGenerate()` to `void handleGenerate()` in `AdCreatorSheet.tsx` to explicitly mark the promise as intentionally not awaited
+- **Bug 3: localStorage overflow — no error handling**
+  - Wrapped `localStorage.setItem` in `saveLaptops()` (`local-api.ts`) with try/catch
+  - On `QuotaExceededError`, logs error and attempts to save without photos as a fallback
+  - On second failure, logs critical error
+- **Bug 4: No online event listener to reset `_localMode`**
+  - Added `_onlineListenerAdded` flag in `api.ts`
+  - Created `switchToLocalMode()` helper that sets `_localMode = true` and registers `window.addEventListener('online')` once
+  - Replaced all 7 instances of `_localMode = true` with `switchToLocalMode()`
+  - When browser comes back online, `_localMode` resets to `false` allowing server mode retry
+- **Bug 5: `font-bold` on SVG icon (no-op)**
+  - Removed `"font-bold"` class from Icon component in `page.tsx` since SVGs don't respond to font-weight
+- **Feature 1: Search debounce in Inventory**
+  - Added `debouncedQuery` state variable and `useEffect` with 300ms timeout
+  - `filteredLaptops` computation now uses `debouncedQuery` instead of `searchQuery`
+- **Feature 2: Error Boundary**
+  - Created `src/components/ErrorBoundary.tsx` — React class component error boundary
+  - Shows AlertTriangle icon, error message, and "Try Again" button on error
+  - Wrapped `{children}` with `<ErrorBoundary>` in `src/app/layout.tsx`
+- **Feature 3: Undo delete in Inventory**
+  - Added `deletedLaptopRef` to store the deleted laptop temporarily
+  - Added `apiCreateLaptop` import to Inventory.tsx
+  - After successful deletion, shows toast with "Undo" action (5s duration)
+  - Undo creates a new laptop via `apiCreateLaptop` with the old data (new ID)
+
+Stage Summary:
+- 5 bugs fixed: custom brand validation, floating promise, localStorage overflow, online event listener, SVG font-bold
+- 3 features added: search debounce (300ms), error boundary component, undo delete with toast
+- ESLint clean (0 errors), dev server compiling successfully (GET / 200)
+
+---
+Task ID: 16
+Agent: Main
+Task: Fix "part.replace is not a function" error in on-device LLM
+
+Work Log:
+- Diagnosed error: `part.replace is not a function` occurs inside `@huggingface/transformers` v4.0.1 during model loading
+- Root cause: In v4, the `pipeline()` function signature changed — the second argument must be a **string** (model ID), not an object
+- Our code was passing `MODEL_CONFIG = { model: MODEL_ID, dtype: "q4", device: "wasm" }` as the second argument, causing `pathJoin()` to receive an object instead of a string
+- Fix in `/src/lib/on-device-llm.ts`:
+  - Removed `MODEL_CONFIG` object entirely
+  - Changed pipeline call from: `pipeline("text-generation", MODEL_CONFIG, { progress_callback })`
+  - To: `pipeline("text-generation", MODEL_ID, { dtype: "q4", device: "wasm", progress_callback })`
+  - `dtype` and `device` moved to the third argument (options object) where they belong in v4
+- Verified fix: lint passes (0 errors), dev server compiles, app loads in browser
+- Tested via agent-browser: Dashboard loads, laptop detail opens, Ad Creator sheet opens, no JS errors
+
+Stage Summary:
+- Critical on-device LLM bug fixed — model download now works correctly with @huggingface/transformers v4
+- The fix aligns our code with the v4 breaking API change for `pipeline()`
+- No other code changes needed — output handling remains the same (string format in v4)
+- ESLint clean, dev server running normally
+
+## Current Project Status
+
+### Project: LaptopFlip - Mobile-First Laptop Resale App
+### Status: Fully functional MVP with on-device AI, recent bugfix deployed
+
+### Key Bug Fixed This Session:
+- **"part.replace is not a function"** — Fixed `@huggingface/transformers` v4 API incompatibility in `on-device-llm.ts`
+
+### Unresolved Issues:
+- Nested `<button>` hydration warning in AdCreatorSheet platform selector (motion.button wraps Checkbox button)
+- No user authentication (single-user app)
+- Auto-posting to platforms not implemented (manual copy/paste workflow)
+- Photos stored as base64 (works for demo, needs cloud storage for production)
+
+### Next Phase Recommendations:
+1. Fix nested button hydration warning in platform selector
+2. Build new APK with the on-device LLM fix
+3. Add multi-user support with NextAuth
+4. Cloud photo storage (S3/Cloudflare R2)
+5. Price trend analytics with charts

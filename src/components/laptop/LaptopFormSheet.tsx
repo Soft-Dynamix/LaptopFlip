@@ -635,6 +635,7 @@ export function LaptopFormSheet() {
   const laptops = useAppStore((s) => s.laptops);
 
   const [formData, setFormData] = useState<LaptopFormData>(defaultLaptopForm);
+  const [customBrandInput, setCustomBrandInput] = useState("");
   const [photos, setPhotos] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [fetchingLaptop, setFetchingLaptop] = useState(false);
@@ -700,6 +701,7 @@ export function LaptopFormSheet() {
         // Adding new: start with photo capture step
         setFormStep("photos");
         setFormData(defaultLaptopForm);
+        setCustomBrandInput("");
         setPhotos([]);
       }
     }
@@ -751,7 +753,11 @@ export function LaptopFormSheet() {
   }, [setLaptops]);
 
   const handleSubmit = async () => {
-    if (!formData.brand.trim() || !formData.model.trim()) {
+    // Resolve brand: if "__custom__" selected, use the customBrandInput value
+    const resolvedBrand =
+      formData.brand === "__custom__" ? customBrandInput.trim() : formData.brand.trim();
+
+    if (!resolvedBrand || !formData.model.trim()) {
       toast.error("Brand and model are required");
       return;
     }
@@ -760,6 +766,7 @@ export function LaptopFormSheet() {
     try {
       const payload = {
         ...formData,
+        brand: resolvedBrand,
         purchasePrice: formData.purchasePrice ? Number(formData.purchasePrice) : 0,
         askingPrice: formData.askingPrice ? Number(formData.askingPrice) : 0,
         year: formData.year ? Number(formData.year) : null,
@@ -779,6 +786,7 @@ export function LaptopFormSheet() {
       setIsFormOpen(false);
       setEditingLaptopId(null);
       setFormData(defaultLaptopForm);
+      setCustomBrandInput("");
       setPhotos([]);
       await refreshLaptops();
     } catch {
@@ -926,7 +934,8 @@ export function LaptopFormSheet() {
                           <Input
                             placeholder="Enter custom brand"
                             className="mt-2"
-                            onChange={(e) => updateField("brand", e.target.value)}
+                            value={customBrandInput}
+                            onChange={(e) => setCustomBrandInput(e.target.value)}
                           />
                         )}
                       </FormField>

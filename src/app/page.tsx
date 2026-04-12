@@ -109,7 +109,7 @@ export default function Home() {
                     : "text-muted-foreground hover:text-foreground"
                 )}
               >
-                <Icon className={cn("w-5 h-5", isActive && "font-bold")} />
+                <Icon className="w-5 h-5" />
                 {tab.label && (
                   <span className="text-[10px] font-medium leading-tight">
                     {tab.label}

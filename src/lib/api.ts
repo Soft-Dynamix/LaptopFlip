@@ -15,6 +15,18 @@ import {
 
 // Cache the detected mode so we don't keep hitting a dead server
 let _localMode: boolean | null = null;
+let _onlineListenerAdded = false;
+
+/** Set local mode and register online listener once */
+function switchToLocalMode() {
+  _localMode = true;
+  if (!_onlineListenerAdded && typeof window !== "undefined") {
+    _onlineListenerAdded = true;
+    window.addEventListener("online", () => {
+      _localMode = false;
+    });
+  }
+}
 
 /**
  * Detect if running inside a Capacitor native shell (APK).
@@ -65,7 +77,7 @@ function ensureMode(): boolean {
 
   // In a Capacitor APK, always use local mode immediately
   if (isCapacitorNative()) {
-    _localMode = true;
+    switchToLocalMode();
     return false;
   }
 
@@ -98,7 +110,7 @@ export async function apiFetchLaptops(): Promise<Laptop[]> {
       // fall through to local
     }
     // Server call failed — switch to local mode permanently
-    _localMode = true;
+    switchToLocalMode();
   }
   return localFetchLaptops();
 }
@@ -122,7 +134,7 @@ export async function apiFetchLaptop(id: string): Promise<Laptop | null> {
     } catch {
       // fall through to local
     }
-    _localMode = true;
+    switchToLocalMode();
   }
   return localFetchLaptop(id);
 }
@@ -152,7 +164,7 @@ export async function apiCreateLaptop(
     } catch {
       // fall through to local
     }
-    _localMode = true;
+    switchToLocalMode();
   }
   return localCreateLaptop(data);
 }
@@ -184,7 +196,7 @@ export async function apiUpdateLaptop(
     } catch {
       // fall through to local
     }
-    _localMode = true;
+    switchToLocalMode();
   }
   return localUpdateLaptop(id, data);
 }
@@ -208,7 +220,7 @@ export async function apiDeleteLaptop(id: string): Promise<boolean> {
     } catch {
       // fall through to local
     }
-    _localMode = true;
+    switchToLocalMode();
   }
   return localDeleteLaptop(id);
 }
@@ -242,7 +254,7 @@ export async function apiGenerateAd(
     } catch {
       // fall through to local
     }
-    _localMode = true;
+    switchToLocalMode();
   }
   return localGenerateAd(laptopId, platforms);
 }

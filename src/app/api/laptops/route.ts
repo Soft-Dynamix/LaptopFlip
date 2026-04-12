@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
 
     // Validate required fields
-    if (!body.brand || typeof body.brand !== 'string' || body.brand.trim() === '') {
+    if (!body.brand || typeof body.brand !== 'string' || body.brand.trim() === '' || body.brand === '__custom__') {
       return NextResponse.json(
         { error: 'Brand is required' },
         { status: 400, headers: { 'Content-Type': 'application/json' } }

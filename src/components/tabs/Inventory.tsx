@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Search,
@@ -47,6 +47,7 @@ import {
   apiFetchLaptops,
   apiDeleteLaptop,
   apiUpdateLaptop,
+  apiCreateLaptop,
 } from "@/lib/api";
 import { formatPrice } from "@/lib/types";
 import type { Laptop as LaptopType } from "@/lib/types";
@@ -176,6 +177,16 @@ export function Inventory() {
   const [deleteTarget, setDeleteTarget] = useState<LaptopType | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>("newest");
+  const [debouncedQuery, setDebouncedQuery] = useState(searchQuery);
+  const deletedLaptopRef = useRef<LaptopType | null>(null);
+
+  // Debounce search query
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedQuery(searchQuery);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   const fetchLaptops = useCallback(async () => {
     try {
@@ -210,7 +221,7 @@ export function Inventory() {
     .filter((laptop) => {
       const matchesStatus =
         filterStatus === "all" || laptop.status === filterStatus;
-      const query = searchQuery.toLowerCase();
+      const query = debouncedQuery.toLowerCase();
       const matchesSearch =
         !query ||
         laptop.brand.toLowerCase().includes(query) ||
@@ -317,8 +328,25 @@ export function Inventory() {
       setDeleting(true);
       const success = await apiDeleteLaptop(deleteTarget.id);
       if (success) {
+        deletedLaptopRef.current = deleteTarget;
         setLaptops(laptops.filter((l) => l.id !== deleteTarget.id));
         setDeleteTarget(null);
+
+        toast.success("Laptop deleted", {
+          action: {
+            label: "Undo",
+            onClick: async () => {
+              const laptop = deletedLaptopRef.current;
+              if (!laptop) return;
+              const restored = await apiCreateLaptop({ ...laptop, id: undefined });
+              if (restored) {
+                setLaptops(prev => [restored, ...prev]);
+                toast.info("Laptop restored");
+              }
+            },
+          },
+          duration: 5000,
+        });
       }
     } catch {
       // Error silently handled

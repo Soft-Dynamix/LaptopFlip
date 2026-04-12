@@ -458,7 +458,7 @@ export function AdCreatorSheet() {
 
   const handleRegenerate = () => {
     setAdPreviews([]);
-    handleGenerate();
+    void handleGenerate();
   };
 
   const handleSheetClose = (open: boolean) => {
