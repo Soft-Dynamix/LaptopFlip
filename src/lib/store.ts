@@ -88,6 +88,11 @@ interface AppState {
   dismissNotification: (id: string) => void;
   clearNotifications: () => void;
 
+  // Watchlist
+  watchlist: string[];
+  toggleWatchlist: (laptopId: string) => void;
+  isWatched: (laptopId: string) => boolean;
+
   // Buyer contacts (CRM)
   contacts: BuyerContact[];
   setContacts: (contacts: BuyerContact[]) => void;
@@ -129,6 +134,31 @@ const defaultChecklist: Record<string, boolean> = {
 };
 
 let _activityCounter = 0;
+
+/** Load persisted watchlist from localStorage */
+function loadWatchlist(): string[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem("laptopflip_watchlist");
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
+    }
+  } catch {
+    // ignore
+  }
+  return [];
+}
+
+/** Persist watchlist to localStorage */
+function persistWatchlist(watchlist: string[]) {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem("laptopflip_watchlist", JSON.stringify(watchlist));
+  } catch {
+    // ignore
+  }
+}
 
 /** Load persisted settings from localStorage */
 function loadAppSettings(): AppSettings {
@@ -266,6 +296,22 @@ export const useAppStore = create<AppState>((set, get) => ({
       ),
     })),
   clearNotifications: () => set({ notifications: [] }),
+
+  // Watchlist
+  watchlist: loadWatchlist(),
+  toggleWatchlist: (laptopId) => {
+    set((state) => {
+      const isCurrentlyWatched = state.watchlist.includes(laptopId);
+      const updated = isCurrentlyWatched
+        ? state.watchlist.filter((id) => id !== laptopId)
+        : [...state.watchlist, laptopId];
+      persistWatchlist(updated);
+      return { watchlist: updated };
+    });
+  },
+  isWatched: (laptopId) => {
+    return get().watchlist.includes(laptopId);
+  },
 
   // Buyer contacts (CRM)
   contacts: [],

@@ -20,6 +20,7 @@ import {
   Hash,
   MessageCircle,
   PackageSearch,
+  Heart,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
@@ -174,9 +175,10 @@ function handleWhatsAppShare(laptop: LaptopType) {
 // ─── Status Summary Bar ─────────────────────────────────────
 
 function StatusSummaryBar({ laptops }: { laptops: LaptopType[] }) {
+  const safeLaptops = Array.isArray(laptops) ? laptops : [];
   const counts = useMemo(() => {
     const c: Record<string, number> = { all: 0, draft: 0, active: 0, sold: 0, archived: 0 };
-    for (const l of laptops) {
+    for (const l of safeLaptops) {
       c[l.status] = (c[l.status] || 0) + 1;
       c.all++;
     }
@@ -275,6 +277,8 @@ export function Inventory() {
     isDetailOpen,
     setIsDetailOpen,
     addActivityLog,
+    watchlist,
+    toggleWatchlist,
   } = useAppStore();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -799,6 +803,12 @@ export function Inventory() {
                           >
                             {laptop.status}
                           </Badge>
+                          {watchlist.includes(laptop.id) && (
+                            <Badge className="text-[10px] px-1.5 py-0 border border-rose-200 dark:border-rose-800 bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-300">
+                              <Heart className="size-2.5 mr-0.5 fill-current" />
+                              Watched
+                            </Badge>
+                          )}
                           {laptop.status === "active" && getDaysListed(laptop.createdAt) > 14 && (
                             <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-amber-700 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/40 px-1.5 py-0 rounded-full border border-amber-200 dark:border-amber-800">
                               <span>⚠</span>
@@ -866,6 +876,25 @@ export function Inventory() {
                           </div>
                         )}
                         <div className="flex gap-1 mt-1" onClick={(e) => e.stopPropagation()}>
+                          <motion.button
+                            whileTap={{ scale: 0.8 }}
+                            onClick={() => toggleWatchlist(laptop.id)}
+                            className="size-8 rounded-md flex items-center justify-center transition-colors relative"
+                            aria-label={watchlist.includes(laptop.id) ? "Remove from watchlist" : "Add to watchlist"}
+                          >
+                            {watchlist.includes(laptop.id) ? (
+                              <motion.div
+                                key="filled"
+                                initial={{ scale: 0.5 }}
+                                animate={{ scale: [1, 1.3, 1] }}
+                                transition={{ duration: 0.35, ease: "easeOut" }}
+                              >
+                                <Heart className="size-3.5 text-rose-500 fill-rose-500" />
+                              </motion.div>
+                            ) : (
+                              <Heart className="size-3.5 text-muted-foreground hover:text-rose-400 transition-colors" />
+                            )}
+                          </motion.button>
                           <Button
                             variant="ghost"
                             size="icon"

@@ -100,7 +100,7 @@ export default function Home() {
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: -56, opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="fixed top-0 left-0 right-0 z-40 bg-background/90 backdrop-blur-xl border-b border-border/50"
+            className="fixed top-0 left-0 right-0 z-40 bg-background/95 backdrop-blur-xl border-b border-border/50 shadow-lg shadow-black/5"
           >
             <div className="max-w-lg mx-auto flex items-center justify-between h-12 px-4">
               <div className="flex items-center gap-2">
@@ -136,13 +136,13 @@ export default function Home() {
 
       {/* Bottom Navigation — Frosted glass effect */}
       <nav className="fixed bottom-0 left-0 right-0 z-40">
-        {/* Gradient top border */}
-        <div className="h-px bg-gradient-to-r from-transparent via-emerald-500 to-transparent opacity-60" />
+        {/* Gradient top accent — 2px emerald line */}
+        <div className="h-0.5 bg-gradient-to-r from-transparent via-emerald-500 to-transparent" />
 
         {/* Subtle gradient overlay above nav for content fade */}
         <div className="absolute -top-8 left-0 right-0 h-8 bg-gradient-to-t from-background/90 to-transparent pointer-events-none" />
 
-        <div className="relative bg-background/90 backdrop-blur-2xl">
+        <div className="relative bg-background/95 backdrop-blur-2xl">
           <div className="max-w-lg mx-auto flex items-center justify-around h-16 px-2">
             {tabs.map((tab) => {
               const isActive = tab.id === activeTab;
@@ -178,9 +178,12 @@ export default function Home() {
                       : "text-muted-foreground hover:text-foreground"
                   )}
                 >
-                  <Icon className="w-5 h-5" />
+                  <Icon className={cn("w-5 h-5 transition-transform duration-200", isActive && "scale-110")} />
                   {tab.label && (
-                    <span className="text-[10px] font-medium leading-tight">
+                    <span className={cn(
+                      "text-[10px] font-medium leading-tight transition-all duration-200",
+                      isActive && "bg-emerald-100 dark:bg-emerald-900/30 rounded-full px-2"
+                    )}>
                       {tab.label}
                     </span>
                   )}
@@ -196,6 +199,18 @@ export default function Home() {
                       }}
                     />
                   )}
+                  {/* Active badge dot indicator */}
+                  {isActive && (
+                    <motion.div
+                      layoutId="activeTabDot"
+                      className="absolute top-0.5 right-1 w-1.5 h-1.5 bg-emerald-500 rounded-full"
+                      transition={{
+                        type: "spring",
+                        stiffness: 400,
+                        damping: 30,
+                      }}
+                    />
+                  )}
                 </motion.button>
               );
             })}
@@ -203,7 +218,7 @@ export default function Home() {
         </div>
 
         {/* Safe area padding for iOS */}
-        <div className="h-[env(safe-area-inset-bottom)] bg-background/90" />
+        <div className="h-[env(safe-area-inset-bottom)] bg-background/95" />
       </nav>
 
       {/* Sheets */}

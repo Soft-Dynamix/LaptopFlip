@@ -19,6 +19,7 @@ import {
   Users,
   Hash,
   Share2,
+  Heart,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
@@ -241,6 +242,10 @@ export function Dashboard() {
     setActiveTab,
     setIsFormOpen,
     contacts,
+    setSelectedLaptop,
+    setIsDetailOpen,
+    setEditingLaptopId,
+    watchlist,
   } = useAppStore();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -331,7 +336,7 @@ export function Dashboard() {
 
   const handleQuickAction = (action: string) => {
     if (action === "add") {
-      useAppStore.getState().setEditingLaptopId(null);
+      setEditingLaptopId(null);
       setIsFormOpen(true);
     } else {
       setActiveTab(action);
@@ -587,6 +592,96 @@ export function Dashboard() {
         </Card>
       </motion.div>
 
+      {/* Watchlist Widget */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: 0.29 }}
+        className="space-y-3"
+      >
+        <h2 className="text-base font-semibold flex items-center gap-2">
+          <Heart className="size-4 text-rose-500" />
+          Watchlist
+          {watchlist.length > 0 && (
+            <Badge variant="secondary" className="text-[10px]">
+              {watchlist.length} item{watchlist.length > 1 ? "s" : ""}
+            </Badge>
+          )}
+        </h2>
+        <Card className="rounded-xl border shadow-sm overflow-hidden relative">
+          <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-rose-400 via-pink-500 to-rose-600 dark:from-rose-600 dark:via-pink-700 dark:to-rose-800 rounded-l-xl" />
+          <CardContent className="p-4 pl-5">
+            {watchlist.length === 0 ? (
+              <div className="flex items-center gap-3 py-2">
+                <div className="size-9 rounded-lg bg-rose-100 dark:bg-rose-900/40 flex items-center justify-center shrink-0">
+                  <Heart className="size-4 text-rose-400 dark:text-rose-500" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-medium">No watched items</p>
+                  <p className="text-xs text-muted-foreground">
+                    Tap the heart icon on any laptop to track it
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="flex gap-3 overflow-x-auto pb-1 -mx-1 px-1">
+                {watchlist.map((id) => {
+                  const watchedLaptop = laptops.find((l: LaptopType) => l.id === id);
+                  if (!watchedLaptop) return null;
+                  return (
+                    <motion.button
+                      key={id}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => {
+                        setSelectedLaptop(watchedLaptop);
+                        setIsDetailOpen(true);
+                      }}
+                      className="shrink-0 rounded-xl border bg-background/80 dark:bg-gray-900/80 p-3 min-w-[150px] max-w-[180px] text-left hover:shadow-md hover:border-rose-300 dark:hover:border-rose-700 transition-all duration-200"
+                    >
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <span className="text-sm">
+                          {watchedLaptop.photos && watchedLaptop.photos.length > 0
+                            ? (() => {
+                                const imgs = typeof watchedLaptop.photos === "string" ? JSON.parse(watchedLaptop.photos) : watchedLaptop.photos;
+                                return (
+                                  <img
+                                    src={imgs[0]}
+                                    alt=""
+                                    className="size-8 rounded-md object-cover border"
+                                    onError={(e) => {
+                                      (e.target as HTMLImageElement).style.display = "none";
+                                      (e.target as HTMLImageElement).nextElementSibling?.classList.remove("hidden");
+                                    }}
+                                  />
+                                );
+                              })()
+                            : null}
+                        </span>
+                        <span className={watchedLaptop.photos && watchedLaptop.photos.length > 0 ? "hidden" : "text-lg"}>
+                          {getBrandIcon(watchedLaptop.brand)}
+                        </span>
+                        <div className="min-w-0">
+                          <p className="text-xs font-semibold truncate">
+                            {watchedLaptop.brand} {watchedLaptop.model}
+                          </p>
+                          <p className="text-[10px] text-muted-foreground">
+                            {watchedLaptop.ram} · {watchedLaptop.storage}
+                          </p>
+                        </div>
+                      </div>
+                      <p className="text-sm font-bold text-emerald-700 dark:text-emerald-400">
+                        {formatPrice(watchedLaptop.askingPrice)}
+                      </p>
+                    </motion.button>
+                  );
+                })}
+              </div>
+            )}
+          </CardContent>
+          <div className="h-0.5 bg-gradient-to-r from-rose-400 via-pink-400 to-rose-500 dark:from-rose-600 dark:via-pink-600 dark:to-rose-700 opacity-40" />
+        </Card>
+      </motion.div>
+
       {/* Pricing Calculator */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
@@ -660,7 +755,7 @@ export function Dashboard() {
               >
                 <Button
                   onClick={() => {
-                    useAppStore.getState().setEditingLaptopId(null);
+                    setEditingLaptopId(null);
                     setIsFormOpen(true);
                   }}
                   size="lg"
@@ -684,8 +779,8 @@ export function Dashboard() {
                 <Card
                   className={`rounded-xl py-4 shadow-md hover:shadow-lg hover:bg-accent/40 dark:hover:bg-accent/20 transition-all duration-200 cursor-pointer border-l-[3px] ${getConditionBorderColor(laptop.condition)}`}
                   onClick={() => {
-                    useAppStore.getState().setSelectedLaptop(laptop);
-                    useAppStore.getState().setIsDetailOpen(true);
+                    setSelectedLaptop(laptop);
+                    setIsDetailOpen(true);
                   }}
                 >
                   <CardContent className="p-0 px-4">
@@ -743,8 +838,8 @@ export function Dashboard() {
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            useAppStore.getState().setSelectedLaptop(laptop);
-                            useAppStore.getState().setIsDetailOpen(true);
+                            setSelectedLaptop(laptop);
+                            setIsDetailOpen(true);
                           }}
                           className="text-xs font-medium text-emerald-600 dark:text-emerald-400 hover:underline ml-1"
                         >

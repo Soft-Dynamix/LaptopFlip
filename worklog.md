@@ -1,4 +1,57 @@
 ---
+Task ID: 5-a
+Agent: Feature Agent
+Task: Add Wishlist/Watchlist feature
+
+Work Log:
+- Added `watchlist: string[]`, `toggleWatchlist(laptopId)`, and `isWatched(laptopId)` to Zustand store (`src/lib/store.ts`)
+- Created `loadWatchlist()` and `persistWatchlist()` helper functions with localStorage key `laptopflip_watchlist`
+- Watchlist persists across sessions via localStorage; SSR-safe with `typeof window` checks
+- Updated Inventory.tsx: added `Heart` icon import from lucide-react, added `watchlist`/`toggleWatchlist` from store
+- Added heart button to each inventory card in the action buttons row (before Edit/Create Ad/More)
+- Heart button uses framer-motion `whileTap` scale animation and pulse animation when toggling to filled state
+- Filled rose heart with `fill-rose-500` when watched, outline muted heart when not watched
+- Added "Watched" badge (rose color scheme with Heart icon) displayed on watched inventory cards alongside condition/status badges
+- Updated Dashboard.tsx: added `Heart` icon import and `watchlist` from store
+- Added Watchlist widget section between Profit Insights and Pricing Calculator on Dashboard
+- Widget shows count badge when items are watched, empty state with hint text when no items
+- Watched items displayed as compact horizontally scrollable cards with thumbnail/brand icon, brand+model, specs, and price
+- Clicking a watched item opens its detail view via `setSelectedLaptop` + `setIsDetailOpen`
+- Widget uses rose gradient left border accent and bottom gradient bar matching the design system
+- ESLint clean (0 errors), dev server running normally (GET / 200)
+
+Stage Summary:
+- Watchlist feature fully implemented across store, Inventory, and Dashboard
+- Heart toggle button on inventory cards with pulse animation (framer-motion)
+- "Watched" rose badge shown on watched inventory items
+- Dashboard Watchlist widget shows horizontal scroll of watched laptops (photo + brand + model + price)
+- Click watched items to open detail view
+- All data persisted to localStorage (`laptopflip_watchlist`)
+- All existing functionality preserved, zero lint errors
+
+---
+Task ID: 5-b
+Agent: Styling Agent
+Task: Improve bottom navigation and layout styling
+
+Work Log:
+- Enhanced bottom navigation frosted glass effect: increased bg opacity from /90 to /95
+- Changed top gradient accent from 1px (`h-px`) to 2px (`h-0.5`) emerald line with full opacity
+- Updated iOS safe area padding to match /95 opacity
+- Made active tab icon scale to 1.1 (`scale-110`) with smooth 200ms transition
+- Added emerald pill background behind active tab text (`bg-emerald-100 dark:bg-emerald-900/30 rounded-full px-2`)
+- Added animated badge dot indicator on active tab (1.5x1.5 emerald dot, top-right, spring animated via framer-motion layoutId)
+- Enhanced scroll header: increased bg opacity to /95 and added subtle bottom shadow (`shadow-lg shadow-black/5`)
+- Layout.tsx reviewed — no changes needed (clean provider structure)
+- Lint passed with 0 errors
+
+Stage Summary:
+- Bottom nav has stronger frosted glass effect with decorative 2px emerald gradient accent line
+- Active tab now has: larger icon (1.1x), pill-shaped text background, and animated badge dot
+- Scroll header has stronger glass effect and subtle shadow for depth
+- All existing functionality preserved, zero lint errors
+
+---
 Task ID: 3-b
 Agent: Inventory Agent
 Task: Improve Inventory styling and add WhatsApp Quick Share + Stale Alerts
