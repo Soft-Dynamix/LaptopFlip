@@ -10,9 +10,10 @@ const PLATFORM_INSTRUCTIONS: Record<string, string> = {
   whatsapp: `WhatsApp Broadcast / Status ad rules:
 - STRICT 500-character limit for the entire message (title + body combined)
 - Use WhatsApp formatting: *bold* for emphasis, _italic_ for subtitles
+- TITLE must include the Stock ID if available: "#LF-XXXX Brand Model - R X,XXX"
 - Open with an attention-grabbing hook using the laptop's name and biggest selling point from the provided data
 - Only include specs that are ACTUALLY provided in the laptop details — DO NOT guess or add any specs
-- Do NOT add any separate reference number — the Stock ID is only shown in the Facebook header
+- Do NOT add any separate reference number in the body — the Stock ID goes in the title only
 - Include a clear price line: *Price: R X,XXX*
 - Include the location and WhatsApp number if provided
 - Close with ONE urgent CTA: "DM now — won't last long!" or similar
@@ -22,10 +23,13 @@ const PLATFORM_INSTRUCTIONS: Record<string, string> = {
 
   facebook: `Facebook Marketplace ad rules — follow this EXACT format:
 
+TITLE must include the Stock ID if available: "#LF-XXXX Brand Model - Condition - R X,XXX"
+(Example: #LF-0042 Dell Latitude E5570 - Excellent - R8,500)
+- Use the Stock ID as the title number. If Stock ID is N/A, omit the # number entirely.
+
 HEADER FORMAT:
 #[Stock ID] 💻🔥 Brand Model – Catchy Tagline! 🔥💻
 (Example: #LF-0042 💻🔥 Dell Latitude E5570 – Fast & Reliable! 🔥💻)
-- Use the Stock ID as the header number. If Stock ID is N/A, omit the # number entirely.
 - The tagline should be catchy — use the CONDITION and PRICE to create urgency/value (e.g., "Like New!", "Priced to Sell!", "Amazing Deal!")
 
 
@@ -58,7 +62,7 @@ STYLE RULES:
 
   gumtree: `Gumtree South Africa classified ad rules:
 - Write a TRADITIONAL classified ad with clear, professional structure
-- TITLE: Brand + Model + Condition + Price (e.g., "Dell XPS 15 - Excellent - R12,500")
+- TITLE must include the Stock ID if available: "Brand Model - Ref: LF-XXXX - Condition - R X,XXX" (e.g., "Dell XPS 15 - Ref: LF-0042 - Excellent - R12,500")
 - OPENING: "FOR SALE:" followed by laptop name and a ONE-SENTENCE summary
 
 - SPECIFICATIONS: List ONLY the specs that are provided. Use a clean numbered or bulleted list.
@@ -74,7 +78,7 @@ STYLE RULES:
 - NEVER: overstate condition, hide defects, use all caps for the entire ad, include unrelated keywords`,
 
   olx: `OLX South Africa listing rules:
-- TITLE must ALWAYS include the price: "Brand Model — R X,XXX"
+- TITLE must ALWAYS include the price and Stock ID if available: "Brand Model - Ref: LF-XXXX — R X,XXX" (e.g., "Dell XPS 15 - Ref: LF-0042 — R12,500")
 
 - Write a WELL-STRUCTURED listing with clear headings:
   📌 Quick Summary (2-3 lines that make the buyer WANT to read more)
@@ -174,8 +178,8 @@ function buildPrompt(platform: string, laptop: {
   const platformGuide = PLATFORM_INSTRUCTIONS[platform] || PLATFORM_INSTRUCTIONS.facebook;
   const context = buildContext(laptop);
   const stockLine = laptop.stockId
-    ? `Stock ID: ${laptop.stockId} — use this as #${laptop.stockId} in the Facebook ad header`
-    : 'Stock ID: N/A (no stock reference for this laptop)';
+    ? `Stock ID: ${laptop.stockId} — include this in the ad TITLE for ALL platforms: WhatsApp as #${laptop.stockId} at the start of the title, Facebook as #${laptop.stockId} at the start of the title, Gumtree as "Ref: ${laptop.stockId}" in the title, OLX as "Ref: ${laptop.stockId}" in the title`
+    : 'Stock ID: N/A — do not include any reference number in the ad title';
 
   return `Generate a ${platform.toUpperCase()} marketplace ad for this laptop being sold in South Africa.
 
@@ -250,7 +254,8 @@ function buildFallbackAd(
 
   if (platform === "whatsapp") {
     const topSpecs = specs.slice(0, 3).map(s => s.split(": ")[1]).join(" | ");
-    const title = `${laptop.brand} ${laptop.model} - ${priceStr}`;
+    const stockRef = laptop.stockId ? `#${laptop.stockId} ` : "";
+    const title = `${stockRef}${laptop.brand} ${laptop.model} - ${priceStr}`;
     const body = [
       `*${laptop.brand} ${laptop.model}*`,
       `_${laptop.condition} condition | Battery: ${laptop.batteryHealth}_`,
@@ -268,7 +273,8 @@ function buildFallbackAd(
 
   if (platform === "facebook") {
     const adHeader = laptop.stockId ? `#${laptop.stockId}` : "";
-    const title = `${laptop.brand} ${laptop.model} - ${priceStr}`;
+    const stockRef = laptop.stockId ? `#${laptop.stockId} ` : "";
+    const title = `${stockRef}${laptop.brand} ${laptop.model} - ${laptop.condition} - ${priceStr}`;
 
     // Simple tagline based on condition and price only
     let tagline = "Great Deal!";
@@ -297,7 +303,8 @@ function buildFallbackAd(
   }
 
   if (platform === "gumtree") {
-    const title = `${laptop.brand} ${laptop.model} - ${laptop.condition} - ${priceStr}`;
+    const stockRef = laptop.stockId ? ` - Ref: ${laptop.stockId}` : "";
+    const title = `${laptop.brand} ${laptop.model}${stockRef} - ${laptop.condition} - ${priceStr}`;
     const body = [
       `FOR SALE: ${laptop.brand} ${laptop.model}`,
       "",
@@ -322,7 +329,8 @@ function buildFallbackAd(
   }
 
   // OLX fallback
-  const title = `${laptop.brand} ${laptop.model} - ${priceStr}`;
+  const stockRef = laptop.stockId ? ` - Ref: ${laptop.stockId}` : "";
+  const title = `${laptop.brand} ${laptop.model}${stockRef} - ${priceStr}`;
   const body = [
     `📌 ${laptop.brand} ${laptop.model} - ${laptop.condition} Condition`,
     "",

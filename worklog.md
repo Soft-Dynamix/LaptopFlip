@@ -1269,3 +1269,34 @@ Stage Summary:
 - Critical crash fixed — local-api.ts recreated with all 8 exported functions
 - Preview panel now working correctly
 - Offline/local mode fully functional with Capacitor fallback support
+
+---
+Task ID: 19
+Agent: Main
+Task: Put ref stock ID in ad item name/title for all platforms
+
+Work Log:
+- Updated all 3 ad generation layers to include stock ID in the ad title (item name):
+  - **WhatsApp**: `#LF-XXXX Brand Model - R X,XXX`
+  - **Facebook**: `#LF-XXXX Brand Model - Condition - R X,XXX`
+  - **Gumtree**: `Brand Model - Ref: LF-XXXX - Condition - R X,XXX`
+  - **OLX**: `Brand Model - Ref: LF-XXXX - R X,XXX`
+- Server AI (`/src/app/api/generate-ad/route.ts`):
+  - Updated all 4 platform instructions with stock ID title format
+  - Updated `buildPrompt()` stockLine to instruct AI to put stock ID in title for ALL platforms
+  - Updated `buildFallbackAd()` to include stock ID in titles (WhatsApp, Facebook, Gumtree, OLX)
+  - Removed "Ref:" from body instructions (WhatsApp: "Do NOT add any separate reference number in the body")
+- On-device LLM (`/src/lib/on-device-llm.ts`):
+  - Updated all 4 platform rules with stock ID title format
+  - Updated laptopInfo stock line to reference all platform title formats
+  - WhatsApp & Gumtree rules explicitly say "Do NOT put Ref number in the body"
+- Offline templates (`/src/lib/local-api.ts`):
+  - Updated `buildTemplateAd()` title generation for all 4 platforms
+  - Facebook body header still includes #StockID for visual impact
+  - Updated stale comment to reflect new behavior
+
+Stage Summary:
+- Stock ID now appears in the ad title (item name) across all 4 platforms
+- Consistent format: #XXXX for WhatsApp/Facebook, "Ref: XXXX" for Gumtree/OLX
+- No "Ref:" references in ad bodies (only in titles and Facebook body header for visual impact)
+- ESLint clean (0 errors), dev server running normally
