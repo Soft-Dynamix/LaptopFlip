@@ -23,11 +23,11 @@ const PLATFORM_INSTRUCTIONS: Record<string, string> = {
   facebook: `Facebook Marketplace ad rules — follow this EXACT format:
 
 HEADER FORMAT:
-#N 💻🔥 Brand Model – Catchy Tagline! 🔥💻
-(Example: #9 💻🔥 Dell Latitude E5570 – Fast & Reliable! 🔥💻)
-- Generate a random ad number (#1-#50)
+#[Stock ID] 💻🔥 Brand Model – Catchy Tagline! 🔥💻
+(Example: #LF-0042 💻🔥 Dell Latitude E5570 – Fast & Reliable! 🔥💻)
+- Use the Stock ID as the header number. If Stock ID is N/A, omit the # number entirely.
 - The tagline should be catchy — use the CONDITION and PRICE to create urgency/value (e.g., "Like New!", "Priced to Sell!", "Amazing Deal!")
-- If a Stock ID is provided (not N/A), you MUST include it near the price section as: 📋 Ref: [Stock ID] (e.g., 📋 Ref: LF-0042) — this is MANDATORY for cross-platform reference
+- If a Stock ID is provided (not N/A), you MUST also include it near the price section as: 📋 Ref: [Stock ID] — this is MANDATORY for cross-platform reference
 
 ⚡ Specs That Impress:
 - Header must be exactly: "⚡ Specs That Impress:"
@@ -269,7 +269,7 @@ function buildFallbackAd(
   }
 
   if (platform === "facebook") {
-    const adNumber = `#${Math.floor(Math.random() * 50) + 1}`;
+    const adHeader = laptop.stockId ? `#${laptop.stockId}` : "";
     const title = `${laptop.brand} ${laptop.model} - ${priceStr}`;
 
     // Simple tagline based on condition and price only
@@ -283,7 +283,7 @@ function buildFallbackAd(
     const whatsapp = laptop.whatsappNumber || "";
 
     const body = [
-      `${adNumber} 💻🔥 ${laptop.brand} ${laptop.model} – ${tagline} 🔥💻`,
+      `${adHeader} 💻🔥 ${laptop.brand} ${laptop.model} – ${tagline} 🔥💻`,
       "",
       "⚡ Specs That Impress:",
       ...specs,
