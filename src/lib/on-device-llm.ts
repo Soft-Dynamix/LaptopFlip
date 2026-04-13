@@ -300,13 +300,13 @@ function buildOnDeviceContext(laptop: Laptop): string {
 // ─── Platform-specific instructions for on-device LLM ──
 
 const ON_DEVICE_PLATFORM_RULES: Record<Platform, string> = {
-  whatsapp: `WHATSAPP FORMAT: Max 500 chars total. Use *bold* and _italic_. TITLE must include Stock ID if available as "#LF-XXXX Brand Model - R X,XXX". Lead with laptop name and condition. Only include specs that are provided. Bold price line. Include location and WhatsApp if provided. One urgent CTA ("DM now"). 2-3 emojis max. Every line must earn its space. DO NOT guess or add any specs. Do NOT put any reference number in the body — only in the title.`,
+  whatsapp: `WHATSAPP FORMAT: Max 1000 chars. Use *bold* and _italic_. TITLE: "#LF-XXXX Brand Model - R X,XXX". Start with a hook question or bold claim. Write a 2-3 line description about the laptop and why it's great. List specs with ▸ markers. Include condition description, price, location, WhatsApp. Add trust signals from notes. End with urgent CTA. 3-5 emojis. MINIMUM 400 chars body.`,
 
-  facebook: `FACEBOOK FORMAT: Full listing. TITLE must include Stock ID if available as "#LF-XXXX Brand Model - Condition - R X,XXX". Use emoji headers: Specs, Features, Price. ONLY list specs that are provided — do NOT guess. ONLY list features/ports that the user specified — do NOT infer. Include location and WhatsApp if provided. Close with CTA. Heavy emoji use is fine. Also put #StockID at the start of the body first line (e.g., #LF-0042 💻 FOR SALE...)`,
+  facebook: `FACEBOOK FORMAT: Full rich listing. TITLE: "#LF-XXXX Brand Model - Condition - R X,XXX". Body MUST include: (1) Hook line, (2) 3-4 line intro about the laptop, (3) Specs list with benefit notes, (4) Condition + battery description, (5) "Why This Laptop?" value section, (6) Trust signals, (7) Price + location + WhatsApp, (8) Urgent CTA. Heavy emoji headers. MINIMUM 800 chars body.`,
 
-  gumtree: `GUMTREE FORMAT: Professional classified. TITLE must include Stock ID if available as "Brand Model - Ref: LF-XXXX - Condition - R X,XXX". "FOR SALE:" opener. Clean spec list — ONLY provided specs. HONEST condition. ONLY list features the user specified. Price on own line. "Contact to arrange viewing" CTA. Max 3-4 emojis. Do NOT put Ref number in the body.`,
+  gumtree: `GUMTREE FORMAT: Full professional classified. TITLE: "Brand Model - Ref: LF-XXXX - Condition - R X,XXX". Body MUST include: FOR SALE opener, 4-6 line description, full numbered specs list, condition section with honest description, features if provided, trust section, seller notes, price + contact, CTA. MINIMUM 800 chars body.`,
 
-  olx: `OLX FORMAT: Price and Stock ID MUST be in title ("Brand Model - Ref: LF-XXXX - R X,XXX"). Sections with emoji headers. ONLY include specs that are provided. ONLY list features the user specified. Short paragraphs. OLX-specific CTA. Professional tone. No ALL CAPS. Do NOT put Ref number in the body.`,
+  olx: `OLX FORMAT: Full marketplace listing. TITLE: "Brand Model - Ref: LF-XXXX — R X,XXX". Body MUST include: Quick summary (3-4 lines), full specs with notes, battery/condition section, "Why This Is a Great Deal" value section, what's included, location, price, OLX CTA. MINIMUM 800 chars body.`,
 };
 
 // ─── Ad generation ──────────────────────────────────────
@@ -350,7 +350,7 @@ function buildLLMPrompt(platform: Platform, laptop: Laptop): string {
 
   // System prompt with /no_think to disable Qwen3 reasoning mode
   const systemContent = `/no_think
-You are a South African marketplace ad writer. Write honest, persuasive, mobile-friendly ads using ONLY the laptop data provided. DO NOT guess, infer, or add ANY specs, ports, or features that are not explicitly listed. Use Rands. SA English spelling. You MUST respond ONLY with valid JSON: {"title": "ad title", "body": "ad body"}. No other text. No explanation. Just the JSON object.`;
+You are a South African marketplace ad copywriter. Write FULL, DETAILED, PERSUASIVE ads using ONLY the laptop data provided. DO NOT guess or add specs. Use Rands, SA spelling. Your ads must be LONG and SUBSTANTIAL with multiple sections. Minimum 800 chars body for Facebook/Gumtree/OLX, 400 for WhatsApp. Write like a passionate honest seller. Respond ONLY with valid JSON: {"title": "ad title", "body": "ad body"}. No explanation.`;
 
   const userContent = `Write a ${platform.toUpperCase()} ad for this laptop. USE ONLY THE DATA BELOW — DO NOT GUESS OR ADD ANY SPECS, PORTS, OR FEATURES.\n\n${laptopInfo}\n\n${buildOnDeviceContext(laptop)}\n\n${platformRules}`;
 

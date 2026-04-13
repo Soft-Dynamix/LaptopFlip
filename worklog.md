@@ -1300,3 +1300,54 @@ Stage Summary:
 - Consistent format: #XXXX for WhatsApp/Facebook, "Ref: XXXX" for Gumtree/OLX
 - No "Ref:" references in ad bodies (only in titles and Facebook body header for visual impact)
 - ESLint clean (0 errors), dev server running normally
+
+---
+Task ID: 20
+Agent: Main
+Task: Make ads longer, more detailed and professional (user said "why is the adds so short. Make them nice")
+
+Work Log:
+- Diagnosed issue: All 3 ad generation layers (server AI, on-device LLM, offline templates) produced very short, dry ads — just bare specs + price with no persuasive copy
+- Rewrote all 3 ad generation layers with rich, detailed, professional marketplace copy:
+
+**Server AI (`/src/app/api/generate-ad/route.ts`):**
+- Expanded platform instructions with mandatory sections and minimum lengths:
+  - WhatsApp: 1000-char limit (up from 500), hook line, description paragraph, trust signals (min 400 chars)
+  - Facebook: 8 mandatory sections — hook, intro, specs with benefit notes, condition desc, "Why This Laptop?", trust signals, price/contact, CTA (min 800 chars)
+  - Gumtree: Full classified ad — FOR SALE opener, 4-6 line description, numbered specs, condition section, trust section, seller notes (min 800 chars)
+  - OLX: Quick summary, full specs, battery/condition, "Why This Is a Great Deal", what's included, delivery (min 800 chars)
+- Rewrote system prompt to emphasize LENGTH and DETAIL — "Write like a passionate but honest seller"
+- Added minimum character requirements to the prompt instructions
+- Completely rewrote `buildFallbackAd()` with:
+  - `conditionDesc()` — 3-4 line condition description per condition level
+  - `batteryDesc()` — benefit-focused battery description
+  - `trustSignals()` — extracts trust points from notes (fresh install, warranty, charger, bag, delivery)
+  - Dynamic hook lines based on condition and pricing
+  - "Why This Laptop?" value proposition section
+  - "Trust Signals" section with checkmarks
+  - Persuasive copy throughout, not just data listing
+
+**On-device LLM (`/src/lib/on-device-llm.ts`):**
+- Expanded all 4 platform rules with mandatory sections and minimum lengths
+- Updated system prompt to require "LONG and SUBSTANTIAL" ads
+
+**Offline templates (`/src/lib/local-api.ts`):**
+- Completely rewrote `buildTemplateAd()` with same rich structure:
+  - Specs now use labeled format: `• Processor: Intel Core i7-1270P`
+  - Condition descriptions (3-4 lines per condition)
+  - Battery benefit descriptions
+  - Trust signals extraction from notes
+  - Dynamic hook lines
+  - "Why This Laptop?" / "Why This Is a Great Deal" sections
+  - "Trust Signals" sections
+  - "Why Buy From Me?" section for Gumtree
+  - WhatsApp limit increased to 1000 chars
+
+**Bug fix:** Fixed 6 instances of `'\n"` (wrong closing quote) → `'\n'` in both files
+
+Stage Summary:
+- Ads are now 3-5x longer with full persuasive copy across all platforms
+- Each ad includes: hook line, description, specs with labels, condition description, battery info, value proposition, trust signals, price, contact, and CTA
+- Server AI instructed to produce minimum 800-char bodies (Facebook/Gumtree/OLX) and 400-char (WhatsApp)
+- Fallback templates match the quality of AI-generated ads
+- ESLint clean (0 errors), dev server running normally
