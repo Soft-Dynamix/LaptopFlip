@@ -33,7 +33,11 @@ export class ErrorBoundary extends React.Component<Props, State> {
           <p className="text-sm text-muted-foreground max-w-sm">
             {this.state.error?.message || "An unexpected error occurred."}
           </p>
-          <Button onClick={() => this.setState({ hasError: false, error: null })} variant="outline">
+          <Button onClick={() => {
+            this.setState({ hasError: false, error: null });
+            // Force page reload to reset all state after HMR errors
+            window.location.reload();
+          }} variant="outline">
             <RefreshCw className="size-4" />
             Try Again
           </Button>

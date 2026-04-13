@@ -247,6 +247,7 @@ export function Dashboard() {
     setEditingLaptopId,
     watchlist,
   } = useAppStore();
+  const safeLaptops = Array.isArray(laptops) ? laptops : [];
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const greeting = getGreeting();
@@ -261,9 +262,10 @@ export function Dashboard() {
   const fetchLaptops = useCallback(async () => {
     try {
       const data = await apiFetchLaptops();
-      setLaptops(data);
+      const safeData = Array.isArray(data) ? data : [];
+      setLaptops(safeData);
 
-      const soldItems = data.filter((l: LaptopType) => l.status === "sold");
+      const soldItems = safeData.filter((l: LaptopType) => l.status === "sold");
       const totalProfit = soldItems.reduce((sum: number, l: LaptopType) => {
         const purchase = l.purchasePrice || 0;
         return sum + (l.askingPrice - purchase);
@@ -279,8 +281,8 @@ export function Dashboard() {
           : 0;
 
       const stats = {
-        totalLaptops: data.length,
-        activeListings: data.filter(
+        totalLaptops: safeData.length,
+        activeListings: safeData.filter(
           (l: LaptopType) => l.status === "active"
         ).length,
         sold: soldItems.length,
@@ -313,7 +315,7 @@ export function Dashboard() {
     toast.success("Data refreshed");
   }, [fetchLaptops]);
 
-  const recentLaptops = [...laptops]
+  const recentLaptops = [...safeLaptops]
     .sort(
       (a, b) =>
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
@@ -321,7 +323,7 @@ export function Dashboard() {
     .slice(0, 3);
 
   // Profit insights calculations
-  const soldLaptops = laptops.filter((l: LaptopType) => l.status === "sold");
+  const soldLaptops = safeLaptops.filter((l: LaptopType) => l.status === "sold");
   const bestSeller = soldLaptops.length > 0
     ? soldLaptops.reduce((best: LaptopType, l: LaptopType) => {
         const bestProfit = best.askingPrice - (best.purchasePrice || 0);
@@ -329,7 +331,7 @@ export function Dashboard() {
         return lProfit > bestProfit ? l : best;
       })
     : null;
-  const totalInventoryValue = laptops.reduce(
+  const totalInventoryValue = safeLaptops.reduce(
     (sum: number, l: LaptopType) => sum + l.askingPrice,
     0
   );
@@ -357,7 +359,7 @@ export function Dashboard() {
   };
 
   // Recently sold laptops (last 3)
-  const recentSold = [...laptops]
+  const recentSold = [...safeLaptops]
     .filter((l: LaptopType) => l.status === "sold")
     .sort((a: LaptopType, b: LaptopType) =>
       new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
@@ -625,8 +627,8 @@ export function Dashboard() {
               </div>
             ) : (
               <div className="flex gap-3 overflow-x-auto pb-1 -mx-1 px-1">
-                {watchlist.map((id) => {
-                  const watchedLaptop = laptops.find((l: LaptopType) => l.id === id);
+                {(Array.isArray(watchlist) ? watchlist : []).map((id) => {
+                  const watchedLaptop = safeLaptops.find((l: LaptopType) => l.id === id);
                   if (!watchedLaptop) return null;
                   return (
                     <motion.button
@@ -995,7 +997,7 @@ export function Dashboard() {
                 {recentContacts.length > 0 && (
                   <div className="space-y-1.5">
                     {recentContacts.slice(0, 3).map((contact) => {
-                      const laptop = laptops.find((l) => l.id === contact.laptopId);
+                      const laptop = safeLaptops.find((l) => l.id === contact.laptopId);
                       return (
                         <div key={contact.id} className="flex items-center gap-2 text-sm">
                           <span className="text-xs font-medium truncate flex-1">
