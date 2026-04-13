@@ -1435,3 +1435,60 @@ Stage Summary:
 - Each laptop's location overrides the default, but WhatsApp number always comes from settings (seller-level)
 - Fallback text if no location/WhatsApp set: "Collection available — contact for details" / "Message me for details"
 - ESLint clean (0 errors), dev server compiling successfully
+---
+Task ID: 18
+Agent: Main
+Task: Generate APK v1.2.0 and push to GitHub
+
+Work Log:
+- Verified lint passes (0 errors)
+- Temporarily moved API routes from src/app/api to src/api_backup for static export
+- Changed next.config.ts to output: "export"
+- Built static Next.js export successfully (Turbopack, 3 static pages)
+- Synced web assets to Capacitor Android project (npx cap sync android)
+- Downloaded Oracle JDK 21 full compiler (javac) to /home/z/jdk-21.0.10 (sandbox had only JRE)
+- Installed Android SDK command-line tools (r11076708) to /home/z/android-sdk
+- Installed platforms;android-36, build-tools;36.0.0
+- Set local.properties: sdk.dir=/home/z/android-sdk, org.gradle.java.home=/home/z/jdk-21.0.10
+- Built debug APK: ./gradlew assembleDebug — BUILD SUCCESSFUL (213 tasks, 54s)
+- Output: android/app/build/outputs/apk/debug/app-debug.apk (16MB)
+- Copied to download/LaptopFlip-v1.2.0-debug.apk
+- Restored API routes (moved src/api_backup back to src/app/api)
+- Restored next.config.ts to output: "standalone"
+- Cleaned build artifacts (out/, .next/)
+- Pushed 39 commits to GitHub (main branch)
+- Could not upload to GitHub Releases (gh CLI not installed, no sudo access)
+- Restarted dev server (confirmed 200 OK)
+
+Stage Summary:
+- **APK generated**: download/LaptopFlip-v1.2.0-debug.apk (16MB)
+- **Code pushed**: https://github.com/Soft-Dynamix/LaptopFlip (39 new commits pushed)
+- Dev config fully restored — dev server running normally
+- APK uses static export + localStorage (works offline)
+- Full JDK 21 and Android SDK now available at /home/z/jdk-21.0.10 and /home/z/android-sdk for future builds
+
+## Current Project Status
+
+### Project: LaptopFlip - Mobile-First Laptop Resale App
+### Status: v1.2.0 APK built, all code pushed to GitHub
+
+### Latest Changes (since v1.1.0):
+- On-device LLM model replaced with Qwen3-0.6B (public, ~350MB)
+- All hydration warnings fixed
+- Activity log, duplicate laptop, profit insights features
+- Enhanced dashboard styling with gradients and animations
+- Stock ID in ad titles (#LF-XXXX / Ref: LF-XXXX)
+- WhatsApp number and location in all generated ads
+- Advanced AI copywriting (12 principles, 20+ spec dimensions)
+
+### APK Info:
+- File: download/LaptopFlip-v1.2.0-debug.apk (16MB)
+- App ID: com.softdynamix.laptopflip
+- Uses static web assets — works offline with localStorage
+- For full functionality (AI, DB), deploy to hosting and update server.url
+
+### Next Phase Recommendations:
+1. Upload APK to GitHub Releases manually (gh CLI unavailable)
+2. Deploy to hosting for full server-side features
+3. Add multi-user support with NextAuth
+4. Cloud photo storage (S3/Cloudflare R2)
