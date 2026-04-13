@@ -300,13 +300,13 @@ function buildOnDeviceContext(laptop: Laptop): string {
 // ─── Platform-specific instructions for on-device LLM ──
 
 const ON_DEVICE_PLATFORM_RULES: Record<Platform, string> = {
-  whatsapp: `WHATSAPP FORMAT: Max 1000 chars. Use *bold* and _italic_. TITLE: "#LF-XXXX Brand Model - R X,XXX". Start with a hook question or bold claim. Write a 2-3 line description about the laptop and why it's great. List specs with ▸ markers. Include condition description, price, location, WhatsApp. Add trust signals from notes. End with urgent CTA. 3-5 emojis. MINIMUM 400 chars body.`,
+  whatsapp: `WHATSAPP FORMAT: Max 1000 chars. Use *bold* and _italic_. TITLE: "#LF-XXXX Brand Model - R X,XXX". Start with a hook question or bold claim. Write a 2-3 line description about the laptop and why it's great. List specs with ▸ markers, each with a short benefit note. Include "Perfect for:" line with target audience. Include condition + battery description, price, location, WhatsApp. Add trust signals from notes. End with urgent CTA. 3-5 emojis. MINIMUM 500 chars body.`,
 
-  facebook: `FACEBOOK FORMAT: Full rich listing. TITLE: "#LF-XXXX Brand Model - Condition - R X,XXX". Body MUST include: (1) Hook line, (2) 3-4 line intro about the laptop, (3) Specs list with benefit notes, (4) Condition + battery description, (5) "Why This Laptop?" value section, (6) Trust signals, (7) Price + location + WhatsApp, (8) Urgent CTA. Heavy emoji headers. MINIMUM 800 chars body.`,
+  facebook: `FACEBOOK FORMAT: Full rich listing. TITLE: "#LF-XXXX Brand Model - Condition - R X,XXX". Body MUST include ALL sections: (1) Hook line with 💻🔥 emojis, (2) 3-4 line vivid introduction, (3) 2-3 line condition + battery description, (4) Specs list where EACH spec has a benefit note, (5) Features section ONLY if user provided features, (6) "Why This Laptop?" with 3-4 persuasive lines comparing to retail, (7) "Perfect For" section listing 3-4 target audiences, (8) Trust signals 2-4 points, (9) Price + location + WhatsApp, (10) Urgent 2-line CTA. Heavy emoji headers. MINIMUM 1200 chars body.`,
 
-  gumtree: `GUMTREE FORMAT: Full professional classified. TITLE: "Brand Model - Ref: LF-XXXX - Condition - R X,XXX". Body MUST include: FOR SALE opener, 4-6 line description, full numbered specs list, condition section with honest description, features if provided, trust section, seller notes, price + contact, CTA. MINIMUM 800 chars body.`,
+  gumtree: `GUMTREE FORMAT: Full professional classified. TITLE: "Brand Model - Ref: LF-XXXX - Condition - R X,XXX". Body MUST include: FOR SALE opener, 4-6 line vivid description with physical details, numbered specs list where EACH spec has a benefit note, condition + battery section 3-4 lines, "Who Is This Perfect For?" with 3-4 audiences, features ONLY if user provided, trust section 3-4 lines, seller notes, price + contact, CTA. Use ━━━ dividers. MINIMUM 1200 chars body.`,
 
-  olx: `OLX FORMAT: Full marketplace listing. TITLE: "Brand Model - Ref: LF-XXXX — R X,XXX". Body MUST include: Quick summary (3-4 lines), full specs with notes, battery/condition section, "Why This Is a Great Deal" value section, what's included, location, price, OLX CTA. MINIMUM 800 chars body.`,
+  olx: `OLX FORMAT: Full marketplace listing. TITLE: "Brand Model - Ref: LF-XXXX — R X,XXX". Body MUST include: Quick summary 3-4 punchy lines, full specs where EACH has a benefit note, battery/condition section 3-4 lines, "Why This Is a Great Deal" 3-4 lines comparing to retail, "Ideal For" with 3-4 audiences, what's included ONLY if user provided, location, price, 2-line CTA. MINIMUM 1200 chars body.`,
 };
 
 // ─── Ad generation ──────────────────────────────────────
@@ -350,7 +350,7 @@ function buildLLMPrompt(platform: Platform, laptop: Laptop): string {
 
   // System prompt with /no_think to disable Qwen3 reasoning mode
   const systemContent = `/no_think
-You are a South African marketplace ad copywriter. Write FULL, DETAILED, PERSUASIVE ads using ONLY the laptop data provided. DO NOT guess or add specs. Use Rands, SA spelling. Your ads must be LONG and SUBSTANTIAL with multiple sections. Minimum 800 chars body for Facebook/Gumtree/OLX, 400 for WhatsApp. Write like a passionate honest seller. Respond ONLY with valid JSON: {"title": "ad title", "body": "ad body"}. No explanation.`;
+You are a South African marketplace ad copywriter. Write FULL, DETAILED, PERSUASIVE ads using ONLY the laptop data provided. DO NOT guess or add specs. Use Rands, SA spelling. Your ads must be LONG and SUBSTANTIAL with multiple sections. EACH spec must have a benefit note. Include a "Perfect For" / "Ideal For" target audience section. Minimum 1200 chars body for Facebook/Gumtree/OLX, 500 for WhatsApp. Write like a passionate honest seller. Respond ONLY with valid JSON: {"title": "ad title", "body": "ad body"}. No explanation.`;
 
   const userContent = `Write a ${platform.toUpperCase()} ad for this laptop. USE ONLY THE DATA BELOW — DO NOT GUESS OR ADD ANY SPECS, PORTS, OR FEATURES.\n\n${laptopInfo}\n\n${buildOnDeviceContext(laptop)}\n\n${platformRules}`;
 
@@ -448,9 +448,9 @@ export async function generateAdWithLLM(
 
     if (parsed && parsed.title && parsed.body) {
       let body = parsed.body;
-      // Enforce WhatsApp limit
-      if (platform === "whatsapp" && body.length > 500) {
-        body = body.substring(0, 497) + "...";
+      // Enforce WhatsApp limit (increased to match template)
+      if (platform === "whatsapp" && body.length > 1000) {
+        body = body.substring(0, 997) + "...";
       }
 
       currentStatus = "ready";

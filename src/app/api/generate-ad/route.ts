@@ -10,47 +10,55 @@ const PLATFORM_INSTRUCTIONS: Record<string, string> = {
 - STRICT 1000-character limit for the entire message (title + body combined)
 - Use WhatsApp formatting: *bold* for emphasis, _italic_ for subtitles
 - TITLE must include the Stock ID if available: "#LF-XXXX Brand Model - R X,XXX"
-- Start with a STRONG hook line that grabs attention (question, bold claim, or lifestyle angle)
-- Write a short engaging description paragraph (3-4 lines) about the laptop
-- List key specs on separate lines with emoji markers
-- Include a "Why buy?" one-liner about the deal value
+- Start with a STRONG hook line — a question, bold value claim, or lifestyle angle that stops the scroll
+- Write a 2-3 line introduction about the laptop, its condition, and what makes it worth buying
+- List specs with ▸ markers — include a SHORT benefit after each spec if space allows
+- Include a condition + battery description (1-2 lines)
+- Include "Perfect for:" line listing target audience (e.g., students, professionals, budget buyers)
 - Include a clear price line: *Price: R X,XXX*
 - Include the location and WhatsApp number if provided
-- Close with an urgent CTA: "DM now — won't last long!" or similar
+- Include 1-2 trust signals from notes (fresh install, warranty, charger, etc.)
+- Close with an urgent CTA: "DM me now — this will not last long!" or similar
 - Use 3-5 emojis strategically at line starts
 - Every line must earn its space — no fluff
 - Tone: energetic but honest, like a friend who found a great deal
-- MINIMUM body length: 400 characters — make it substantial`,
+- MINIMUM body length: 500 characters — make it substantial and persuasive`,
 
-  facebook: `Facebook Marketplace ad rules — write a FULL, RICH listing:
+  facebook: `Facebook Marketplace ad rules — write a FULL, RICH, PERSUASIVE listing:
 
 TITLE must include the Stock ID if available: "#LF-XXXX Brand Model - Condition - R X,XXX"
 
 BODY MUST INCLUDE ALL OF THESE SECTIONS (write 2-4 lines per section):
 
-1. HOOK LINE: Open with an attention-grabbing first line (question, bold value claim, or lifestyle benefit). NOT "Selling my laptop" — be creative.
+1. HOOK LINE: Open with an attention-grabbing first line. NOT "Selling my laptop" — be creative. Use 💻🔥 emoji bookends.
 
-2. INTRODUCTION: Write 3-4 lines describing the laptop, its condition, and why it's a great buy. Help the buyer picture owning it.
+2. INTRODUCTION: Write 3-4 vivid lines describing the laptop and its condition. Help the buyer picture owning it. Use emotional, descriptive language. Make it feel like a rare find.
 
-3. ⚡ SPECS THAT IMPRESS:
-List ONLY provided specs, each with a short benefit note. Format:
+3. CONDITION & BATTERY: Write 2-3 detailed lines about the physical condition (be vivid — describe the keyboard feel, screen quality, chassis appearance) and battery health (what it means for daily use).
+
+4. ⚡ SPECS THAT IMPRESS:
+List ONLY provided specs. EACH spec MUST have a benefit note explaining what it MEANS for the buyer:
 ⚡ Specs That Impress:
-• CPU: Intel Core i7-1270P — Fast and responsive for any task
-• RAM: 16GB DDR5 — Multitask without slowing down
-(Add a short benefit after each spec — explain what it MEANS for the buyer)
+• Processor: Intel Core i7-1270P — Powerhouse performance — breeze through heavy workloads and multitasking
+• Memory: 16GB DDR5 — Multitask effortlessly with multiple apps and dozens of browser tabs open
+• Storage: 256GB NVMe SSD — Lightning-fast boot times, instant app launches, and snappy file transfers
+(Add a SPECIFIC benefit after EACH spec — this is mandatory)
 
-4. 🧰 FEATURES / Ports: (ONLY if user provided features — skip if empty)
+5. 🧰 FEATURES & CONNECTIVITY: (ONLY if user provided features — skip section entirely if empty. Do NOT guess or add ports)
 
-5. 💡 WHY THIS LAPTOP?:
-Write 3-4 lines about what makes THIS laptop special. Compare condition value vs new retail price. Mention battery health if Excellent. Frame the price as a smart deal.
+6. 💡 WHY THIS LAPTOP?:
+Write 3-4 persuasive lines about what makes THIS laptop special. Compare condition value vs new retail price. Frame the price as a SMART financial decision. Mention that walking into any shop would cost significantly more.
 
-6. ✅ TRUST SIGNALS:
-Write 2-3 trust points based on provided data (fresh OS install, charger included, condition honesty, transparent about repairs, etc.)
+7. 🎯 PERFECT FOR:
+List 3-4 target audiences based on specs (e.g., "University students needing a reliable study machine", "Professionals working from home", "Budget-conscious buyers looking for value"). Be specific.
 
-7. 📍 Location: [location or omit]
+8. ✅ TRUST SIGNALS:
+List 2-4 trust points from provided data (fresh OS install, charger included, condition honesty, transparent about repairs, no repairs needed, etc.)
+
+9. 📍 Location: [location]
 💵 Price: R[X,XXX]
-📲 WhatsApp: [number or omit]
-🚨 Grab it before it's gone! [urgent CTA]
+📲 WhatsApp: [number]
+🚨 [Urgent CTA — 2 lines, specific and action-oriented]
 
 STYLE RULES:
 - Heavy emoji section headers — this style is emoji-rich
@@ -58,56 +66,43 @@ STYLE RULES:
 - Each section should be SUBSTANTIAL (2-4 lines minimum)
 - Be honest about condition but very enthusiastic about the deal
 - South African context (Rands, SA spelling: colour, programme)
-- MINIMUM body length: 800 characters — this must be a full listing, not a brief`,
+- MINIMUM body length: 1200 characters — this must be a comprehensive listing, not a brief summary
+- Use Facebook *bold* for section headers and key details
+- Write like a passionate but honest human seller, not a robot`,
 
-  gumtree: `Gumtree South Africa classified ad rules — write a FULL professional listing:
+  gumtree: `Gumtree South Africa classified ad rules — write a FULL, PROFESSIONAL, DETAILED listing:
 
 TITLE must include Stock ID: "Brand Model - Ref: LF-XXXX - Condition - R X,XXX"
 
 BODY MUST INCLUDE ALL OF THESE SECTIONS:
 
-1. FOR SALE: opener with brand + model + ONE attention-grabbing sentence
+1. FOR SALE: opener with brand + model + condition + ONE attention-grabbing sentence
 
-2. ABOUT THIS LAPTOP: Write a 4-6 line paragraph describing the laptop in detail. Cover condition honestly, mention battery health, and explain why someone should buy it. Be descriptive and professional.
+2. ABOUT THIS LAPTOP: Write 4-6 vivid lines describing the laptop in detail. Cover condition honestly with descriptive language (keyboard feel, screen quality, chassis appearance). Mention battery health and what it means for daily use. Explain why someone should buy this specific laptop.
 
-3. FULL SPECIFICATIONS: List ALL provided specs in a clean numbered format. Add brief explanations after each spec.
+3. FULL SPECIFICATIONS: List ALL provided specs in a clean numbered format. EACH spec MUST have a brief benefit note:
+1. Processor: Intel Core i5 — Fast and responsive, handles everyday tasks with ease
+2. Memory: 8GB RAM — Solid multitasking, run multiple apps simultaneously
+(This is mandatory — every spec needs a benefit)
 
-4. CONDITION & BATTERY: Write 2-3 honest lines about the physical condition and battery. If Mint/Excellent, explain what that means for the buyer. If repairs done, be transparent.
+4. CONDITION & BATTERY: Write 3-4 honest, descriptive lines about the physical condition and battery. If Mint/Excellent, paint a picture of what the buyer will see and feel. If repairs done, be fully transparent and frame as building trust.
 
-5. FEATURES & CONNECTIVITY: (ONLY user-provided features — skip if empty)
+5. WHO IS THIS LAPTOP PERFECT FOR?: List 3-4 specific target audiences based on the specs and condition (e.g., students, professionals, budget buyers, power users).
 
-6. WHY BUY FROM ME?: Write 2-3 lines building trust. Mention any notes about charger, fresh install, warranty, receipt.
+6. FEATURES & CONNECTIVITY: (ONLY user-provided features — skip section entirely if empty. Do NOT guess ports)
 
-7. SELLER NOTES: Include provided notes naturally.
+7. WHY BUY FROM ME?: Write 3-4 lines building trust. Emphasise honest selling, accurate condition description, willingness to arrange viewing. Mention any notes about charger, fresh install, warranty, receipt.
 
-8. PRICE & CONTACT: Clear price, location, WhatsApp number.
-CTA: "Contact to arrange a viewing — first come, first served."
+8. SELLER NOTES: Include provided notes naturally.
 
-STYLE: Professional but warm. Max 5-6 emojis total. Clean sections with blank lines.
-MINIMUM body length: 800 characters — this must be a comprehensive classified ad`,
+9. PRICE & CONTACT: Clear price, location, WhatsApp number.
+CTA: "Contact me to arrange a viewing. First come, first served. Serious buyers only please — no time wasters."
 
-  olx: `OLX South Africa listing rules — write a FULL marketplace listing:
+STYLE: Professional but warm. Use ━━━ dividers between major sections. Max 5-6 emojis total. Clean sections with blank lines.
+MINIMUM body length: 1200 characters — this must be a comprehensive classified ad`,
 
-TITLE must include price and Stock ID: "Brand Model - Ref: LF-XXXX — R X,XXX"
+  olx: "OLX South Africa listing rules - write a FULL, DETAILED, PERSUASIVE marketplace listing:\n\nTITLE must include price and Stock ID: \"Brand Model - Ref: LF-XXXX - R X,XXX\"\n\nBODY MUST INCLUDE ALL OF THESE SECTIONS:\n\n1. QUICK SUMMARY: Write 3-4 punchy lines that make the buyer WANT to read more. Lead with the biggest selling point. Use vivid language and frame as a rare find or smart buy.\n\n2. FULL SPECIFICATIONS: List ALL provided specs. EACH spec MUST have a benefit note about what it means for the buyer. (This is mandatory - every spec needs a specific benefit)\n\n3. BATTERY & CONDITION: Write 3-4 descriptive lines about condition and battery health. Paint a picture of what the buyer will experience. Be honest but enthusiastic.\n\n4. WHY THIS IS A GREAT DEAL: Write 3-4 persuasive lines justifying the price. Compare to new retail explicitly. Frame as a SMART FINANCIAL DECISION. Mention that buying brand new would cost significantly more.\n\n5. IDEAL FOR: List 3-4 specific target audiences (students, professionals, budget buyers, etc.) based on the specs and condition.\n\n6. WHAT'S INCLUDED: Only list accessories/features the user mentioned. If nothing listed, skip this section.\n\n7. DELIVERY & COLLECTION: Mention location. Add delivery info if in notes.\n\n8. PRICE: Clear price line.\nCTA: \"Message me now for more photos, a video walkthrough, or to arrange a viewing. I reply quickly - no chancers please, serious buyers only.\"\n\nMINIMUM body length: 1200 characters - full listing, not brief. Use Facebook *bold* for section headers.",
 
-BODY MUST INCLUDE ALL OF THESE SECTIONS:
-
-1. 📌 QUICK SUMMARY: Write 3-4 punchy lines that make the buyer WANT to read more. Lead with the biggest selling point.
-
-2. 🖥️ FULL SPECIFICATIONS: List ALL provided specs. Each spec on its own line with a brief note about what it means.
-
-3. 🔋 BATTERY & CONDITION: 3-4 lines about condition and battery health. Be honest and descriptive.
-
-4. 💡 WHY THIS IS A GREAT DEAL: Write 3-4 lines justifying the price. Compare to new retail if relevant. Frame as smart buy.
-
-5. 📦 WHAT'S INCLUDED: Only list accessories/features the user mentioned. If nothing listed, say "Laptop and charger included" if notes suggest it, otherwise skip.
-
-6. 📍 DELIVERY & COLLECTION: Mention location. Add delivery info if in notes.
-
-7. PRICE: Clear price line.
-CTA: OLX-specific closing — "Message me now for more photos or to arrange a viewing. Quick replies guaranteed!"
-
-MINIMUM body length: 800 characters — full listing, not brief`,
 };
 
 // ─── Simple context builder ──────────────────────────────
@@ -242,6 +237,64 @@ Do NOT include explanations, markdown code fences, or any text outside the JSON.
 
 // ─── Fallback ad builder (uses ONLY provided data) ──────
 
+/** Generate a benefit note for a spec */
+function fallbackSpecBenefit(label: string, value: string): string {
+  const v = value.toLowerCase();
+  if (label === 'Processor' || label === 'CPU') {
+    if (v.includes('i7') || v.includes('ryzen 7') || v.includes('ryzen 9')) return 'Powerhouse performance — breeze through heavy workloads and multitasking';
+    if (v.includes('i5') || v.includes('ryzen 5')) return 'Fast and responsive — handles everyday tasks and browsing with ease';
+    if (v.includes('i3') || v.includes('ryzen 3')) return 'Reliable everyday performance — perfect for web, emails, and office work';
+    if (v.includes('m1') || v.includes('m2') || v.includes('m3')) return 'Apple Silicon power — incredible speed and battery efficiency';
+    return 'Reliable processing power for smooth everyday performance';
+  }
+  if (label === 'Memory' || label === 'RAM') {
+    if (v.includes('32') || v.includes('64')) return 'Massive memory — run demanding apps and dozens of tabs without slowdown';
+    if (v.includes('16')) return 'Plenty of memory — multitask effortlessly with multiple apps open';
+    if (v.includes('8')) return 'Solid multitasking — comfortably run multiple apps simultaneously';
+    return 'Smooth multitasking capability';
+  }
+  if (label === 'Storage') {
+    if (v.includes('nvme') || v.includes('ssd')) return 'Lightning-fast boot times, instant app launches, and snappy file transfers';
+    if (v.includes('hdd') || v.includes('hard')) return 'Spacious traditional storage — plenty of room for all your files';
+    return 'Fast and reliable storage';
+  }
+  if (label === 'Graphics' || label === 'GPU') {
+    if (v.includes('rtx') || v.includes('gtx')) return 'Dedicated graphics — smooth gaming and creative work';
+    return 'Integrated graphics — great for everyday tasks and streaming';
+  }
+  if (label === 'Display') {
+    const size = parseFloat(v);
+    if (size >= 15.6) return 'Large, comfortable screen — excellent for productivity and entertainment';
+    if (size >= 14) return 'Great balance of portability and screen real estate';
+    return 'Compact and portable — perfect for working on the go';
+  }
+  return '';
+}
+
+/** Generate target audiences */
+function fallbackAudiences(cpu: string, ram: string, condition: string, price: number): string[] {
+  const a: string[] = [];
+  const c = cpu.toLowerCase();
+  const r = ram.toLowerCase();
+  if (c.includes('i7') || c.includes('ryzen 7') || r.includes('16') || r.includes('32')) {
+    a.push('Power users and developers needing serious performance');
+    a.push('Content creators — video editing, design, and music production');
+  }
+  if (c.includes('i5') || c.includes('ryzen 5') || r.includes('8')) {
+    a.push('Professionals working from home or the office');
+    a.push('University and college students needing a reliable study machine');
+  }
+  if (c.includes('i3') || c.includes('celeron') || r.includes('4')) {
+    a.push('School learners needing a laptop for homework and projects');
+    a.push('Anyone needing a reliable machine for web browsing and streaming');
+  }
+  if (condition === 'Mint' || condition === 'Excellent')
+    a.push('Buyers who want near-new quality without the brand-new price tag');
+  if (price > 0 && price <= 3000)
+    a.push('First-time laptop buyers or anyone on a tight budget');
+  return [...new Set(a)].slice(0, 4);
+}
+
 function buildFallbackAd(
   platform: string,
   laptop: { brand: string; model: string; cpu: string; ram: string; storage: string; gpu: string; screenSize: string; condition: string; batteryHealth: string; askingPrice: number; purchasePrice: number; notes: string; color?: string; year?: number; repairs?: string; location?: string; whatsappNumber?: string; defaultLocation?: string; features?: string; stockId?: string }
@@ -257,6 +310,11 @@ function buildFallbackAd(
     laptop.screenSize && laptop.screenSize.trim() && { label: 'Display', value: `${laptop.screenSize}" screen` },
   ].filter(Boolean) as { label: string; value: string }[];
 
+  const specsWithBenefits = specs.map(s => {
+    const b = fallbackSpecBenefit(s.label, s.value);
+    return b ? `  • ${s.label}: ${s.value} — ${b}` : `  • ${s.label}: ${s.value}`;
+  });
+
   const userFeatures = laptop.features && laptop.features.trim()
     ? laptop.features.split(/[,.\n]+/).map(f => f.trim()).filter(Boolean)
     : [];
@@ -264,14 +322,15 @@ function buildFallbackAd(
   const location = laptop.location || laptop.defaultLocation || '';
   const whatsapp = laptop.whatsappNumber || '';
   const isBelowCost = laptop.purchasePrice && laptop.purchasePrice > laptop.askingPrice;
+  const audiences = fallbackAudiences(laptop.cpu, laptop.ram, laptop.condition, laptop.askingPrice);
 
   // Condition description builder
   function conditionDesc(): string {
     switch (laptop.condition) {
-      case 'Mint': return 'This laptop is in Mint condition — virtually indistinguishable from brand new. No scratches, no marks, keyboard feels crisp, screen is flawless. You are essentially getting a new laptop at a fraction of the retail price.';
-      case 'Excellent': return 'In Excellent condition — barely broken in. May have the tiniest signs of use but looks and performs like new. Battery still holds excellent charge, all ports work perfectly, screen is bright and clear.';
-      case 'Good': return 'In Good condition — well looked after with normal signs of use. Everything works exactly as it should, no functional issues whatsoever. A reliable machine that will serve you well for years.';
-      case 'Fair': return 'In Fair condition — shows some cosmetic wear from regular use but is fully functional. All features work correctly. Priced to reflect the cosmetic wear — mechanically sound and reliable.';
+      case 'Mint': return 'This laptop is in Mint condition — virtually indistinguishable from brand new. The keyboard feels crisp and responsive, the screen is absolutely flawless, and the chassis looks like it just came out the box. No scuffs, no dents, no wear marks. You are genuinely getting a new laptop at a fraction of the retail price.';
+      case 'Excellent': return 'In Excellent condition — barely broken in and lovingly looked after. The screen is bright and crystal-clear, the keyboard and trackpad feel fresh, and the body has only the tiniest signs of use. This laptop looks and performs like new in every meaningful way.';
+      case 'Good': return 'In Good condition — well cared for with only the normal, minor signs of everyday use that you would expect. Everything works exactly as it should: all ports respond, the screen is clear, the battery charges properly. A reliable machine that will serve you well for years.';
+      case 'Fair': return 'In Fair condition — you will notice some cosmetic wear from regular use, but make no mistake: this laptop is fully functional and mechanically sound. Every feature works correctly and it is priced fairly to reflect the cosmetic wear.';
       case 'Poor': return 'In Poor condition — shows significant wear but still works. Ideal for budget buyers, students, or anyone needing a functional laptop without spending big. Priced accordingly for a quick sale.';
       default: return `Condition: ${laptop.condition}`;
     }
@@ -280,8 +339,8 @@ function buildFallbackAd(
   // Battery description
   function batteryDesc(): string {
     const bh = laptop.batteryHealth.toLowerCase();
-    if (bh.includes('excellent')) return `Battery health is Excellent — expect all-day battery life for normal use. No need to carry a charger everywhere you go.`;
-    if (bh.includes('good')) return `Battery health is Good — still holds a solid charge for several hours of use. Perfectly fine for working away from a plug point.`;
+    if (bh.includes('excellent')) return `Battery health is Excellent — you can expect all-day battery life for normal use. Work, study, or browse for hours without hunting for a plug point.`;
+    if (bh.includes('good')) return `Battery health is Good — still holds a solid charge for several hours of continuous use. Perfectly fine for working away from your desk.`;
     if (bh.includes('fair')) return `Battery health is Fair — holds enough charge for a couple of hours. Fine for desk use with occasional portability.`;
     return `Battery: ${laptop.batteryHealth}`;
   }
@@ -294,33 +353,35 @@ function buildFallbackAd(
       if (n.includes('fresh') || n.includes('clean install') || n.includes('factory reset'))
         signals.push('Fresh OS installed — ready to use from day one, no setup hassle');
       if (n.includes('warranty'))
-        signals.push('Still under warranty — buy with peace of mind');
+        signals.push('Still under warranty — buy with complete peace of mind');
       if (n.includes('receipt') || n.includes('proof'))
-        signals.push('Proof of purchase/receipt available');
+        signals.push('Proof of purchase / receipt available');
       if (n.includes('charger') || n.includes('adapter'))
-        signals.push('Original charger/adapter included');
+        signals.push('Original charger / adapter included — just plug in and go');
       if (n.includes('bag') || n.includes('case'))
-        signals.push('Laptop bag/case included as a bonus');
+        signals.push('Free laptop bag / case included as a bonus');
       if (n.includes('delivery') || n.includes('courier'))
-        signals.push('Can arrange delivery/courier — ask for details');
+        signals.push('Can arrange delivery / courier — ask for details');
     }
     if (laptop.condition === 'Mint' || laptop.condition === 'Excellent')
-      signals.push(`${laptop.condition} condition — a genuine saving vs buying brand new`);
+      signals.push(`${laptop.condition} condition — a genuine saving compared to buying brand new`);
+    if (!laptop.repairs)
+      signals.push('No repairs needed — original and fully functional');
     return signals;
   }
 
   const stockRef = laptop.stockId ? `#${laptop.stockId} ` : '';
   const stockRefBody = laptop.stockId ? `#${laptop.stockId}` : '';
+  const signals = trustSignals();
 
   // ─── WHATSAPP ───
   if (platform === "whatsapp") {
     const title = `${stockRef}${name} - ${priceStr}`;
-    const signals = trustSignals();
     const hook = laptop.condition === 'Mint'
-      ? `Looking for a ${name} that looks brand new but doesn't cost brand new?`
+      ? `Looking for a ${name} that looks brand new but does not cost brand new? This is it.`
       : isBelowCost
-        ? `Priced below cost — this ${name} needs to go!`
-        : `Looking for a reliable laptop at a fair price?`;
+        ? `Priced BELOW cost — this ${name} is an absolute steal and needs to go NOW!`
+        : `Need a reliable, well-priced laptop? Look no further than this ${name}.`;
 
     const body = [
       `*${hook}*`,
@@ -330,15 +391,17 @@ function buildFallbackAd(
       ``,
       specs.map(s => `▸ ${s.value}`).join('\n'),
       ``,
-      conditionDesc().split('. ').slice(0, 2).join('. '),
+      conditionDesc().split('. ').slice(0, 3).join('. ') + '.',
+      ``,
+      `*Perfect for:* ${audiences.slice(0, 3).map(a => a.split(' — ')[0]).join(' | ')}`,
       ``,
       `💰 *Price: ${priceStr}*`,
-      isBelowCost ? `🔥 *Priced BELOW cost — urgent sale!*` : '',
+      isBelowCost ? `🔥 *Below cost — urgent sale!*` : '',
       location ? `📍 ${location}` : null,
       whatsapp ? `📲 WhatsApp: ${whatsapp}` : null,
       signals.length > 0 ? `✅ ${signals.slice(0, 2).join(' | ')}` : null,
       ``,
-      `*DM me now — this won't last long!* 🚀`,
+      `*DM me now — this will not last long!* 🚀`,
     ].filter(Boolean).join('\n');
     return { platform, title, body: body.substring(0, 1000), price: laptop.askingPrice };
   }
@@ -346,40 +409,56 @@ function buildFallbackAd(
   // ─── FACEBOOK ───
   if (platform === "facebook") {
     const title = `${stockRef}${name} - ${laptop.condition} - ${priceStr}`;
-    const signals = trustSignals();
 
-    // Hook line
     let hook: string;
-    if (laptop.condition === 'Mint') hook = `Why pay full retail price when this ${name} looks and feels brand new?`;
+    if (laptop.condition === 'Mint') hook = `Why pay full retail when this ${name} looks and feels absolutely brand new?`;
     else if (isBelowCost) hook = `This ${name} is priced BELOW what I paid — my loss is your gain!`;
-    else if (laptop.condition === 'Excellent') hook = `Barely used and priced to sell — this ${name} won't hang around for long.`;
-    else hook = `Looking for a solid, reliable ${name} at a fair price? Here it is.`;
+    else if (laptop.condition === 'Excellent') hook = `Barely used, fully loaded, and priced to sell — this ${name} will not hang around.`;
+    else if (laptop.condition === 'Good') hook = `A solid, reliable ${name} at a fair price — exactly the kind of laptop that sells fast.`;
+    else hook = `Looking for a functional laptop at a great price? This ${name} delivers.`;
 
     const body = [
       `${stockRefBody} 💻🔥 ${name} — ${hook} 🔥💻`,
       ``,
+      laptop.condition === 'Mint'
+        ? `This is one of those rare finds — a laptop in absolutely stunning condition that has been meticulously looked after. Whether you are a student, a professional, or just someone who needs a reliable machine without spending thousands more at a shop, this ${name} ticks every box.`
+        : laptop.condition === 'Excellent'
+          ? `This ${name} has been barely used and it shows. Everything feels fresh — from the crisp keyboard to the bright, clear screen. It is the kind of laptop that makes you wonder why anyone would pay full retail when deals like this exist.`
+          : `This ${name} is a workhorse that has been well looked after and is ready for its next owner. It handles everyday tasks reliably and is priced fairly for what you get. Sometimes the best value is the laptop that simply works, day in and day out.`,
+      ``,
       conditionDesc(),
+      ``,
       batteryDesc(),
-      laptop.repairs ? `\n🔧 Repairs: ${laptop.repairs} — fully functional, transparent about history.` : '',
+      laptop.repairs ? `\n🔧 *Repairs:* ${laptop.repairs} — I believe in full transparency. The laptop has been professionally repaired and is fully functional and reliable.` : '',
       ``,
       `⚡ *Specs That Impress:*`,
-      specs.map(s => `  • ${s.label}: ${s.value}`).join('\n'),
+      ...specsWithBenefits,
       ``,
       userFeatures.length > 0
-        ? [`🧰 *Features / Ports:*`, ...userFeatures.map(f => `  • ${f}`), ''].join('\n')
+        ? [`🧰 *Features & Connectivity:*`, ...userFeatures.map(f => `  • ${f}`), ''].join('\n')
         : '',
       `💡 *Why This Laptop?*`,
-      isBelowCost ? `  Priced BELOW cost — this is a genuine bargain. I need it gone, so you win.` : `  ${laptop.condition} condition at ${priceStr} represents excellent value for money. Compare to retail pricing for the same specs and you'll see the savings.`,
-      specs.length >= 3 ? `  With specs like ${specs[0].value} and ${specs[1].value}, this machine handles everyday tasks with ease.` : '',
+      isBelowCost
+        ? `  Priced BELOW cost — this is a genuine bargain. I need it gone, so you win. You will not find this spec at this price anywhere else.`
+        : `  At ${priceStr}, this ${laptop.condition}-condition ${name} represents outstanding value for money. Walk into any shop and try to find similar specs — you will pay significantly more brand new.`,
+      specs.length >= 3
+        ? `  With specs like ${specs[0].value} and ${specs[1].value}, this machine handles everyday tasks with ease.`
+        : '',
+      `  The ${laptop.condition} condition means you are getting a laptop that works flawlessly without the brand-new price tag.`,
       ``,
-      `✅ *Trust Signals:*`,
-      ...signals.map(s => `  ✔ ${s}`),
+      audiences.length > 0
+        ? [`🎯 *Perfect For:*`, ...audiences.map(a => `  • ${a}`), ''].join('\n')
+        : '',
+      signals.length > 0
+        ? [`✅ *Trust Signals:*`, ...signals.map(s => `  ✔ ${s}`), ''].join('\n')
+        : '',
+      laptop.notes ? `📝 *Seller Notes:* ${laptop.notes}` : '',
       ``,
       location ? `📍 Location: ${location}` : null,
       `💵 Price: ${priceStr}`,
       whatsapp ? `📲 WhatsApp: ${whatsapp}` : null,
       ``,
-      `🚨 *Grab it before it's gone — message me now to arrange a viewing or for more photos!*`,
+      `🚨 *Do not wait on this one — message me now to arrange a viewing or ask for more photos. Deals like this do not last!*`,
     ].filter(Boolean).join('\n');
     return { platform, title, body, price: laptop.askingPrice };
   }
@@ -388,32 +467,45 @@ function buildFallbackAd(
   if (platform === "gumtree") {
     const stockRefTitle = laptop.stockId ? ` - Ref: ${laptop.stockId}` : '';
     const title = `${name}${stockRefTitle} - ${laptop.condition} - ${priceStr}`;
-    const signals = trustSignals();
 
     const body = [
-      `FOR SALE: ${name}`,
+      `FOR SALE: ${name} — ${laptop.condition} Condition`,
       ``,
       conditionDesc(),
+      ``,
       batteryDesc(),
-      laptop.repairs ? `\nRepairs: ${laptop.repairs} — I believe in full transparency. The laptop is fully functional.` : '',
-      ``,
+      laptop.repairs ? `\nRepairs: ${laptop.repairs} — I believe in full transparency. The laptop has been professionally repaired and is fully functional and reliable.` : '',
+      '',
+      `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
       `Full Specifications:`,
-      specs.map((s, i) => `  ${i + 1}. ${s.label}: ${s.value}`).join('\n'),
-      ``,
+      '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
+      specs.map((s, i) => {
+        const b = fallbackSpecBenefit(s.label, s.value);
+        return `  ${i + 1}. ${s.label}: ${s.value}${b ? ` — ${b}` : ''}`;
+      }).join('\n'),
+      '',
       userFeatures.length > 0
-        ? [`Features / Connectivity:`, ...userFeatures.map(f => `  • ${f}`), ''].join('\n')
+        ? [`Features & Connectivity:`, ...userFeatures.map(f => `  • ${f}`), ''].join('\n')
         : '',
+      '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
+      `Who Is This Laptop Perfect For?`,
+      '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
+      ...audiences.map(a => `  • ${a}`),
+      '',
       `Why Buy From Me?`,
-      `  I'm an honest seller — what you see is what you get. ${laptop.condition === 'Mint' ? 'This laptop is in stunning condition.' : 'The condition is accurately described.'} I'm happy to answer any questions and can arrange a viewing at your convenience.`,
+      `  I am an honest, straightforward seller — what you see is what you get. The condition is accurately described and I am happy to answer any questions. I can arrange a viewing at your convenience and you are welcome to test everything before committing.`,
       ...signals.map(s => `  ✔ ${s}`),
       ``,
       laptop.notes ? `Seller Notes: ${laptop.notes}` : '',
-      ``,
-      `Asking Price: ${priceStr}${isBelowCost ? ' — PRICED BELOW COST, urgent sale!' : ''}`,
+      '',
+      `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+      `Price & Contact:`,
+      '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
+      `Asking Price: ${priceStr}${isBelowCost ? ' — PRICED BELOW COST, URGENT SALE!' : ''}`,
       location ? `Location: ${location}` : null,
       whatsapp ? `WhatsApp: ${whatsapp}` : null,
       ``,
-      `Contact to arrange a viewing. First come, first served. Serious buyers only please.`,
+      `Contact me to arrange a viewing. First come, first served. Serious buyers only please — no time wasters.`,
     ].filter(Boolean).join('\n');
     return { platform, title, body, price: laptop.askingPrice };
   }
@@ -421,41 +513,45 @@ function buildFallbackAd(
   // ─── OLX ───
   const stockRefTitle = laptop.stockId ? ` - Ref: ${laptop.stockId}` : '';
   const title = `${name}${stockRefTitle} — ${priceStr}`;
-  const signals = trustSignals();
 
-  // Hook
   let olxHook: string;
-  if (laptop.condition === 'Mint') olxHook = `Don't pay retail — this ${name} is in Mint condition for a fraction of the new price.`;
-  else if (isBelowCost) olxHook = `Priced BELOW cost! This ${name} is an absolute steal.`;
-  else olxHook = `Quality ${name} in ${laptop.condition} condition — well priced and ready to go.`;
+  if (laptop.condition === 'Mint') olxHook = `Do not pay retail — this ${name} is in Mint condition for a fraction of the new price. A rare find.`;
+  else if (isBelowCost) olxHook = `Priced BELOW cost! This ${name} is an absolute steal — my loss is your gain.`;
+  else if (laptop.condition === 'Excellent') olxHook = `Near-new quality at a second-hand price — this ${name} in Excellent condition will sell fast.`;
+  else olxHook = `Quality ${name} in ${laptop.condition} condition — well priced, fully functional, and ready to go.`;
 
   const body = [
     `📌 ${olxHook}`,
     ``,
-    `This ${name} is in ${laptop.condition} condition and has been well looked after. ${laptop.condition === 'Mint' ? 'You would struggle to tell it apart from a brand-new unit.' : 'It works flawlessly and looks great.'}`,
+    `This ${name} has been well looked after and is ready for its next owner. ${laptop.condition === 'Mint' || laptop.condition === 'Excellent' ? 'You would genuinely struggle to tell it apart from a brand-new unit.' : 'It works flawlessly, looks great, and has been fully tested to ensure everything is in working order.'}`,
     ``,
-    `🖥️ Full Specifications:`,
-    specs.map(s => `  • ${s.label}: ${s.value}`).join('\n'),
+    `🖥️ *Full Specifications:*`,
+    ...specsWithBenefits,
     ``,
-    `🔋 Battery & Condition:`,
+    `🔋 *Battery & Condition:*`,
     `  Condition: ${laptop.condition}`,
     `  Battery: ${laptop.batteryHealth}`,
-    batteryDesc(),
-    laptop.repairs ? `\n  Repairs: ${laptop.repairs}` : '',
+    `  ${batteryDesc().charAt(0).toLowerCase() + batteryDesc().slice(1)}`,
+    laptop.repairs ? `\n  Repairs: ${laptop.repairs} — professionally repaired and fully functional` : '',
     ``,
-    `💡 Why This Is a Great Deal:`,
-    isBelowCost ? `  This laptop is priced BELOW what I paid for it. I need a quick sale, so you get a genuine bargain.` : `  At ${priceStr}, this ${laptop.condition}-condition ${name} offers outstanding value. You'd pay significantly more for the same specs brand new.`,
+    `💡 *Why This Is a Great Deal:*`,
+    isBelowCost
+      ? `  This laptop is priced BELOW what I paid for it. I need a quick sale, so you get a genuine bargain. At this price, it will not last long.`
+      : `  At ${priceStr}, this ${laptop.condition}-condition ${name} offers outstanding value. Walk into any retailer and you will pay significantly more for the same specs brand new.`,
     signals.length > 0 ? `  ${signals[0]}` : '',
     ``,
+    audiences.length > 0
+      ? [`🎯 *Ideal For:*`, ...audiences.map(a => `  • ${a}`), ''].join('\n')
+      : '',
     userFeatures.length > 0
-      ? [`📦 What's Included:`, ...userFeatures.map(f => `  • ${f}`), ''].join('\n')
+      ? [`📦 *What Is Included:*`, ...userFeatures.map(f => `  • ${f}`), ''].join('\n')
       : '',
     `📍 ${location || 'Collection available'}`,
     whatsapp ? `📲 WhatsApp: ${whatsapp}` : '',
     ``,
     `💰 Price: ${priceStr}`,
     ``,
-    `Message me now for more photos or to arrange a viewing. Quick replies guaranteed!`,
+    `Message me now for more photos, a video walkthrough, or to arrange a viewing. I reply quickly — no chancers please, serious buyers only.`,
   ].filter(Boolean).join('\n');
   return { platform, title, body, price: laptop.askingPrice };
 }
@@ -478,39 +574,44 @@ function extractJson(text: string): { title: string; body: string } | null {
 
 // ─── System prompt ─────────────────────────────────────
 
-const SYSTEM_PROMPT = `You are a senior marketplace ad copywriter specialising in second-hand electronics in South Africa. You write FULL, DETAILED, PERSUASIVE ads — not brief summaries. Your ads are long enough to properly sell the laptop.
+const SYSTEM_PROMPT = `You are a senior marketplace ad copywriter specialising in second-hand electronics in South Africa. You write FULL, DETAILED, PERSUASIVE, COMPREHENSIVE ads — not brief summaries. Your ads are long, rich, and detailed enough to properly sell the laptop and make the buyer feel confident about their purchase.
 
 YOUR #1 RULE: USE ONLY PROVIDED DATA
 - ONLY include specifications that are explicitly listed in the laptop details.
 - If a spec says "Not specified", DO NOT include it and DO NOT guess what it might be.
 - DO NOT guess, infer, or add ANY ports, features, or specifications that are not listed.
-- If no Features/Ports are provided by the user, skip that section or say "Contact for full specifications".
+- If no Features/Ports are provided by the user, skip that section entirely. Do NOT invent features.
+- Do NOT mix content from "Seller Notes" into the specs section — notes are separate.
 
 YOUR COPYWRITING STYLE:
-- Write like a PASSIONATE but HONEST seller — warm, detailed, and convincing
-- Every section must be SUBSTANTIAL (2-4 lines minimum)
-- Use emotional language: help the buyer IMAGINE owning this laptop
+- Write like a PASSIONATE but HONEST seller — warm, vivid, detailed, and convincing
+- Every section must be SUBSTANTIAL (2-4 lines minimum, most should be 3-4 lines)
+- Use emotional, descriptive language: help the buyer IMAGINE owning this laptop
+- Describe the PHYSICAL EXPERIENCE: keyboard feel, screen brightness, chassis quality
 - Build trust through transparency: mention condition honestly, highlight any repairs as professional
-- Create urgency without desperation
-- Frame the price as a SMART DEAL — compare to retail where relevant
+- Create urgency without desperation — frame as "deals like this don't come around often"
+- Frame the price as a SMART FINANCIAL DECISION — compare to retail explicitly
 - Use South African context: Rands, SA spelling (colour, programme), "DM me", "WhatsApp preferred"
+- Write naturally — make it read like a human seller wrote it, not a robot
 
-YOUR COPYWRITING STRUCTURE:
+YOUR COPYWRITING STRUCTURE (MANDATORY):
 1. HOOK — First line must stop the scroll (question, bold claim, or lifestyle angle)
-2. INTRODUCTION — 3-4 lines describing the laptop and its condition
-3. SPECS — Full list with brief benefit notes after each spec
-4. CONDITION — Honest description with battery health details
-5. WHY BUY — Value proposition, price justification, comparison to retail
-6. TRUST SIGNALS — Transparency, repairs honesty, warranty, fresh install, charger, etc.
-7. PRICE & CONTACT — Clear price, location, WhatsApp
-8. CTA — Urgent but not desperate call to action
+2. INTRODUCTION — 3-4 vivid lines describing the laptop, its condition, and why it is a rare find
+3. CONDITION & BATTERY — 2-3 descriptive lines with physical details and battery implications
+4. SPECS — Full list where EACH spec has a SPECIFIC benefit note (mandatory)
+5. WHY BUY — 3-4 persuasive lines about value, price justification, comparison to retail
+6. TARGET AUDIENCE — 3-4 specific audiences who would benefit from this laptop
+7. TRUST SIGNALS — 2-4 points about transparency, repairs, warranty, fresh install, charger
+8. PRICE & CONTACT — Clear price, location, WhatsApp
+9. CTA — Urgent, specific, action-oriented call to action (2 lines)
 
-MINIMUM LENGTHS:
-- Facebook/Gumtree/OLX body: 800+ characters
-- WhatsApp body: 400+ characters
-- If your ad is shorter than these minimums, it is NOT detailed enough. Add more content.
+MINIMUM LENGTHS (STRICT — your ad WILL be rejected if too short):
+- Facebook/Gumtree/OLX body: 1200+ characters MINIMUM
+- WhatsApp body: 500+ characters MINIMUM
+- If your ad body is shorter than these minimums, it is NOT detailed enough. Go back and add more content to each section.
 
 OUTPUT FORMAT: ALWAYS respond with valid JSON only: { "title": "...", "body": "..." }`;
+
 
 // POST /api/generate-ad
 export async function POST(request: NextRequest) {

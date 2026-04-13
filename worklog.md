@@ -1351,3 +1351,58 @@ Stage Summary:
 - Server AI instructed to produce minimum 800-char bodies (Facebook/Gumtree/OLX) and 400-char (WhatsApp)
 - Fallback templates match the quality of AI-generated ads
 - ESLint clean (0 errors), dev server running normally
+
+---
+Task ID: 18
+Agent: Main
+Task: Make ads longer, richer, and more persuasive across all 3 ad generation layers
+
+Work Log:
+- User showed current Facebook ad output and said "why is the adds so short. Make it nice"
+- Analyzed all 3 ad generation layers: server AI (route.ts), on-device LLM (on-device-llm.ts), offline templates (local-api.ts)
+- Identified key issues: specs listed without benefit notes, no target audience section, thin value propositions, brief condition descriptions, weak hooks
+
+**Offline Templates (local-api.ts) - Major Rewrite:**
+- Added `specBenefit()` function — generates contextual benefit note for each spec based on label and value (CPU tier, RAM size, storage type, GPU tier, display size)
+- Added `targetAudience()` function — generates 3-4 specific target audiences based on specs/condition/price (power users, students, professionals, budget buyers)
+- Rewrote condition descriptions to be much more vivid and descriptive (Mint: 4 sentences with physical details; each condition gets unique descriptive language)
+- Rewrote battery descriptions to explain daily use implications
+- Facebook template: Added 3-4 line introduction paragraphs (condition-specific), spec benefit notes, "Perfect For" audience section, expanded "Why This Laptop?" to 3+ lines, richer trust signals
+- Gumtree template: Added ━━━ visual dividers, "Who Is This Perfect For?" section, expanded "Why Buy From Me?" with 3-4 lines
+- OLX template: Added "Ideal For" audience section, expanded "Why This Is a Great Deal" to 3-4 lines with retail comparison
+- WhatsApp template: Added "Perfect for:" line, longer condition description, target audience summary
+
+**Server AI Prompts (route.ts) - Enhanced:**
+- Increased minimum body length from 800 → 1200 characters (Facebook/Gumtree/OLX), 400 → 500 (WhatsApp)
+- Added mandatory spec benefit note requirement: "EACH spec MUST have a benefit note"
+- Added mandatory target audience section to all platform instructions
+- Enhanced system prompt with physical experience descriptions, emotional language requirements
+- Added "Do NOT mix content from Seller Notes into specs" rule
+- Added mandatory CTA requirement (2 lines, specific and action-oriented)
+- Increased section minimum from 2-4 lines to explicit 3-4 lines for most sections
+- Fixed OLX platform instruction parsing error (replaced backtick template with regular string)
+
+**On-Device LLM (on-device-llm.ts) - Updated:**
+- Expanded all platform rules to be much more detailed and specific
+- Added spec benefit note requirement to system prompt
+- Added "Perfect For" / "Ideal For" audience section requirement
+- Increased minimum lengths to match server prompts (1200/500 chars)
+- Fixed WhatsApp character limit (was 500, now 1000 to match template)
+
+**Fallback Builder (route.ts) - Richer:**
+- Added `fallbackSpecBenefit()` and `fallbackAudiences()` helper functions
+- All 4 platform fallbacks now include spec benefits and target audience sections
+- Condition descriptions expanded with physical detail language
+- Facebook fallback: Added condition-specific introduction paragraphs, 3-line "Why This Laptop?" section
+- Gumtree fallback: Added ━━━ dividers, "Who Is This Perfect For?" section
+- OLX fallback: Added "Ideal For" audience section
+
+Stage Summary:
+- Ads are now significantly longer (1200+ chars vs 800+ before for Facebook/Gumtree/OLX)
+- Each spec has a contextual benefit note explaining what it means for the buyer
+- New "Perfect For" / "Ideal For" section targets specific audiences based on specs
+- Condition descriptions are vivid and descriptive (physical experience language)
+- Value propositions are more persuasive with explicit retail price comparisons
+- Trust signals are richer and more specific
+- All 3 ad generation layers produce consistent, high-quality output
+- ESLint clean (0 errors), dev server running normally
