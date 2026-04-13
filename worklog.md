@@ -1720,3 +1720,99 @@ Stage Summary:
 - When Facebook App is not configured: button shows clear warning and explains setup steps
 - When configured: proper OAuth redirect flow → callback to root page → auto-switches to Settings tab → processes token
 - Manual token entry still works as fallback regardless of Facebook App configuration
+
+---
+Task ID: QA Review + Styling Improvements + New Features
+Agent: Main Coordinator + 3 Sub-Agents
+Task: QA test the app via agent-browser, fix bugs, improve styling, add new features
+
+Work Log:
+- Reviewed worklog.md to understand full project history (15+ tasks, 800+ lines)
+- Ran agent-browser QA across all 5 tabs: Dashboard, Photos, Stock, Settings, Detail View
+- Took screenshots of each tab for VLM analysis
+- Used VLM (glm-4.6v) to analyze each screenshot for visual issues
+- Found NO JS errors, NO console warnings, NO broken functionality
+- VLM identified styling improvements needed: spacing inconsistencies, icon styling, hover effects
+
+Dashboard Improvements (Task 3-a):
+- Added colored left border accents to stat cards (emerald/sky/amber/rose/emerald)
+- Added animated sparkle effect on stat icons (framer-motion scale+rotate)
+- Improved recent listing card hover effects with backdrop accent
+- Added "Copy listing to clipboard" button on each listing card
+- Enhanced empty state with animated laptop illustration + sparkle dots
+- Added pulse animation on "Add Laptop" quick action button
+- Added gradient accent on Profit Insights card
+
+Inventory Improvements (Task 3-b):
+- Added glassmorphism hover effects (lift + glow ring on hover)
+- Added WhatsApp Quick Share button on each inventory card
+- Improved filter chips with gradient backgrounds
+- Added stale listing alerts (amber badge for active laptops >14 days)
+- Improved empty state with context-aware icon (Search when filtering)
+
+Settings Improvements (Task 3-c):
+- Added gradient section dividers between major settings sections
+- Added dashed border + "Needs Setup" badge for unconfigured Facebook section
+- Added animated storage usage bar (localStorage vs 5MB limit)
+- Theme option descriptions now visible on mobile
+
+PhotoGuide Improvements (Task 3-c):
+- Increased section spacing from space-y-6 to space-y-8
+- Added red left border accent on required photo step cards
+- Added gradient backgrounds on pro tip cards (amber-50 to transparent)
+- Enhanced bottom CTA button with stronger shadow
+
+All changes: ESLint clean (0 errors), dev server compiles normally, pushed to GitHub
+
+Stage Summary:
+- QA: All 5 tabs tested, 0 JS errors, all functionality working
+- Styling: 15+ visual improvements across Dashboard, Inventory, Settings, PhotoGuide
+- New Features: WhatsApp Quick Share, Stale Listing Alerts, Copy to Clipboard
+- Code pushed: commit f5e89c4 to GitHub main branch
+
+## Current Project Status
+
+### Project: LaptopFlip - Mobile-First Laptop Resale App
+### Status: v1.3.0 — Feature-rich, polished, all QA passed
+
+### Recently Completed (This Session):
+- Facebook Connect button fix (no longer redirects to dashboard)
+- Dashboard styling: stat card borders, icon animations, hover effects, share button
+- Inventory: WhatsApp Quick Share, stale listing alerts, glassmorphism hover
+- Settings: gradient dividers, storage bar, Facebook setup badge
+- PhotoGuide: better spacing, accent borders, gradient tips
+
+### All Features (15+):
+1. Dashboard with animated stats, profit insights, quick actions, recent/sold listings
+2. Guided Photo Session (12-step wizard)
+3. Inventory with search, filter, sort, CSV export, price adjustment, WhatsApp share
+4. Laptop Detail View with photo gallery, specs, activity log
+5. Laptop Form (multi-step: Photos → Details)
+6. AI Ad Creator (3-tier: Server AI, On-device LLM, Templates)
+7. Ad Preview (4 platforms: Facebook, WhatsApp, Gumtree, OLX)
+8. Facebook Integration (Login, Pages, Groups, Marketplace, Insights)
+9. Buyer Contacts CRM
+10. Activity Log
+11. Duplicate Laptop
+12. Pricing Calculator
+13. Sales Analytics
+14. Notification Center
+15. Dark Mode + Theme Selector
+16. Data Import/Export (JSON)
+
+### Tech Stack:
+- Next.js 16 + TypeScript + Tailwind CSS 4 + shadcn/ui
+- Zustand, Prisma ORM (SQLite), z-ai-web-dev-sdk
+- Framer Motion, NextAuth.js v4, Capacitor
+
+### Unresolved/Risks:
+- Facebook OAuth requires real App ID/Secret (currently placeholder)
+- Photos stored as base64 in SQLite (demo only)
+- On-device LLM model download may be slow on first use
+
+### Next Phase Recommendations:
+1. Deploy to hosting for full server-side features in APK
+2. Add real Facebook App credentials for OAuth testing
+3. Add cloud photo storage (Cloudflare R2)
+4. Implement push notifications for buyer enquiries
+5. Add price comparison with marketplace data
