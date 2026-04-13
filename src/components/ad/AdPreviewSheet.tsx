@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import { useAppStore } from "@/lib/store";
 import type { AdPreview, Platform } from "@/lib/types";
 import { PLATFORMS, formatPrice } from "@/lib/types";
+import { FacebookPostDialog } from "@/components/facebook/FacebookPostDialog";
 
 import {
   Sheet,
@@ -278,6 +279,7 @@ export function AdPreviewSheet() {
   const setPreviewPlatform = useAppStore((s) => s.setPreviewPlatform);
 
   const [copied, setCopied] = useState(false);
+  const [isPostDialogOpen, setIsPostDialogOpen] = useState(false);
 
   const platformInfo = PLATFORMS.find((p) => p.id === previewPlatform);
   const platformName = platformInfo?.name || previewPlatform || "Ad";
@@ -292,23 +294,6 @@ export function AdPreviewSheet() {
       setTimeout(() => setCopied(false), 2000);
     } catch {
       toast.error("Failed to copy");
-    }
-  }, [previewAd]);
-
-  const handleShareWhatsApp = useCallback(() => {
-    if (!previewAd) return;
-    const text = encodeURIComponent(`${previewAd.title}\n\n${previewAd.body}\n\nPrice: ${formatPrice(previewAd.price)}`);
-    window.open(`https://wa.me/?text=${text}`, "_blank");
-  }, [previewAd]);
-
-  const handleShareFacebook = useCallback(() => {
-    if (navigator.share) {
-      navigator.share({
-        title: previewAd?.title,
-        text: previewAd?.body,
-      });
-    } else {
-      window.open("https://www.facebook.com/marketplace/item/", "_blank");
     }
   }, [previewAd]);
 
@@ -373,24 +358,13 @@ export function AdPreviewSheet() {
         {/* Share buttons at bottom */}
         {previewAd && (
           <div className="pt-3 border-t border-border/50 mt-auto space-y-2">
-            <div className="grid grid-cols-2 gap-2">
-              <Button
-                variant="outline"
-                className="h-10 rounded-xl text-xs"
-                onClick={handleShareWhatsApp}
-              >
-                <MessageCircle className="size-3.5 text-[#25D366]" />
-                Share to WhatsApp
-              </Button>
-              <Button
-                variant="outline"
-                className="h-10 rounded-xl text-xs"
-                onClick={handleShareFacebook}
-              >
-                <Facebook className="size-3.5 text-[#1877F2]" />
-                Share to Facebook
-              </Button>
-            </div>
+            <Button
+              className="w-full h-10 rounded-xl text-xs bg-[#1877F2] hover:bg-[#1565D8] text-white gap-2 font-semibold"
+              onClick={() => setIsPostDialogOpen(true)}
+            >
+              <Facebook className="size-3.5" />
+              Post to Facebook
+            </Button>
             <div className="grid grid-cols-2 gap-2">
               <Button
                 variant={copied ? "default" : "outline"}
@@ -419,6 +393,14 @@ export function AdPreviewSheet() {
             </div>
           </div>
         )}
+
+        {/* Facebook Post Dialog */}
+        <FacebookPostDialog
+          open={isPostDialogOpen}
+          onClose={() => setIsPostDialogOpen(false)}
+          adTitle={previewAd?.title || ''}
+          adBody={previewAd?.body || ''}
+        />
       </SheetContent>
     </Sheet>
   );

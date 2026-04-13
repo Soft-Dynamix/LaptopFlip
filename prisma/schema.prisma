@@ -37,16 +37,60 @@ model Laptop {
 }
 
 model Listing {
-  id        String   @id @default(cuid())
-  laptopId  String
-  platform  String   // facebook, whatsapp, gumtree, olx
-  adTitle   String   @default("")
-  adBody    String   @default("")
-  price     Float    @default(0)
-  status    String   @default("draft") // draft, posted, removed
-  postedAt  DateTime?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id              String   @id @default(cuid())
+  laptopId        String
+  platform        String   // facebook, whatsapp, gumtree, olx
+  adTitle         String   @default("")
+  adBody          String   @default("")
+  price           Float    @default(0)
+  status          String   @default("draft") // draft, posted, removed
+  postedAt        DateTime?
+  facebookPostId  String   @default("") // FB post ID for tracking insights
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
-  laptop    Laptop   @relation(fields: [laptopId], references: [id], onDelete: Cascade)
+  laptop          Laptop           @relation(fields: [laptopId], references: [id], onDelete: Cascade)
+  facebookPosts   FacebookPost[]
+}
+
+model FacebookConnection {
+  id              String   @id @default(cuid())
+  accessToken     String   // long-lived user access token
+  tokenExpiresAt  DateTime?
+  facebookUserId  String   // Facebook user ID
+  facebookName    String   @default("")
+  facebookEmail   String   @default("")
+  profilePicUrl   String   @default("")
+  isTokenValid    Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  posts           FacebookPost[]
+}
+
+model FacebookPost {
+  id              String   @id @default(cuid())
+  connectionId    String
+  listingId       String?
+  laptopId        String?
+  targetType      String   // "page", "group", "marketplace", "feed"
+  targetId        String   // page ID, group ID, etc.
+  targetName      String   @default("")
+  facebookPostId  String   @default("") // FB post ID for insights
+  adTitle         String   @default("")
+  status          String   @default("pending") // pending, posted, failed, deleted
+  errorMessage    String   @default("")
+  impressions     Int      @default(0)
+  reach           Int      @default(0)
+  clicks          Int      @default(0)
+  likes           Int      @default(0)
+  comments        Int      @default(0)
+  shares          Int      @default(0)
+  lastInsightsAt  DateTime?
+  postedAt        DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  connection      FacebookConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  listing         Listing?          @relation(fields: [listingId], references: [id], onDelete: SetNull)
 }

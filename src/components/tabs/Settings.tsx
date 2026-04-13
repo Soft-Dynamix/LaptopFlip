@@ -18,6 +18,7 @@ import {
   Globe,
   Upload,
   Lightbulb,
+  Facebook,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { toast } from "sonner";
@@ -46,6 +47,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useAppStore } from "@/lib/store";
 import { CURRENCY_OPTIONS, REGION_OPTIONS } from "@/lib/types";
+import { FacebookIntegration } from "@/components/facebook/FacebookIntegration";
 
 const container = {
   hidden: { opacity: 0 },
@@ -400,6 +402,15 @@ export function Settings() {
             </div>
           </CardContent>
         </Card>
+      </motion.div>
+
+      {/* Facebook Integration */}
+      <motion.div variants={item} className="space-y-3">
+        <h2 className="text-base font-semibold flex items-center gap-2">
+          <Facebook className="size-4 text-[#1877F2]" />
+          Facebook Integration
+        </h2>
+        <FacebookIntegration />
       </motion.div>
 
       {/* Appearance */}
