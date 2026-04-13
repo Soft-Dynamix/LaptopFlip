@@ -16,7 +16,8 @@ const PLATFORM_INSTRUCTIONS: Record<string, string> = {
 - Include a condition + battery description (1-2 lines)
 - Include "Perfect for:" line listing target audience (e.g., students, professionals, budget buyers)
 - Include a clear price line: *Price: R X,XXX*
-- Include the location and WhatsApp number if provided
+- MANDATORY: Always include "📍 Location: [location]" line — NEVER skip this. Use the Location value provided.
+- MANDATORY: Always include "📲 WhatsApp: [number]" line — NEVER skip this. Use the WhatsApp Number provided.
 - Include 1-2 trust signals from notes (fresh install, warranty, charger, etc.)
 - Close with an urgent CTA: "DM me now — this will not last long!" or similar
 - Use 3-5 emojis strategically at line starts
@@ -55,10 +56,16 @@ List 3-4 target audiences based on specs (e.g., "University students needing a r
 8. ✅ TRUST SIGNALS:
 List 2-4 trust points from provided data (fresh OS install, charger included, condition honesty, transparent about repairs, no repairs needed, etc.)
 
-9. 📍 Location: [location]
-💵 Price: R[X,XXX]
-📲 WhatsApp: [number]
-🚨 [Urgent CTA — 2 lines, specific and action-oriented]
+9. 📍 Location & 💵 Price & 📲 WhatsApp — MANDATORY SECTION:
+You MUST include these three lines at the bottom of EVERY ad body, using the exact values provided above:
+📍 Location: [use the Location value provided — NEVER omit this]
+💵 Price: R[X,XXX]  
+📲 WhatsApp: [use the WhatsApp Number provided — NEVER omit this]
+
+If Location is "Not specified", use "Collection available — contact for details".
+If WhatsApp Number is "Not provided", use "Message me for details".
+
+10. 🚨 [Urgent CTA — 2 lines, specific and action-oriented]
 
 STYLE RULES:
 - Heavy emoji section headers — this style is emoji-rich
@@ -95,13 +102,20 @@ BODY MUST INCLUDE ALL OF THESE SECTIONS:
 
 8. SELLER NOTES: Include provided notes naturally.
 
-9. PRICE & CONTACT: Clear price, location, WhatsApp number.
+9. PRICE & CONTACT — MANDATORY:
+You MUST include these in every ad:
+Asking Price: R X,XXX
+Location: [use the Location value — NEVER skip this]
+WhatsApp: [use the WhatsApp Number — NEVER skip this]
+If Location is "Not specified", use "Collection available — contact for details".
+If WhatsApp Number is "Not provided", use "Message for details".
+
 CTA: "Contact me to arrange a viewing. First come, first served. Serious buyers only please — no time wasters."
 
 STYLE: Professional but warm. Use ━━━ dividers between major sections. Max 5-6 emojis total. Clean sections with blank lines.
 MINIMUM body length: 1200 characters — this must be a comprehensive classified ad`,
 
-  olx: "OLX South Africa listing rules - write a FULL, DETAILED, PERSUASIVE marketplace listing:\n\nTITLE must include price and Stock ID: \"Brand Model - Ref: LF-XXXX - R X,XXX\"\n\nBODY MUST INCLUDE ALL OF THESE SECTIONS:\n\n1. QUICK SUMMARY: Write 3-4 punchy lines that make the buyer WANT to read more. Lead with the biggest selling point. Use vivid language and frame as a rare find or smart buy.\n\n2. FULL SPECIFICATIONS: List ALL provided specs. EACH spec MUST have a benefit note about what it means for the buyer. (This is mandatory - every spec needs a specific benefit)\n\n3. BATTERY & CONDITION: Write 3-4 descriptive lines about condition and battery health. Paint a picture of what the buyer will experience. Be honest but enthusiastic.\n\n4. WHY THIS IS A GREAT DEAL: Write 3-4 persuasive lines justifying the price. Compare to new retail explicitly. Frame as a SMART FINANCIAL DECISION. Mention that buying brand new would cost significantly more.\n\n5. IDEAL FOR: List 3-4 specific target audiences (students, professionals, budget buyers, etc.) based on the specs and condition.\n\n6. WHAT'S INCLUDED: Only list accessories/features the user mentioned. If nothing listed, skip this section.\n\n7. DELIVERY & COLLECTION: Mention location. Add delivery info if in notes.\n\n8. PRICE: Clear price line.\nCTA: \"Message me now for more photos, a video walkthrough, or to arrange a viewing. I reply quickly - no chancers please, serious buyers only.\"\n\nMINIMUM body length: 1200 characters - full listing, not brief. Use Facebook *bold* for section headers.",
+  olx: "OLX South Africa listing rules - write a FULL, DETAILED, PERSUASIVE marketplace listing:\n\nTITLE must include price and Stock ID: \"Brand Model - Ref: LF-XXXX - R X,XXX\"\n\nBODY MUST INCLUDE ALL OF THESE SECTIONS:\n\n1. QUICK SUMMARY: Write 3-4 punchy lines that make the buyer WANT to read more. Lead with the biggest selling point. Use vivid language and frame as a rare find or smart buy.\n\n2. FULL SPECIFICATIONS: List ALL provided specs. EACH spec MUST have a benefit note about what it means for the buyer. (This is mandatory - every spec needs a specific benefit)\n\n3. BATTERY & CONDITION: Write 3-4 descriptive lines about condition and battery health. Paint a picture of what the buyer will experience. Be honest but enthusiastic.\n\n4. WHY THIS IS A GREAT DEAL: Write 3-4 persuasive lines justifying the price. Compare to new retail explicitly. Frame as a SMART FINANCIAL DECISION. Mention that buying brand new would cost significantly more.\n\n5. IDEAL FOR: List 3-4 specific target audiences (students, professionals, budget buyers, etc.) based on the specs and condition.\n\n6. WHAT'S INCLUDED: Only list accessories/features the user mentioned. If nothing listed, skip this section.\n\n7. 📍 Location & 📲 WhatsApp & 💵 Price — MANDATORY:\nYou MUST include these three lines in every OLX ad:\n📍 Location: [use the Location value — NEVER skip this]\n📲 WhatsApp: [use the WhatsApp Number — NEVER skip this]\n💰 Price: R[X,XXX]\nIf Location is empty/not specified, use \"Collection available — contact for details\".\nIf WhatsApp Number is empty/not provided, use \"Message me for details\".\n\n8. CTA: \"Message me now for more photos, a video walkthrough, or to arrange a viewing. I reply quickly - no chancers please, serious buyers only.\"\n\nMINIMUM body length: 1200 characters - full listing, not brief. Use Facebook *bold* for section headers.",
 
 };
 
@@ -602,7 +616,13 @@ YOUR COPYWRITING STRUCTURE (MANDATORY):
 5. WHY BUY — 3-4 persuasive lines about value, price justification, comparison to retail
 6. TARGET AUDIENCE — 3-4 specific audiences who would benefit from this laptop
 7. TRUST SIGNALS — 2-4 points about transparency, repairs, warranty, fresh install, charger
-8. PRICE & CONTACT — Clear price, location, WhatsApp
+8. PRICE & CONTACT — MANDATORY IN EVERY AD:
+You MUST include these three lines at the bottom of EVERY ad body regardless of platform:
+- 📍 Location: [use the provided location]
+- 💵 Price: R X,XXX
+- 📲 WhatsApp: [use the provided WhatsApp number]
+NEVER omit these lines. If the value is "Not specified" or "Not provided", use a fallback: "Collection available — contact for details" for location, "Message me for details" for WhatsApp.
+
 9. CTA — Urgent, specific, action-oriented call to action (2 lines)
 
 MINIMUM LENGTHS (STRICT — your ad WILL be rejected if too short):
@@ -617,7 +637,7 @@ OUTPUT FORMAT: ALWAYS respond with valid JSON only: { "title": "...", "body": ".
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { laptopId, platforms } = body;
+    const { laptopId, platforms, whatsappNumber, defaultLocation } = body;
 
     if (!laptopId) {
       return NextResponse.json(
@@ -655,7 +675,7 @@ export async function POST(request: NextRequest) {
     const results: Array<{ platform: string; title: string; body: string; price: number }> = [];
 
     for (const platform of platforms) {
-      const prompt = buildPrompt(platform, laptop);
+      const prompt = buildPrompt(platform, { ...laptop, whatsappNumber: whatsappNumber || laptop.whatsappNumber, defaultLocation: defaultLocation || laptop.location || '' });
 
       const chatBody: CreateChatCompletionBody = {
         model: 'glm-4-flash',
@@ -671,7 +691,7 @@ export async function POST(request: NextRequest) {
 
         const parsed = extractJson(content);
         if (!parsed) {
-          results.push(buildFallbackAd(platform, laptop));
+          results.push(buildFallbackAd(platform, { ...laptop, whatsappNumber: whatsappNumber || laptop.whatsappNumber, defaultLocation: defaultLocation || laptop.location || '' }));
           continue;
         }
 
@@ -689,7 +709,7 @@ export async function POST(request: NextRequest) {
         });
       } catch (llmError) {
         console.error(`Error generating ad for ${platform}:`, llmError);
-        results.push(buildFallbackAd(platform, laptop));
+        results.push(buildFallbackAd(platform, { ...laptop, whatsappNumber: whatsappNumber || laptop.whatsappNumber, defaultLocation: defaultLocation || laptop.location || '' }));
       }
     }
 

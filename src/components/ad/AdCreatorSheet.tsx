@@ -338,6 +338,7 @@ export function AdCreatorSheet() {
   const setIsPreviewOpen = useAppStore((s) => s.setIsPreviewOpen);
   const setPreviewAd = useAppStore((s) => s.setPreviewAd);
   const setPreviewPlatform = useAppStore((s) => s.setPreviewPlatform);
+  const appSettings = useAppStore((s) => s.appSettings);
 
   const [laptop, setLaptop] = useState<Laptop | null>(null);
   // Initialize from actual model state (handles remount when model is already loaded)
@@ -429,7 +430,10 @@ export function AdCreatorSheet() {
       console.log("[AdCreatorSheet] Generating ads for", laptop.brand, laptop.model, "platforms:", selectedPlatforms, "modelReady:", modelReady);
 
       // Pass laptop object directly so local generation doesn't need localStorage lookup
-      const data = await apiGenerateAd(adCreatorLaptopId, selectedPlatforms, laptop);
+      const data = await apiGenerateAd(adCreatorLaptopId, selectedPlatforms, laptop, {
+        whatsappNumber: appSettings?.whatsappNumber,
+        defaultLocation: appSettings?.defaultLocation,
+      });
 
       if (!data || data.length === 0) {
         toast.error("No ads were generated. The laptop data may not be available offline.");

@@ -300,13 +300,13 @@ function buildOnDeviceContext(laptop: Laptop): string {
 // ─── Platform-specific instructions for on-device LLM ──
 
 const ON_DEVICE_PLATFORM_RULES: Record<Platform, string> = {
-  whatsapp: `WHATSAPP FORMAT: Max 1000 chars. Use *bold* and _italic_. TITLE: "#LF-XXXX Brand Model - R X,XXX". Start with a hook question or bold claim. Write a 2-3 line description about the laptop and why it's great. List specs with ▸ markers, each with a short benefit note. Include "Perfect for:" line with target audience. Include condition + battery description, price, location, WhatsApp. Add trust signals from notes. End with urgent CTA. 3-5 emojis. MINIMUM 500 chars body.`,
+  whatsapp: `WHATSAPP FORMAT: Max 1000 chars. Use *bold* and _italic_. TITLE: "#LF-XXXX Brand Model - R X,XXX". Start with a hook question or bold claim. Write a 2-3 line description about the laptop and why it's great. List specs with ▸ markers, each with a short benefit note. Include "Perfect for:" line with target audience. Include condition + battery description, price, location, WhatsApp. Add trust signals from notes. End with urgent CTA. 3-5 emojis. MANDATORY: Always include "📍 Location: [location]" and "📲 WhatsApp: [number]" at the bottom before the CTA. MINIMUM 500 chars body.`,
 
-  facebook: `FACEBOOK FORMAT: Full rich listing. TITLE: "#LF-XXXX Brand Model - Condition - R X,XXX". Body MUST include ALL sections: (1) Hook line with 💻🔥 emojis, (2) 3-4 line vivid introduction, (3) 2-3 line condition + battery description, (4) Specs list where EACH spec has a benefit note, (5) Features section ONLY if user provided features, (6) "Why This Laptop?" with 3-4 persuasive lines comparing to retail, (7) "Perfect For" section listing 3-4 target audiences, (8) Trust signals 2-4 points, (9) Price + location + WhatsApp, (10) Urgent 2-line CTA. Heavy emoji headers. MINIMUM 1200 chars body.`,
+  facebook: `FACEBOOK FORMAT: Full rich listing. TITLE: "#LF-XXXX Brand Model - Condition - R X,XXX". Body MUST include ALL sections: (1) Hook line with 💻🔥 emojis, (2) 3-4 line vivid introduction, (3) 2-3 line condition + battery description, (4) Specs list where EACH spec has a benefit note, (5) Features section ONLY if user provided features, (6) "Why This Laptop?" with 3-4 persuasive lines comparing to retail, (7) "Perfect For" section listing 3-4 target audiences, (8) Trust signals 2-4 points, (9) "📍 Location: [location]" and "📲 WhatsApp: [number]" and "💵 Price: R X,XXX", (10) Urgent 2-line CTA. Heavy emoji headers. MANDATORY: Always include Location, WhatsApp number, and Price at the bottom. MINIMUM 1200 chars body.`,
 
-  gumtree: `GUMTREE FORMAT: Full professional classified. TITLE: "Brand Model - Ref: LF-XXXX - Condition - R X,XXX". Body MUST include: FOR SALE opener, 4-6 line vivid description with physical details, numbered specs list where EACH spec has a benefit note, condition + battery section 3-4 lines, "Who Is This Perfect For?" with 3-4 audiences, features ONLY if user provided, trust section 3-4 lines, seller notes, price + contact, CTA. Use ━━━ dividers. MINIMUM 1200 chars body.`,
+  gumtree: `GUMTREE FORMAT: Full professional classified. TITLE: "Brand Model - Ref: LF-XXXX - Condition - R X,XXX". Body MUST include: FOR SALE opener, 4-6 line vivid description with physical details, numbered specs list where EACH spec has a benefit note, condition + battery section 3-4 lines, "Who Is This Perfect For?" with 3-4 audiences, features ONLY if user provided, trust section 3-4 lines, seller notes, "Price & Contact" section with price + location + WhatsApp number, CTA. Use ━━━ dividers. MANDATORY: Always include location and WhatsApp in the Price & Contact section. MINIMUM 1200 chars body.`,
 
-  olx: `OLX FORMAT: Full marketplace listing. TITLE: "Brand Model - Ref: LF-XXXX — R X,XXX". Body MUST include: Quick summary 3-4 punchy lines, full specs where EACH has a benefit note, battery/condition section 3-4 lines, "Why This Is a Great Deal" 3-4 lines comparing to retail, "Ideal For" with 3-4 audiences, what's included ONLY if user provided, location, price, 2-line CTA. MINIMUM 1200 chars body.`,
+  olx: `OLX FORMAT: Full marketplace listing. TITLE: "Brand Model - Ref: LF-XXXX — R X,XXX". Body MUST include: Quick summary 3-4 punchy lines, full specs where EACH has a benefit note, battery/condition section 3-4 lines, "Why This Is a Great Deal" 3-4 lines comparing to retail, "Ideal For" with 3-4 audiences, what's included ONLY if user provided, "📍 Location: [location]" and "📲 WhatsApp: [number]" and "💰 Price: R X,XXX", 2-line CTA. MANDATORY: Always include Location, WhatsApp number, and Price near the end. MINIMUM 1200 chars body.`,
 };
 
 // ─── Ad generation ──────────────────────────────────────
@@ -323,9 +323,11 @@ function createGenerationTimeout(): Promise<never> {
   );
 }
 
-function buildLLMPrompt(platform: Platform, laptop: Laptop): string {
+function buildLLMPrompt(platform: Platform, laptop: Laptop, adSettings?: { whatsappNumber?: string; defaultLocation?: string }): string {
   const platformRules = ON_DEVICE_PLATFORM_RULES[platform];
   const priceStr = formatPrice(laptop.askingPrice);
+  const location = laptop.location || adSettings?.defaultLocation || '';
+  const whatsapp = adSettings?.whatsappNumber || '';
 
   const specs = [
     laptop.cpu && `CPU: ${laptop.cpu}`,
@@ -346,6 +348,8 @@ function buildLLMPrompt(platform: Platform, laptop: Laptop): string {
     laptop.color ? `Colour: ${laptop.color}` : null,
     laptop.notes ? `Notes: ${laptop.notes}` : null,
     laptop.repairs ? `Repairs: ${laptop.repairs} (be transparent)` : null,
+    location ? `Location: ${location}` : null,
+    whatsapp ? `WhatsApp Number: ${whatsapp}` : null,
   ].filter(Boolean).join("\n");
 
   // System prompt with /no_think to disable Qwen3 reasoning mode
@@ -381,7 +385,8 @@ function extractJsonFromLLM(text: string): { title: string; body: string } | nul
 
 export async function generateAdWithLLM(
   laptop: Laptop,
-  platform: Platform
+  platform: Platform,
+  adSettings?: { whatsappNumber?: string; defaultLocation?: string }
 ): Promise<AdPreview | null> {
   if (!pipeline || currentStatus !== "ready") {
     log("generateAd", "Not ready — skipping", { hasPipeline: !!pipeline, status: currentStatus });
@@ -392,7 +397,7 @@ export async function generateAdWithLLM(
   notifyListeners();
 
   try {
-    const prompt = buildLLMPrompt(platform, laptop);
+    const prompt = buildLLMPrompt(platform, laptop, adSettings);
     log("generateAd", `Generating ad, prompt length: ${prompt.length}`);
 
     // Race the generation against a timeout to prevent infinite hangs

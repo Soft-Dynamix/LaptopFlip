@@ -277,11 +277,14 @@ export async function apiUpdateListing(
  * @param platforms  - Target platforms
  * @param laptopObj  - Optional pre-fetched laptop object. Passed directly to local
  *                     generation to avoid localStorage lookup issues.
+ * @param adSettings - Optional seller settings (whatsappNumber, defaultLocation)
+ *                     to include in generated ads.
  */
 export async function apiGenerateAd(
   laptopId: string,
   platforms: Platform[],
-  laptopObj?: Laptop | null
+  laptopObj?: Laptop | null,
+  adSettings?: { whatsappNumber?: string; defaultLocation?: string }
 ): Promise<AdPreview[]> {
   const serverUp = ensureMode();
   if (serverUp) {
@@ -291,7 +294,7 @@ export async function apiGenerateAd(
       const res = await fetch("/api/generate-ad", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ laptopId, platforms }),
+        body: JSON.stringify({ laptopId, platforms, whatsappNumber: adSettings?.whatsappNumber, defaultLocation: adSettings?.defaultLocation }),
         signal: controller.signal,
       });
       clearTimeout(timeout);
@@ -306,5 +309,5 @@ export async function apiGenerateAd(
     }
     switchToLocalMode();
   }
-  return localGenerateAd(laptopId, platforms, laptopObj);
+  return localGenerateAd(laptopId, platforms, laptopObj, adSettings);
 }

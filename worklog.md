@@ -1406,3 +1406,32 @@ Stage Summary:
 - Trust signals are richer and more specific
 - All 3 ad generation layers produce consistent, high-quality output
 - ESLint clean (0 errors), dev server running normally
+
+---
+Task ID: 18
+Agent: Main
+Task: Add WhatsApp number and location to ALL generated ads
+
+Work Log:
+- **Root Cause Analysis**: The `whatsappNumber` and `defaultLocation` existed in appSettings (Zustand store, persisted to localStorage) but were NEVER passed to any ad generation code. The server-side API route referenced `laptop.whatsappNumber` which doesn't exist in the Prisma schema, and the on-device LLM prompt didn't include location or WhatsApp at all.
+
+- **Fix 1: `src/lib/api.ts`** — `apiGenerateAd()` now accepts 4th parameter `adSettings: { whatsappNumber?, defaultLocation? }` and passes it both in the server POST body and to `localGenerateAd()`.
+
+- **Fix 2: `src/app/api/generate-ad/route.ts`** — Server API now extracts `whatsappNumber` and `defaultLocation` from request body, passes them to `buildPrompt()` and `buildFallbackAd()` via laptop data spread.
+
+- **Fix 3: `src/lib/local-api.ts`** — `localGenerateAd()` and `buildTemplateAd()` now accept `adSettings` parameter. Location resolves: `laptop.location || adSettings?.defaultLocation`. WhatsApp uses: `adSettings?.whatsappNumber`.
+
+- **Fix 4: `src/lib/on-device-llm.ts`** — `buildLLMPrompt()` and `generateAdWithLLM()` now accept `adSettings`. Location and WhatsApp are included in the laptop info section. All 4 platform rules updated with MANDATORY instructions to include "📍 Location:" and "📲 WhatsApp:" lines.
+
+- **Fix 5: `src/components/ad/AdCreatorSheet.tsx`** — Reads `appSettings` from store and passes `{ whatsappNumber, defaultLocation }` to `apiGenerateAd()`.
+
+- **Fix 6: Server-side platform instructions** — All 4 platform prompts (WhatsApp, Facebook, Gumtree, OLX) now have explicit MANDATORY sections for Location, Price, and WhatsApp with fallback text if not provided.
+
+- **Fix 7: System prompt** — Section 8 now reads "PRICE & CONTACT — MANDATORY IN EVERY AD" with explicit instructions to NEVER omit these lines, with fallback text for missing values.
+
+Stage Summary:
+- WhatsApp number and location are now included in ALL generated ads across all 3 ad generation tiers (Server AI, On-device LLM, Templates)
+- Settings flow: User enters WhatsApp number and default location in Settings tab → values persist in localStorage → values are passed to ad generation → ads include 📍 Location and 📲 WhatsApp lines
+- Each laptop's location overrides the default, but WhatsApp number always comes from settings (seller-level)
+- Fallback text if no location/WhatsApp set: "Collection available — contact for details" / "Message me for details"
+- ESLint clean (0 errors), dev server compiling successfully
