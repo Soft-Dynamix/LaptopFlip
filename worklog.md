@@ -1621,3 +1621,31 @@ Stage Summary:
 2. Deploy to hosting for full server-side features
 3. Add multi-user support with NextAuth
 4. Cloud photo storage (S3/Cloudflare R2)
+---
+Task ID: Fix Facebook Connect Button
+Agent: Main
+Task: Fix "Connect to Facebook" button redirecting to main dashboard instead of opening Facebook login
+
+Work Log:
+- Diagnosed root cause: `signIn('facebook', { redirect: false })` in next-auth v4 does NOT reliably prevent redirects in Next.js 16 App Router — it causes a full page navigation
+- Secondary issue: callbackUrl was `/settings?fb_callback=1` but `/settings` doesn't exist as a route (the app is a single-page SPA with client-side tabs), so Next.js falls back to `/` (dashboard)
+- Third issue: Facebook App credentials in `.env` are placeholder values (`your_facebook_app_id_here`), so even if the redirect worked, OAuth would fail
+- Fixed `FacebookIntegration.tsx`:
+  - Replaced `signIn('facebook', { redirect: false })` with `window.location.href` redirect to `/api/auth/signin/facebook?callbackUrl=/?fb_callback=1`
+  - Added `isFacebookAppConfigured` check to detect placeholder credentials
+  - When not configured: shows amber warning message and toast with setup instructions instead of redirecting
+  - Changed button styling to reflect configuration status (muted when not configured)
+  - Removed broken `useEffect` for `fb_callback` (was only running inside Settings component which wouldn't mount after redirect)
+- Fixed `page.tsx`:
+  - Added top-level `useEffect` to detect `?fb_callback=1` query param when user returns from Facebook OAuth
+  - Auto-switches to Settings tab and processes the auth callback
+  - Shows success/error toast with appropriate messages
+  - Cleans URL query params after processing
+- Cleaned up unused imports (UserCircle, Copy, signIn)
+- All changes pass ESLint (0 errors), dev server compiles successfully
+
+Stage Summary:
+- "Connect to Facebook" button no longer redirects to dashboard
+- When Facebook App is not configured: button shows clear warning and explains setup steps
+- When configured: proper OAuth redirect flow → callback to root page → auto-switches to Settings tab → processes token
+- Manual token entry still works as fallback regardless of Facebook App configuration

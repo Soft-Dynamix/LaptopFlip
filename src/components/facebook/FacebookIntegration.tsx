@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { signIn, useSession } from 'next-auth/react';
+import { useSession } from 'next-auth/react';
 import {
   Facebook,
   CheckCircle2,
@@ -16,15 +16,14 @@ import {
   Unplug,
   ExternalLink,
   Shield,
-  Copy,
   Loader2,
   AlertCircle,
   Globe,
-  UserCircle,
   Image as ImageIcon,
   LogIn,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -227,58 +226,37 @@ export function FacebookIntegration() {
     }
   }, [status?.connected, fetchPages, fetchGroups, fetchStats]);
 
-  // NextAuth Facebook Sign-In
-  const handleNextAuthSignIn = async () => {
-    setNextAuthConnecting(true);
-    try {
-      const result = await signIn('facebook', {
-        callbackUrl: `${window.location.origin}/settings?fb_callback=1`,
-        redirect: false,
-      });
+  // Check if Facebook App is properly configured (not placeholder)
+  const isFacebookAppConfigured =
+    typeof window !== 'undefined' &&
+    !!process.env.NEXT_PUBLIC_FACEBOOK_APP_ID &&
+    process.env.NEXT_PUBLIC_FACEBOOK_APP_ID !== 'your_facebook_app_id_here';
 
-      if (result?.error) {
-        toast.error(`Facebook login failed: ${result.error}`);
-      } else {
-        // Sign-in successful — exchange token via our callback
-        const cbRes = await fetch('/api/facebook/auth-callback', { method: 'POST' });
-        if (cbRes.ok) {
-          const cbData = await cbRes.json();
-          toast.success('Facebook account connected!', {
-            description: cbData.connection?.isLongLived
-              ? 'Long-lived token saved (60 days)'
-              : 'Short-lived token saved (1 hour). Configure your Facebook App for longer tokens.',
-          });
-          await fetchStatus();
-        } else {
-          const cbErr = await cbRes.json().catch(() => ({}));
-          toast.error(cbErr.error || 'Token exchange failed');
-        }
-      }
-    } catch (err) {
-      toast.error('Facebook login failed. Please try again.');
-    } finally {
-      setNextAuthConnecting(false);
+  // NextAuth Facebook Sign-In (redirect-based flow)
+  // NOTE: redirect:false doesn't work reliably in Next.js 16 App Router.
+  // We use a full redirect to Facebook OAuth, then handle the callback on return.
+  const handleNextAuthSignIn = () => {
+    if (!isFacebookAppConfigured) {
+      toast.error('Facebook App not configured', {
+        description: 'Set NEXT_PUBLIC_FACEBOOK_APP_ID and FACEBOOK_APP_SECRET in .env to enable OAuth login. Use manual token entry below.',
+        duration: 6000,
+      });
+      return;
     }
+    setNextAuthConnecting(true);
+    // Store that we're expecting a callback so we can restore settings tab
+    try {
+      sessionStorage.setItem('fb_connect_pending', '1');
+    } catch {
+      // sessionStorage may not be available
+    }
+    // Redirect to NextAuth Facebook sign-in — will come back to /?fb_callback=1
+    window.location.href = `/api/auth/signin/facebook?callbackUrl=${encodeURIComponent(window.location.origin + '/?fb_callback=1')}`;
   };
 
-  // Check for callback after redirect
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('fb_callback') === '1') {
-      // Clean URL without triggering navigation
-      window.history.replaceState({}, '', window.location.pathname);
-      // Trigger the auth callback
-      fetch('/api/facebook/auth-callback', { method: 'POST' })
-        .then((res) => res.json())
-        .then((data) => {
-          if (data.success) {
-            toast.success('Facebook account connected!');
-            fetchStatus();
-          }
-        })
-        .catch(() => {});
-    }
-  }, []);
+  // This useEffect has been moved to page.tsx (top-level) since the redirect
+  // lands on the root page (/), not on a /settings route.
+  // See page.tsx → handleFacebookCallback()
 
   // Connect with manual token
   const handleConnect = async () => {
@@ -453,7 +431,12 @@ export function FacebookIntegration() {
                 <Button
                   onClick={handleNextAuthSignIn}
                   disabled={nextAuthConnecting || connecting}
-                  className="w-full h-11 rounded-lg gap-2.5 text-sm font-semibold bg-[#1877F2] hover:bg-[#1565D8] text-white shadow-md shadow-[#1877F2]/20"
+                  className={cn(
+                    'w-full h-11 rounded-lg gap-2.5 text-sm font-semibold shadow-md',
+                    isFacebookAppConfigured
+                      ? 'bg-[#1877F2] hover:bg-[#1565D8] text-white shadow-[#1877F2]/20'
+                      : 'bg-muted text-muted-foreground shadow-none border border-dashed border-muted-foreground/30 cursor-pointer'
+                  )}
                 >
                   {nextAuthConnecting ? (
                     <>
@@ -465,12 +448,20 @@ export function FacebookIntegration() {
                       <svg className="size-5" viewBox="0 0 24 24" fill="currentColor">
                         <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
                       </svg>
-                      Sign in with Facebook
+                      {isFacebookAppConfigured ? 'Sign in with Facebook' : 'Sign in with Facebook'}
                     </>
                   )}
                 </Button>
-                <p className="text-[10px] text-muted-foreground text-center leading-relaxed">
-                  Uses secure OAuth. Your credentials never touch our servers.
+                <p className={cn(
+                  'text-[10px] text-center leading-relaxed',
+                  isFacebookAppConfigured
+                    ? 'text-muted-foreground'
+                    : 'text-amber-600 dark:text-amber-400'
+                )}>
+                  {isFacebookAppConfigured
+                    ? 'Uses secure OAuth. Your credentials never touch our servers.'
+                    : '⚠ Facebook App not configured. Click for setup instructions.'
+                  }
                 </p>
               </div>
 

@@ -11,6 +11,7 @@ import {
   SettingsIcon,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "sonner";
 import { useAppStore } from "@/lib/store";
 import { Dashboard } from "@/components/tabs/Dashboard";
 import { PhotoGuide } from "@/components/tabs/PhotoGuide";
@@ -45,6 +46,37 @@ export default function Home() {
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  // Handle Facebook OAuth callback — user returns from Facebook auth to /?fb_callback=1
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('fb_callback') === '1') {
+      // Clean URL without triggering navigation
+      window.history.replaceState({}, '', window.location.pathname);
+      // Switch to settings tab so user can see the result
+      setActiveTab('settings');
+      // Try to clean up the pending flag
+      try { sessionStorage.removeItem('fb_connect_pending'); } catch { /* ignore */ }
+      // Exchange the short-lived token for a long-lived one via our API
+      fetch('/api/facebook/auth-callback', { method: 'POST' })
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.success) {
+            toast.success('Facebook account connected!', {
+              description: data.connection?.isLongLived
+                ? 'Long-lived token saved (60 days)'
+                : 'Token saved. Configure your Facebook App for longer tokens.',
+              duration: 5000,
+            });
+          } else {
+            toast.error(data.error || 'Facebook connection failed', { duration: 5000 });
+          }
+        })
+        .catch(() => {
+          toast.error('Failed to complete Facebook connection', { duration: 5000 });
+        });
+    }
+  }, [setActiveTab]);
 
   const handleTabClick = useCallback(
     (tabId: string) => {
