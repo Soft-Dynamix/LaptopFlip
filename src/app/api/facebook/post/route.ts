@@ -46,24 +46,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!body.accessToken || typeof body.accessToken !== 'string') {
-      return NextResponse.json(
-        { error: 'accessToken is required (use user token for groups, page token for pages)' },
-        { status: 400 }
-      );
-    }
-
     // Get current connection
     const connection = await db.facebookConnection.findFirst({
       orderBy: { createdAt: 'desc' },
     });
 
-    if (!connection) {
+    if (!connection || !connection.accessToken) {
       return NextResponse.json(
         { error: 'No Facebook connection. Please connect your Facebook account first.' },
         { status: 401 }
       );
     }
+
+    // Use provided accessToken (e.g. page token) or fall back to stored user token
+    const accessToken = typeof body.accessToken === 'string' && body.accessToken
+      ? body.accessToken
+      : connection.accessToken;
 
     // Get laptop info if laptopId provided (for ad title)
     let adTitle = body.adTitle ?? '';
@@ -96,7 +94,7 @@ export async function POST(request: NextRequest) {
     try {
       switch (body.targetType) {
         case 'page':
-          postResult = await postToPage(body.accessToken, body.targetId, {
+          postResult = await postToPage(accessToken, body.targetId, {
             message: body.message,
             link: body.link,
             imageUrls: body.imageUrls,
@@ -104,14 +102,14 @@ export async function POST(request: NextRequest) {
           break;
 
         case 'group':
-          postResult = await postToGroup(body.accessToken, body.targetId, {
+          postResult = await postToGroup(accessToken, body.targetId, {
             message: body.message,
             link: body.link,
           });
           break;
 
         case 'marketplace':
-          postResult = await postToMarketplace(body.accessToken, {
+          postResult = await postToMarketplace(accessToken, {
             title: body.marketplaceTitle ?? adTitle ?? 'Laptop for Sale',
             description: body.message,
             price: body.price ?? 0,

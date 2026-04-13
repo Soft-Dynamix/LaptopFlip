@@ -45,6 +45,7 @@ interface FacebookPage {
   name: string;
   category?: string;
   pictureUrl?: string;
+  accessToken?: string;
 }
 
 interface FacebookGroup {
@@ -100,11 +101,11 @@ export function FacebookPostDialog({
           setIsConnected(statusData.connected);
         }
 
-        // Fetch pages
+        // Fetch pages (response includes access_token per page)
         const pagesRes = await fetch('/api/facebook/pages');
         if (pagesRes.ok) {
           const pagesData = await pagesRes.json();
-          const pagesArr = Array.isArray(pagesData) ? pagesData : [];
+          const pagesArr = Array.isArray(pagesData?.pages) ? pagesData.pages : [];
           setPages(pagesArr);
           if (pagesArr.length > 0 && !selectedPageId) {
             setSelectedPageId(pagesArr[0].id);
@@ -150,10 +151,13 @@ export function FacebookPostDialog({
 
     setPosting(true);
     try {
+      // For pages, use the page's own access token; for groups/marketplace, use the stored user token
+      const selectedPage = pages.find((p) => p.id === selectedPageId);
       const body: Record<string, unknown> = {
         targetType,
         targetId: targetType === 'page' ? selectedPageId : targetType === 'group' ? selectedGroupId : 'marketplace',
         message: adBody,
+        ...(targetType === 'page' && selectedPage?.accessToken ? { accessToken: selectedPage.accessToken } : {}),
         ...(laptopId && { laptopId }),
         ...(listingId && { listingId }),
       };

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { signIn, useSession } from 'next-auth/react';
 import {
   Facebook,
   CheckCircle2,
@@ -21,6 +22,7 @@ import {
   Globe,
   UserCircle,
   Image as ImageIcon,
+  LogIn,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -145,6 +147,8 @@ export function FacebookIntegration() {
   const [groupsLoading, setGroupsLoading] = useState(false);
   const [quickStats, setQuickStats] = useState<FacebookQuickStats | null>(null);
   const [showDisconnectDialog, setShowDisconnectDialog] = useState(false);
+  const [nextAuthConnecting, setNextAuthConnecting] = useState(false);
+  const { data: session } = useSession();
 
   const hasAppId = typeof window !== 'undefined' && !!process.env.NEXT_PUBLIC_FACEBOOK_APP_ID;
 
@@ -222,6 +226,59 @@ export function FacebookIntegration() {
       fetchStats();
     }
   }, [status?.connected, fetchPages, fetchGroups, fetchStats]);
+
+  // NextAuth Facebook Sign-In
+  const handleNextAuthSignIn = async () => {
+    setNextAuthConnecting(true);
+    try {
+      const result = await signIn('facebook', {
+        callbackUrl: `${window.location.origin}/settings?fb_callback=1`,
+        redirect: false,
+      });
+
+      if (result?.error) {
+        toast.error(`Facebook login failed: ${result.error}`);
+      } else {
+        // Sign-in successful — exchange token via our callback
+        const cbRes = await fetch('/api/facebook/auth-callback', { method: 'POST' });
+        if (cbRes.ok) {
+          const cbData = await cbRes.json();
+          toast.success('Facebook account connected!', {
+            description: cbData.connection?.isLongLived
+              ? 'Long-lived token saved (60 days)'
+              : 'Short-lived token saved (1 hour). Configure your Facebook App for longer tokens.',
+          });
+          await fetchStatus();
+        } else {
+          const cbErr = await cbRes.json().catch(() => ({}));
+          toast.error(cbErr.error || 'Token exchange failed');
+        }
+      }
+    } catch (err) {
+      toast.error('Facebook login failed. Please try again.');
+    } finally {
+      setNextAuthConnecting(false);
+    }
+  };
+
+  // Check for callback after redirect
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('fb_callback') === '1') {
+      // Clean URL without triggering navigation
+      window.history.replaceState({}, '', window.location.pathname);
+      // Trigger the auth callback
+      fetch('/api/facebook/auth-callback', { method: 'POST' })
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.success) {
+            toast.success('Facebook account connected!');
+            fetchStatus();
+          }
+        })
+        .catch(() => {});
+    }
+  }, []);
 
   // Connect with manual token
   const handleConnect = async () => {
@@ -380,7 +437,46 @@ export function FacebookIntegration() {
             </div>
 
             <CardContent className="p-4 space-y-4">
-              {/* Manual Token Entry */}
+              {/* Primary: NextAuth Facebook Login */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <LogIn className="size-4 text-muted-foreground" />
+                  <p className="text-sm font-medium">Facebook Login</p>
+                  {session && (
+                    <Badge className="bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 border-0 text-[10px] gap-1">
+                      <CheckCircle2 className="size-3" />
+                      Signed In
+                    </Badge>
+                  )}
+                </div>
+
+                <Button
+                  onClick={handleNextAuthSignIn}
+                  disabled={nextAuthConnecting || connecting}
+                  className="w-full h-11 rounded-lg gap-2.5 text-sm font-semibold bg-[#1877F2] hover:bg-[#1565D8] text-white shadow-md shadow-[#1877F2]/20"
+                >
+                  {nextAuthConnecting ? (
+                    <>
+                      <Loader2 className="size-4 animate-spin" />
+                      Connecting...
+                    </>
+                  ) : (
+                    <>
+                      <svg className="size-5" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
+                      </svg>
+                      Sign in with Facebook
+                    </>
+                  )}
+                </Button>
+                <p className="text-[10px] text-muted-foreground text-center leading-relaxed">
+                  Uses secure OAuth. Your credentials never touch our servers.
+                </p>
+              </div>
+
+              <Separator />
+
+              {/* Manual Token Entry (fallback) */}
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
                   <Shield className="size-4 text-muted-foreground" />
@@ -453,30 +549,6 @@ export function FacebookIntegration() {
                   </CollapsibleContent>
                 </Collapsible>
               </div>
-
-              {/* OAuth Login Button */}
-              {hasAppId && (
-                <>
-                  <Separator />
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <UserCircle className="size-4 text-muted-foreground" />
-                      <p className="text-sm font-medium">Or login with Facebook</p>
-                    </div>
-                    <Button
-                      onClick={handleOAuthConnect}
-                      disabled={connecting}
-                      variant="outline"
-                      className="w-full h-11 rounded-lg gap-2 text-sm border-[#1877F2]/30 text-[#1877F2] hover:bg-[#1877F2]/5"
-                    >
-                      <svg className="size-5" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
-                      </svg>
-                      Continue with Facebook
-                    </Button>
-                  </div>
-                </>
-              )}
             </CardContent>
           </Card>
         </motion.div>

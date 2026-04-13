@@ -1,4 +1,39 @@
 ---
+Task ID: NextAuth Facebook Login + Bug Fix
+Agent: Main
+Task: Fix dev server, fix FacebookPostDialog accessToken bug, add NextAuth.js v4 Facebook Login
+
+Work Log:
+- Fixed dev server (preview not loading): Server background process was dying on shell exit. Created `start-server.sh` daemon script using `nohup` + `disown` to keep process alive.
+- Fixed critical bug in `/api/facebook/post/route.ts`: The API required `accessToken` in the request body but `FacebookPostDialog.tsx` never sent it. Fixed by having the API auto-use the stored `FacebookConnection.accessToken` as default, while still accepting an explicit token (needed for page access tokens).
+- Fixed `FacebookPostDialog.tsx`: Updated `FacebookPage` interface to include `accessToken?`, fixed pages fetch to parse `data.pages` (was parsing raw array), added page access token to POST body when posting to a page.
+- Implemented NextAuth.js v4 Facebook Login:
+  - Created `src/lib/auth.ts` — NextAuth config with Facebook provider, JWT strategy, token/session callbacks to expose `accessToken` to client
+  - Created `src/app/api/auth/[...nextauth]/route.ts` — NextAuth API handler
+  - Created `src/components/AuthProviders.tsx` — Client-side SessionProvider wrapper
+  - Updated `src/app/layout.tsx` — Wrapped app with `<AuthProvider>`
+  - Created `src/app/api/facebook/auth-callback/route.ts` — POST endpoint called after NextAuth sign-in to exchange short-lived token for 60-day long-lived token and store in DB
+  - Updated `FacebookIntegration.tsx` — Added `signIn("facebook")` as primary login method (above manual token entry), added `useSession()` hook, auto-triggers auth-callback after successful sign-in, handles redirect callback with `fb_callback` URL param
+  - Updated `.env` — Added NEXTAUTH_SECRET and NEXTAUTH_URL
+- All code compiles successfully (GET / 200), ESLint clean (0 errors)
+
+Stage Summary:
+- Dev server stable and responding (HTTP 200)
+- Facebook posting bug fixed (accessToken no longer required from client)
+- NextAuth Facebook Login fully integrated:
+  - Primary method: "Sign in with Facebook" OAuth button (secure, no manual tokens)
+  - Fallback: Manual token entry still available
+  - Token exchange: Short-lived → 60-day long-lived token automatically stored
+  - Session persistence via JWT (30-day max age)
+- 5 Facebook features status:
+  1. Facebook Login: NextAuth + manual token fallback (DONE)
+  2. Post to Pages: Graph API with page access tokens (DONE)
+  3. Post to Marketplace: Graph API marketplace listings (DONE)
+  4. Post to Groups: Graph API group feed posts (DONE)
+  5. Ad Performance Tracking: Page Insights API (DONE)
+- User needs: Configure Facebook App ID and App Secret in .env for OAuth to work
+
+---
 Task ID: Facebook Integration (Full Feature Set)
 Agent: Main Coordinator + 2 Sub-Agents
 Task: Build complete Facebook integration with 5 features
