@@ -300,13 +300,13 @@ function buildOnDeviceContext(laptop: Laptop): string {
 // ─── Platform-specific instructions for on-device LLM ──
 
 const ON_DEVICE_PLATFORM_RULES: Record<Platform, string> = {
-  whatsapp: `WHATSAPP FORMAT: Max 500 chars total. Use *bold* and _italic_. Lead with laptop name and condition. Only include specs that are provided. Bold price line. Include location and WhatsApp if provided. One urgent CTA ("DM now"). 2-3 emojis max. Every line must earn its space. DO NOT guess or add any specs.`,
+  whatsapp: `WHATSAPP FORMAT: Max 500 chars total. Use *bold* and _italic_. Lead with laptop name and condition. Only include specs that are provided. Bold price line. Include location and WhatsApp if provided. One urgent CTA ("DM now"). 2-3 emojis max. Every line must earn its space. DO NOT guess or add any specs. If a Stock ID is provided, ALWAYS include "📋 Ref: [Stock ID]" at the end of the ad.`,
 
-  facebook: `FACEBOOK FORMAT: Full listing. Title: brand+model+price. Use emoji headers: Specs, Features, Price. ONLY list specs that are provided — do NOT guess. ONLY list features/ports that the user specified — do NOT infer. Include location and WhatsApp if provided. Close with CTA. Heavy emoji use is fine.`,
+  facebook: `FACEBOOK FORMAT: Full listing. Title: brand+model+price. Use emoji headers: Specs, Features, Price. ONLY list specs that are provided — do NOT guess. ONLY list features/ports that the user specified — do NOT infer. Include location and WhatsApp if provided. Close with CTA. Heavy emoji use is fine. If a Stock ID is provided, ALWAYS include "📋 Ref: [Stock ID]" near the price line.`,
 
-  gumtree: `GUMTREE FORMAT: Professional classified. Title: Brand+Model+Condition+Price. "FOR SALE:" opener. Clean spec list — ONLY provided specs. HONEST condition. ONLY list features the user specified. Price on own line. "Contact to arrange viewing" CTA. Max 3-4 emojis.`,
+  gumtree: `GUMTREE FORMAT: Professional classified. Title: Brand+Model+Condition+Price. "FOR SALE:" opener. Clean spec list — ONLY provided specs. HONEST condition. ONLY list features the user specified. Price on own line. "Contact to arrange viewing" CTA. Max 3-4 emojis. If a Stock ID is provided, ALWAYS include "Ref: [Stock ID]" after the title or at the end.`,
 
-  olx: `OLX FORMAT: Price MUST be in title ("Brand Model - R X,XXX"). Sections with emoji headers. ONLY include specs that are provided. ONLY list features the user specified. Short paragraphs. OLX-specific CTA. Professional tone. No ALL CAPS.`,
+  olx: `OLX FORMAT: Price MUST be in title ("Brand Model - R X,XXX"). Sections with emoji headers. ONLY include specs that are provided. ONLY list features the user specified. Short paragraphs. OLX-specific CTA. Professional tone. No ALL CAPS. If a Stock ID is provided, ALWAYS include "(Ref: [Stock ID])" in the title after the price.`,
 };
 
 // ─── Ad generation ──────────────────────────────────────
@@ -337,6 +337,7 @@ function buildLLMPrompt(platform: Platform, laptop: Laptop): string {
 
   const laptopInfo = [
     `LAPTOP: ${laptop.brand} ${laptop.model}`,
+    laptop.stockId ? `Stock ID: ${laptop.stockId} — MUST include this reference in the ad for cross-platform tracking` : null,
     `Condition: ${laptop.condition}`,
     `Battery: ${laptop.batteryHealth}`,
     `Specs: ${specs || "Contact for specs"}`,

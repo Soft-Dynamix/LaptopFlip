@@ -12,7 +12,7 @@ const PLATFORM_INSTRUCTIONS: Record<string, string> = {
 - Use WhatsApp formatting: *bold* for emphasis, _italic_ for subtitles
 - Open with an attention-grabbing hook using the laptop's name and biggest selling point from the provided data
 - Only include specs that are ACTUALLY provided in the laptop details — DO NOT guess or add any specs
-- If a Stock ID is provided, include it at the end: "📋 Ref: [Stock ID]"
+- If a Stock ID is provided (not N/A), you MUST include it at the end: "📋 Ref: [Stock ID]" — this is MANDATORY for cross-platform reference
 - Include a clear price line: *Price: R X,XXX*
 - Include the location and WhatsApp number if provided
 - Close with ONE urgent CTA: "DM now — won't last long!" or similar
@@ -27,7 +27,7 @@ HEADER FORMAT:
 (Example: #9 💻🔥 Dell Latitude E5570 – Fast & Reliable! 🔥💻)
 - Generate a random ad number (#1-#50)
 - The tagline should be catchy — use the CONDITION and PRICE to create urgency/value (e.g., "Like New!", "Priced to Sell!", "Amazing Deal!")
-- If a Stock ID is provided, include it as: 📋 Ref: [Stock ID] (e.g., 📋 Ref: LF-0042)
+- If a Stock ID is provided (not N/A), you MUST include it near the price section as: 📋 Ref: [Stock ID] (e.g., 📋 Ref: LF-0042) — this is MANDATORY for cross-platform reference
 
 ⚡ Specs That Impress:
 - Header must be exactly: "⚡ Specs That Impress:"
@@ -60,7 +60,7 @@ STYLE RULES:
 - Write a TRADITIONAL classified ad with clear, professional structure
 - TITLE: Brand + Model + Condition + Price (e.g., "Dell XPS 15 - Excellent - R12,500")
 - OPENING: "FOR SALE:" followed by laptop name and a ONE-SENTENCE summary
-- If a Stock ID is provided, include it after the title: "Ref: [Stock ID]"
+- If a Stock ID is provided (not N/A), you MUST include it after the title: "Ref: [Stock ID]" — this is MANDATORY for cross-platform reference
 - SPECIFICATIONS: List ONLY the specs that are provided. Use a clean numbered or bulleted list.
   - If a spec says "Not specified", DO NOT include it in the listing
   - DO NOT guess, infer, or add any specifications that are not explicitly given
@@ -75,7 +75,7 @@ STYLE RULES:
 
   olx: `OLX South Africa listing rules:
 - TITLE must ALWAYS include the price: "Brand Model — R X,XXX"
-- If a Stock ID is provided, include it in the title: "Brand Model — R X,XXX (Ref: [Stock ID])"
+- If a Stock ID is provided (not N/A), you MUST include it in the title: "Brand Model — R X,XXX (Ref: [Stock ID])" — this is MANDATORY for cross-platform reference
 - Write a WELL-STRUCTURED listing with clear headings:
   📌 Quick Summary (2-3 lines that make the buyer WANT to read more)
   🖥️ Specifications (list ONLY the specs that are provided — DO NOT guess or add any)
@@ -169,14 +169,18 @@ function buildPrompt(platform: string, laptop: {
   location?: string;
   whatsappNumber?: string;
   defaultLocation?: string;
+  stockId?: string;
 }): string {
   const platformGuide = PLATFORM_INSTRUCTIONS[platform] || PLATFORM_INSTRUCTIONS.facebook;
   const context = buildContext(laptop);
+  const stockLine = laptop.stockId
+    ? `Stock ID: ${laptop.stockId} — you MUST include "📋 Ref: ${laptop.stockId}" in the ad body for cross-platform tracking so buyers can find the same laptop across Facebook, WhatsApp, Gumtree, and OLX`
+    : 'Stock ID: N/A (no stock reference for this laptop)';
 
   return `Generate a ${platform.toUpperCase()} marketplace ad for this laptop being sold in South Africa.
 
 ━━━ LAPTOP DETAILS (USE ONLY THESE — DO NOT GUESS OR ADD ANYTHING) ━━━
-Stock ID: ${laptop.stockId || 'N/A'}${laptop.stockId ? ' — include this reference number in the ad so buyers can cross-reference across platforms' : ''}
+${stockLine}
 Brand: ${laptop.brand}
 Model: ${laptop.model}
 CPU: ${laptop.cpu || 'Not specified'}
