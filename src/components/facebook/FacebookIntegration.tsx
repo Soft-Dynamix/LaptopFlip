@@ -133,7 +133,7 @@ const TOKEN_STEPS = [
 
 // ─── Component ────────────────────────────────────
 
-export function FacebookIntegration() {
+export function FacebookIntegration({ onConnectedChange }: { onConnectedChange?: (connected: boolean) => void }) {
   const [status, setStatus] = useState<FacebookConnectionStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [tokenInput, setTokenInput] = useState('');
@@ -167,6 +167,13 @@ export function FacebookIntegration() {
       setLoading(false);
     }
   }, []);
+
+  // Notify parent of connection status changes
+  useEffect(() => {
+    if (onConnectedChange && !loading) {
+      onConnectedChange(status?.connected ?? false);
+    }
+  }, [status?.connected, loading, onConnectedChange]);
 
   useEffect(() => {
     fetchStatus();
@@ -345,6 +352,7 @@ export function FacebookIntegration() {
       if (res.ok) {
         toast.success('Facebook account disconnected');
         setStatus({ connected: false });
+        if (onConnectedChange) onConnectedChange(false);
         setPages([]);
         setGroups([]);
         setQuickStats(null);

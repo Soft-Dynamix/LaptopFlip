@@ -74,6 +74,8 @@ export function Settings() {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const [clearingData, setClearingData] = useState(false);
+  const [facebookConnected, setFacebookConnected] = useState(false);
+  const [storagePercent, setStoragePercent] = useState(0);
   const laptops = useAppStore((s) => s.laptops);
   const setLaptops = useAppStore((s) => s.setLaptops);
   const appSettings = useAppStore((s) => s.appSettings);
@@ -198,6 +200,16 @@ export function Settings() {
   const totalStorage = typeof window !== "undefined"
     ? new Blob(Object.values(localStorage)).size
     : 0;
+  const maxStorage = 5 * 1024 * 1024; // 5MB typical localStorage limit
+
+  // Animate storage percentage on mount
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const pct = Math.min((totalStorage / maxStorage) * 100, 100);
+      const timer = setTimeout(() => setStoragePercent(pct), 300);
+      return () => clearTimeout(timer);
+    }
+  }, [totalStorage]);
 
   const themeOptions = [
     {
@@ -296,6 +308,9 @@ export function Settings() {
           <div className="h-0.5 bg-gradient-to-r from-amber-300 via-amber-400 to-amber-300 dark:from-amber-600 dark:via-amber-500 dark:to-amber-600 opacity-50" />
         </Card>
       </motion.div>
+
+      {/* Section Separator */}
+      <div className="h-px bg-gradient-to-r from-transparent via-emerald-300 dark:via-emerald-600 to-transparent opacity-40" />
 
       {/* Marketplace Settings */}
       <motion.div variants={item} className="space-y-3">
@@ -404,14 +419,31 @@ export function Settings() {
         </Card>
       </motion.div>
 
+      {/* Section Separator */}
+      <div className="h-px bg-gradient-to-r from-transparent via-emerald-300 dark:via-emerald-600 to-transparent opacity-40" />
+
       {/* Facebook Integration */}
       <motion.div variants={item} className="space-y-3">
         <h2 className="text-base font-semibold flex items-center gap-2">
           <Facebook className="size-4 text-[#1877F2]" />
           Facebook Integration
+          {!facebookConnected && (
+            <Badge className="text-[10px] bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800">
+              Needs Setup
+            </Badge>
+          )}
         </h2>
-        <FacebookIntegration />
+        {!facebookConnected ? (
+          <div className="rounded-xl border-2 border-dashed border-amber-300 dark:border-amber-700 bg-amber-50/30 dark:bg-amber-950/10 p-1">
+            <FacebookIntegration onConnectedChange={setFacebookConnected} />
+          </div>
+        ) : (
+          <FacebookIntegration onConnectedChange={setFacebookConnected} />
+        )}
       </motion.div>
+
+      {/* Section Separator */}
+      <div className="h-px bg-gradient-to-r from-transparent via-emerald-300 dark:via-emerald-600 to-transparent opacity-40" />
 
       {/* Appearance */}
       <motion.div variants={item} className="space-y-3">
@@ -444,6 +476,11 @@ export function Settings() {
                     >
                       {opt.label}
                     </span>
+                    <span
+                      className={`text-[10px] leading-tight transition-colors duration-200 ${isActive ? "text-emerald-600/70 dark:text-emerald-400/70" : "text-muted-foreground/60"}`}
+                    >
+                      {opt.desc}
+                    </span>
                     {isActive && (
                       <motion.div
                         layoutId="themeCheck"
@@ -465,6 +502,9 @@ export function Settings() {
         </Card>
       </motion.div>
 
+      {/* Section Separator */}
+      <div className="h-px bg-gradient-to-r from-transparent via-emerald-300 dark:via-emerald-600 to-transparent opacity-40" />
+
       {/* Data Management */}
       <motion.div variants={item} className="space-y-3">
         <h2 className="text-base font-semibold flex items-center gap-2">
@@ -481,11 +521,20 @@ export function Settings() {
                 <div className="size-9 rounded-lg bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center">
                   <HardDrive className="size-4 text-amber-600 dark:text-amber-400" />
                 </div>
-                <div>
+                <div className="flex-1">
                   <p className="text-sm font-medium">Local Storage</p>
                   <p className="text-xs text-muted-foreground">
                     {(totalStorage / 1024).toFixed(1)} KB used
                   </p>
+                  {/* Storage usage bar */}
+                  <div className="mt-1.5 h-1.5 w-full rounded-full bg-muted overflow-hidden">
+                    <motion.div
+                      className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-amber-400"
+                      initial={{ width: 0 }}
+                      animate={{ width: `${storagePercent}%` }}
+                      transition={{ duration: 0.8, ease: "easeOut", delay: 0.2 }}
+                    />
+                  </div>
                 </div>
               </div>
               <Badge variant="secondary" className="text-[10px]">
@@ -584,6 +633,9 @@ export function Settings() {
           </CardContent>
         </Card>
       </motion.div>
+
+      {/* Section Separator */}
+      <div className="h-px bg-gradient-to-r from-transparent via-emerald-300 dark:via-emerald-600 to-transparent opacity-40" />
 
       {/* About */}
       <motion.div variants={item} className="space-y-3">

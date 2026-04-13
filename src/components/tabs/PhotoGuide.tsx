@@ -91,7 +91,7 @@ export function PhotoGuide() {
   const optionalSteps = photoSteps.filter((s) => !s.required);
 
   return (
-    <div className="space-y-6 p-4 pb-8">
+    <div className="space-y-8 p-4 pb-8">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
@@ -235,7 +235,7 @@ export function PhotoGuide() {
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.25 + index * 0.05 }}
-              className="flex items-start gap-3 p-3 rounded-xl border bg-card"
+              className="flex items-start gap-3 p-3 rounded-xl border border-l-[3px] border-l-red-400 bg-card"
             >
               <span className="text-xl shrink-0">{step.icon}</span>
               <div className="min-w-0 flex-1">
@@ -308,7 +308,7 @@ export function PhotoGuide() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.35 + index * 0.05 }}
             >
-              <Card className="rounded-xl">
+              <Card className="rounded-xl bg-gradient-to-br from-amber-50 to-transparent dark:from-amber-950/20 dark:to-transparent">
                 <CardContent className="p-3 space-y-2">
                   <div className="flex items-center gap-2">
                     <span className="text-base">{section.icon}</span>
@@ -383,7 +383,7 @@ export function PhotoGuide() {
           <Button
             onClick={handleStartAdding}
             size="lg"
-            className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-xl h-14 text-base font-bold gap-2 shadow-lg shadow-emerald-600/25 hover:shadow-xl hover:shadow-emerald-600/30 transition-all duration-200"
+            className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-xl h-14 text-base font-bold gap-2 shadow-lg shadow-emerald-600/30 hover:shadow-2xl hover:shadow-emerald-600/40 transition-all duration-200"
           >
             <Sparkles className="size-5" />
             Start Adding a Laptop

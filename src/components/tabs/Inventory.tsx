@@ -18,6 +18,8 @@ import {
   Plus,
   Minus,
   Hash,
+  MessageCircle,
+  PackageSearch,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
@@ -158,6 +160,17 @@ function abbreviateCpu(cpu: string): string {
   return cpu.length > 20 ? cpu.substring(0, 18) + "..." : cpu;
 }
 
+function getDaysListed(dateString: string): number {
+  const now = new Date();
+  const created = new Date(dateString);
+  return Math.max(0, Math.floor((now.getTime() - created.getTime()) / (1000 * 60 * 60 * 24)));
+}
+
+function handleWhatsAppShare(laptop: LaptopType) {
+  const text = `*${laptop.brand} ${laptop.model}*\n${laptop.cpu ? laptop.cpu + " · " : ""}${laptop.ram} · ${laptop.storage}\nCondition: ${laptop.condition}\nPrice: R${laptop.askingPrice.toLocaleString()}\n\nReply if interested!`;
+  window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+}
+
 // ─── Status Summary Bar ─────────────────────────────────────
 
 function StatusSummaryBar({ laptops }: { laptops: LaptopType[] }) {
@@ -171,10 +184,10 @@ function StatusSummaryBar({ laptops }: { laptops: LaptopType[] }) {
   }, [laptops]);
 
   const bars = [
-    { key: "active", label: "Active", color: "bg-emerald-500" },
-    { key: "sold", label: "Sold", color: "bg-blue-500" },
-    { key: "draft", label: "Draft", color: "bg-gray-400" },
-    { key: "archived", label: "Archived", color: "bg-slate-400" },
+    { key: "active", label: "Active", color: "bg-emerald-500", gradient: "bg-gradient-to-br from-emerald-50 to-emerald-100/80 dark:from-emerald-900/30 dark:to-emerald-800/20" },
+    { key: "sold", label: "Sold", color: "bg-blue-500", gradient: "bg-gradient-to-br from-blue-50 to-blue-100/80 dark:from-blue-900/30 dark:to-blue-800/20" },
+    { key: "draft", label: "Draft", color: "bg-gray-400", gradient: "bg-gradient-to-br from-gray-50 to-gray-100/80 dark:from-gray-900/30 dark:to-gray-800/20" },
+    { key: "archived", label: "Archived", color: "bg-slate-400", gradient: "bg-gradient-to-br from-slate-50 to-slate-100/80 dark:from-slate-900/30 dark:to-slate-800/20" },
   ];
 
   return (
@@ -182,7 +195,7 @@ function StatusSummaryBar({ laptops }: { laptops: LaptopType[] }) {
       {bars.map((bar) => {
         const pct = counts.all > 0 ? Math.round((counts[bar.key] / counts.all) * 100) : 0;
         return (
-          <div key={bar.key} className="rounded-xl bg-muted/50 dark:bg-muted/30 p-2.5 space-y-1.5">
+          <div key={bar.key} className={`rounded-xl ${bar.gradient} p-2.5 space-y-1.5`}>
             <div className="flex items-center justify-between">
               <span className="text-[10px] text-muted-foreground font-medium">{bar.label}</span>
               <span className="text-xs font-bold">{counts[bar.key]}</span>
@@ -646,7 +659,7 @@ export function Inventory() {
             onClick={() => setFilterStatus(chip.value)}
             className={`rounded-full text-xs shrink-0 ${
               filterStatus === chip.value
-                ? "bg-emerald-600 hover:bg-emerald-700 text-white"
+                ? "bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-600 hover:to-emerald-800 text-white shadow-sm"
                 : ""
             }`}
           >
@@ -668,17 +681,41 @@ export function Inventory() {
             >
               <Card className="rounded-xl border-dashed border-2 border-muted py-12">
                 <CardContent className="flex flex-col items-center gap-3 text-center p-6">
-                  <div className="rounded-full bg-muted p-4">
-                    <Laptop className="size-8 text-muted-foreground" />
-                  </div>
-                  <div className="space-y-1">
-                    <p className="font-medium text-sm">No laptops found</p>
-                    <p className="text-xs text-muted-foreground">
-                      {searchQuery || filterStatus !== "all"
-                        ? "Try adjusting your search or filters"
-                        : "Add your first laptop to get started"}
-                    </p>
-                  </div>
+                  {searchQuery || filterStatus !== "all" ? (
+                    <>
+                      <div className="relative rounded-full bg-amber-50 dark:bg-amber-900/20 p-5">
+                        <Search className="size-8 text-amber-500 dark:text-amber-400" />
+                        <div className="absolute -bottom-1 -right-1 rounded-full bg-white dark:bg-gray-900 p-1.5 shadow-sm">
+                          <PackageSearch className="size-4 text-amber-600 dark:text-amber-300" />
+                        </div>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="font-medium text-sm">No laptops match your search</p>
+                        <p className="text-xs text-muted-foreground">
+                          {searchQuery && filterStatus !== "all"
+                            ? `No results for "${searchQuery}" in ${filterStatus} items`
+                            : searchQuery
+                              ? `No results for "${searchQuery}"`
+                              : `No ${filterStatus} laptops found`}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground mt-2">
+                          Try different keywords or clear filters
+                        </p>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="rounded-full bg-muted p-4">
+                        <Laptop className="size-8 text-muted-foreground" />
+                      </div>
+                      <div className="space-y-1">
+                        <p className="font-medium text-sm">No laptops found</p>
+                        <p className="text-xs text-muted-foreground">
+                          Add your first laptop to get started
+                        </p>
+                      </div>
+                    </>
+                  )}
                 </CardContent>
               </Card>
             </motion.div>
@@ -705,7 +742,7 @@ export function Inventory() {
                 layout
               >
                 <Card
-                  className={`rounded-xl py-0 shadow-sm overflow-hidden cursor-pointer border-l-[3px] ${getConditionBorderColor(laptop.condition)} hover:shadow-lg hover:scale-[1.01] active:scale-[0.99] transition-all duration-200`}
+                  className={`rounded-xl py-0 shadow-sm overflow-hidden cursor-pointer border-l-[3px] ${getConditionBorderColor(laptop.condition)} hover:shadow-xl hover:shadow-emerald-500/10 hover:scale-[1.01] active:scale-[0.99] transition-all duration-300 ease-out hover:-translate-y-0.5 hover:border-emerald-300/60 dark:hover:border-emerald-700/60 hover:bg-white/80 dark:hover:bg-gray-800/80 hover:ring-1 hover:ring-emerald-200/40 dark:hover:ring-emerald-800/40`}
                   onClick={() => handleViewDetail(laptop)}
                 >
                   <CardContent className="p-0">
@@ -762,6 +799,14 @@ export function Inventory() {
                           >
                             {laptop.status}
                           </Badge>
+                          {laptop.status === "active" && getDaysListed(laptop.createdAt) > 14 && (
+                            <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-amber-700 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/40 px-1.5 py-0 rounded-full border border-amber-200 dark:border-amber-800">
+                              <span>⚠</span>
+                              {getDaysListed(laptop.createdAt) >= 30
+                                ? `${Math.floor(getDaysListed(laptop.createdAt) / 7)}w+`
+                                : `${getDaysListed(laptop.createdAt)}d+`}
+                            </span>
+                          )}
                           <span className="text-[10px] text-muted-foreground">
                             {formatDaysAgo(laptop.createdAt)}
                           </span>
@@ -771,6 +816,13 @@ export function Inventory() {
                       {/* Price & Actions */}
                       <div className="flex flex-col items-end justify-between shrink-0 py-0.5">
                         <div className="flex items-center gap-0.5" onClick={(e) => e.stopPropagation()}>
+                          <button
+                            onClick={() => handleWhatsAppShare(laptop)}
+                            className="size-6 rounded-md bg-green-100 dark:bg-green-900/40 hover:bg-green-200 dark:hover:bg-green-800/60 flex items-center justify-center text-green-600 dark:text-green-400 transition-colors"
+                            aria-label="Share on WhatsApp"
+                          >
+                            <MessageCircle className="size-3" />
+                          </button>
                           <button
                             onClick={() => handleQuickPrice(laptop, -500)}
                             className="size-6 rounded-md bg-muted/80 hover:bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"

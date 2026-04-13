@@ -11,7 +11,6 @@ import {
   Plus,
   Camera,
   Sparkles,
-  PackageOpen,
   RefreshCw,
   ArrowRight,
   Trophy,
@@ -19,6 +18,7 @@ import {
   Wallet,
   Users,
   Hash,
+  Share2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
@@ -101,6 +101,7 @@ const statCards = [
     icon: Laptop,
     accent: "text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800",
     iconColor: "text-emerald-600 dark:text-emerald-400",
+    borderLeft: "border-l-emerald-500",
   },
   {
     key: "activeListings" as const,
@@ -108,6 +109,7 @@ const statCards = [
     icon: Eye,
     accent: "text-sky-600 dark:text-sky-400 bg-sky-50 dark:bg-sky-950/30 border-sky-200 dark:border-sky-800",
     iconColor: "text-sky-600 dark:text-sky-400",
+    borderLeft: "border-l-sky-500",
   },
   {
     key: "sold" as const,
@@ -115,6 +117,7 @@ const statCards = [
     icon: CheckCircle2,
     accent: "text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800",
     iconColor: "text-amber-600 dark:text-amber-400",
+    borderLeft: "border-l-amber-500",
   },
   {
     key: "totalRevenue" as const,
@@ -122,6 +125,7 @@ const statCards = [
     icon: DollarSign,
     accent: "text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/30 border-rose-200 dark:border-rose-800",
     iconColor: "text-rose-600 dark:text-rose-400",
+    borderLeft: "border-l-rose-500",
   },
   {
     key: "totalProfit" as const,
@@ -129,6 +133,7 @@ const statCards = [
     icon: TrendingUp,
     accent: "text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800",
     iconColor: "text-emerald-600 dark:text-emerald-400",
+    borderLeft: "border-l-emerald-500",
   },
 ];
 
@@ -333,6 +338,19 @@ export function Dashboard() {
     }
   };
 
+  const handleShareListing = async (laptop: LaptopType) => {
+    const specs = [laptop.cpu, laptop.ram, laptop.storage, laptop.gpu]
+      .filter(Boolean)
+      .join(", ");
+    const text = `${laptop.brand} ${laptop.model}\nPrice: ${formatPrice(laptop.askingPrice)}\nSpecs: ${specs}\nCondition: ${laptop.condition}`;
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success("Copied to clipboard!");
+    } catch {
+      toast.error("Failed to copy");
+    }
+  };
+
   // Recently sold laptops (last 3)
   const recentSold = [...laptops]
     .filter((l: LaptopType) => l.status === "sold")
@@ -411,7 +429,7 @@ export function Dashboard() {
         transition={{ duration: 0.3, delay: 0.1 }}
         className="grid grid-cols-2 gap-3"
       >
-        {statCards.map((stat) => {
+        {statCards.map((stat, index) => {
           const Icon = stat.icon;
           const isPrice = stat.key === "totalRevenue" || stat.key === "totalProfit";
           const value = isPrice
@@ -421,7 +439,7 @@ export function Dashboard() {
           return (
             <Card
               key={stat.key}
-              className="gap-0 py-4 px-4 rounded-xl border shadow-sm relative overflow-hidden"
+              className={`gap-0 py-4 px-4 rounded-xl border border-l-4 ${stat.borderLeft} shadow-sm relative overflow-hidden`}
             >
               {/* Subtle gradient overlay */}
               <div className="absolute inset-0 bg-gradient-to-br from-transparent to-muted/30 pointer-events-none" />
@@ -433,11 +451,13 @@ export function Dashboard() {
                     </p>
                     <p className="text-2xl font-bold tracking-tight">{value}</p>
                   </div>
-                  <div
+                  <motion.div
                     className={`rounded-lg border p-2 ${stat.accent}`}
+                    animate={{ scale: [1, 1.15, 1], rotate: [0, 8, -8, 0] }}
+                    transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut", delay: index * 0.5, repeatDelay: 3 }}
                   >
                     <Icon className={`size-4 ${stat.iconColor}`} />
-                  </div>
+                  </motion.div>
                 </div>
               </CardContent>
               {/* Animated shimmer gradient accent */}
@@ -475,8 +495,17 @@ export function Dashboard() {
                 onClick={() => handleQuickAction(action.action)}
                 className={`flex flex-col items-center justify-center gap-1.5 p-4 rounded-xl bg-gradient-to-br ${action.gradient} text-white shadow-lg ${action.shadow} active:shadow-md transition-shadow duration-200`}
               >
-                <div className="size-10 rounded-full bg-white/20 flex items-center justify-center">
-                  <Icon className="size-5" />
+                <div className="relative">
+                  <div className="size-10 rounded-full bg-white/20 flex items-center justify-center">
+                    <Icon className="size-5" />
+                  </div>
+                  {action.action === "add" && (
+                    <motion.div
+                      className="absolute inset-0 rounded-full border-2 border-white/40"
+                      animate={{ scale: [1, 1.5], opacity: [0.6, 0] }}
+                      transition={{ duration: 1.5, repeat: Infinity, ease: "easeOut" }}
+                    />
+                  )}
                 </div>
                 <div className="text-center">
                   <span className="text-xs font-semibold block">{action.label}</span>
@@ -499,8 +528,10 @@ export function Dashboard() {
           <TrendingUp className="size-4 text-emerald-600 dark:text-emerald-400" />
           Profit Insights
         </h2>
-        <Card className="rounded-xl border shadow-sm overflow-hidden">
-          <CardContent className="p-4 space-y-3">
+        <Card className="rounded-xl border shadow-sm overflow-hidden relative">
+          {/* Gradient left border accent */}
+          <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-emerald-400 via-teal-500 to-emerald-600 dark:from-emerald-600 dark:via-teal-700 dark:to-emerald-800 rounded-l-xl" />
+          <CardContent className="p-4 pl-5 space-y-3">
             {/* Best Seller */}
             <div className="flex items-center gap-3">
               <div className="size-9 rounded-lg bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center shrink-0">
@@ -586,34 +617,56 @@ export function Dashboard() {
         </div>
 
         {recentLaptops.length === 0 ? (
-          <Card className="rounded-xl border-dashed border-2 border-muted py-10">
-            <CardContent className="flex flex-col items-center gap-3 text-center p-6">
+          <Card className="rounded-xl border-dashed border-2 border-muted py-10 overflow-hidden">
+            <CardContent className="flex flex-col items-center gap-4 text-center p-6 relative">
+              {/* Decorative gradient backdrop */}
+              <div className="absolute -top-8 left-1/2 -translate-x-1/2 size-32 rounded-full bg-gradient-to-br from-emerald-100 to-teal-100 dark:from-emerald-950/50 dark:to-teal-950/50 blur-2xl pointer-events-none" />
+              {/* Animated floating laptop icon */}
               <motion.div
-                animate={{ scale: [1, 1.12, 1], opacity: [1, 0.6, 1] }}
-                transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
-                className="rounded-full bg-emerald-50 dark:bg-emerald-950/30 p-4"
+                animate={{ y: [0, -8, 0] }}
+                transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                className="relative"
               >
-                <PackageOpen className="size-8 text-emerald-600 dark:text-emerald-400" />
+                <div className="size-20 rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center shadow-lg shadow-emerald-600/30">
+                  <Laptop className="size-10 text-white" />
+                </div>
+                {/* Sparkle dots around laptop */}
+                <motion.div
+                  className="absolute -top-1 -right-1 size-3 rounded-full bg-amber-400"
+                  animate={{ scale: [1, 1.4, 1], opacity: [0.7, 1, 0.7] }}
+                  transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut", delay: 0.3 }}
+                />
+                <motion.div
+                  className="absolute -bottom-1 -left-1 size-2.5 rounded-full bg-sky-400"
+                  animate={{ scale: [1, 1.5, 1], opacity: [0.6, 1, 0.6] }}
+                  transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut", delay: 0.8 }}
+                />
+                <motion.div
+                  className="absolute top-1/2 -right-3 size-2 rounded-full bg-rose-400"
+                  animate={{ scale: [1, 1.6, 1], opacity: [0.5, 1, 0.5] }}
+                  transition={{ duration: 2, repeat: Infinity, ease: "easeInOut", delay: 1.2 }}
+                />
               </motion.div>
-              <div className="space-y-1">
-                <p className="font-medium text-sm">No laptops yet</p>
-                <p className="text-xs text-muted-foreground">
-                  Start by adding your first laptop to get flipping!
+              <div className="space-y-1.5 relative">
+                <p className="font-bold text-lg">No laptops yet</p>
+                <p className="text-sm text-muted-foreground max-w-[220px]">
+                  Add your first laptop and start tracking your resale profits!
                 </p>
               </div>
               <motion.div
                 animate={{ scale: [1, 1.05, 1] }}
                 transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                className="relative"
               >
                 <Button
                   onClick={() => {
                     useAppStore.getState().setEditingLaptopId(null);
                     setIsFormOpen(true);
                   }}
-                  size="sm"
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl"
+                  size="lg"
+                  className="bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white rounded-xl px-6 shadow-lg shadow-emerald-600/30 font-semibold"
                 >
-                  <Plus className="size-4" />
+                  <Plus className="size-5 mr-1.5" />
                   Add Your First Laptop
                 </Button>
               </motion.div>
@@ -629,7 +682,7 @@ export function Dashboard() {
                 transition={{ duration: 0.2, delay: index * 0.05 }}
               >
                 <Card
-                  className={`rounded-xl py-3 shadow-md hover:shadow-lg transition-all duration-200 cursor-pointer border-l-[3px] ${getConditionBorderColor(laptop.condition)}`}
+                  className={`rounded-xl py-4 shadow-md hover:shadow-lg hover:bg-accent/40 dark:hover:bg-accent/20 transition-all duration-200 cursor-pointer border-l-[3px] ${getConditionBorderColor(laptop.condition)}`}
                   onClick={() => {
                     useAppStore.getState().setSelectedLaptop(laptop);
                     useAppStore.getState().setIsDetailOpen(true);
@@ -696,6 +749,16 @@ export function Dashboard() {
                           className="text-xs font-medium text-emerald-600 dark:text-emerald-400 hover:underline ml-1"
                         >
                           View
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            void handleShareListing(laptop);
+                          }}
+                          className="size-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 transition-colors ml-0.5"
+                          aria-label="Copy listing to clipboard"
+                        >
+                          <Share2 className="size-3.5" />
                         </button>
                       </div>
                     </div>

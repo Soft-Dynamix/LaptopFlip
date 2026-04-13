@@ -1,4 +1,52 @@
 ---
+Task ID: 3-b
+Agent: Inventory Agent
+Task: Improve Inventory styling and add WhatsApp Quick Share + Stale Alerts
+
+Work Log:
+- Improved inventory card hover effect: enhanced shadow (shadow-xl with emerald-500/10), added hover:-translate-y-0.5 lift, extended transition duration to 300ms with ease-out, added ring-1 emerald glow on hover, stronger border color transition (emerald-300/60 and emerald-700/60 dark), elevated background opacity (white/80, gray-800/80 dark)
+- Updated filter chip active gradient from `from-emerald-500 to-emerald-700` to `from-emerald-600 to-emerald-700` per spec
+- Fixed empty state: replaced SearchX icon with Search icon when search/filter is active, keeping PackageSearch badge overlay
+- Updated `handleWhatsAppShare` function to use null-safe cpu handling (`laptop.cpu ? laptop.cpu + " · " : ""`) matching the provided spec exactly
+- Updated stale listing badge (14d+) for active listings: changed from "Xd+ listed" / "Xw+ listed" format to simpler "Xd+" / "Xw+" format, made badge rounded-full for pill shape
+- Removed unused `SearchX` import from lucide-react to maintain clean imports
+- ESLint clean (0 errors), dev server running normally
+
+Stage Summary:
+- Inventory cards have a more polished hover effect with subtle lift, emerald glow ring, and deeper shadow
+- Filter chips use tighter gradient range (emerald-600→700) for a more refined active state
+- Empty state search view uses Search icon instead of SearchX when filters are active
+- WhatsApp share function handles missing CPU field gracefully
+- Stale listing alerts show compact "15d+" / "3w+" amber pill badges on active laptops older than 14 days
+- All existing functionality preserved, zero lint errors
+
+---
+Task ID: 3-a
+Agent: Styling Agent
+Task: Improve Dashboard styling
+
+Work Log:
+- Added `Share2` icon import from lucide-react; removed unused `PackageOpen` import
+- Added `borderLeft` property to all 5 stat card configs (emerald, sky, amber, rose, emerald)
+- Added `border-l-4` with per-card accent color to stat card Card className
+- Wrapped stat card icon containers in `motion.div` with staggered scale+rotate sparkle animation (2.5s cycle, 0.5s stagger, 3s repeatDelay)
+- Added ripple pulse ring animation on the Quick Actions "Add Laptop" button using `motion.div` with scale/opacity animation
+- Added gradient left border accent to Profit Insights card (emerald→teal→emerald gradient, 1px wide, absolutely positioned)
+- Increased Recent Listings card touch target (py-3 → py-4) and added hover background effect (`hover:bg-accent/40 dark:hover:bg-accent/20`)
+- Added Share2 clipboard button next to View button in Recent Listings cards; copies brand, model, price, specs, and condition to clipboard with toast feedback
+- Redesigned Empty State: replaced PackageOpen icon with large animated floating Laptop icon in gradient box, added 3 sparkle dots (amber, sky, rose) with staggered pulse animations, decorative gradient backdrop blur, bolder heading and description, larger CTA button with gradient + shadow
+- All changes use Tailwind CSS classes only + framer-motion for animations
+- ESLint clean (0 errors) after all changes
+
+Stage Summary:
+- Stat cards now have colored left border accents and subtle sparkle animations on icons
+- Quick Actions Add button has a pulsing ring effect to draw attention
+- Profit Insights card has a gradient left border accent
+- Recent Listings cards have hover backgrounds, larger touch targets, and a share-to-clipboard button
+- Empty state is visually enhanced with animated laptop illustration, sparkle dots, and bolder CTA
+- All existing functionality preserved, no TypeScript or import errors
+
+---
 Task ID: NextAuth Facebook Login + Bug Fix
 Agent: Main
 Task: Fix dev server, fix FacebookPostDialog accessToken bug, add NextAuth.js v4 Facebook Login
@@ -768,6 +816,29 @@ Stage Summary:
 5. Price trend analytics with charts
 
 ---
+Task ID: 3-c
+Agent: Settings Agent
+Task: Improve Settings and PhotoGuide styling
+
+Work Log:
+- **Settings.tsx — Section Separators**: Added gradient divider lines (transparent → emerald-300 → transparent, opacity-40) between all 5 major sections (App Tips → Marketplace → Facebook → Appearance → Data Management → About)
+- **Settings.tsx — Facebook Integration Section**: Added `facebookConnected` state tracked via `onConnectedChange` callback prop on `FacebookIntegration`. When not connected, the section wraps in a dashed amber border card with a "Needs Setup" badge in the header
+- **Settings.tsx — Storage Usage Bar**: Added animated storage percentage bar (emerald→amber gradient) below the "Local Storage" text in Data Management section. Uses framer-motion `motion.div` with ease-out transition (0.8s duration). Calculates percentage against 5MB localStorage limit
+- **Settings.tsx — Theme Descriptions**: Added the `desc` field text below each theme option label in the theme selector, visible on all screen sizes with subtle muted colors
+- **FacebookIntegration.tsx**: Added optional `onConnectedChange` prop and a `useEffect` that watches `status?.connected` to notify parent. Also added explicit callback on disconnect
+- **PhotoGuide.tsx — Section Spacing**: Increased main container spacing from `space-y-6` to `space-y-8` for better visual breathing room
+- **PhotoGuide.tsx — Required Photos Accent**: Added `border-l-[3px] border-l-red-400` left border accent to each required photo step card
+- **PhotoGuide.tsx — Pro Tips Gradient**: Added `bg-gradient-to-br from-amber-50 to-transparent dark:from-amber-950/20 dark:to-transparent` gradient background to each pro tip card
+- **PhotoGuide.tsx — Bottom CTA Shadow**: Enhanced bottom CTA button shadow from `shadow-lg shadow-emerald-600/25` to `shadow-lg shadow-emerald-600/30` with `hover:shadow-2xl hover:shadow-emerald-600/40` for a more prominent gradient shadow
+- ESLint passes with 0 errors
+
+Stage Summary:
+- Settings page now has 5 elegant gradient section separators between major sections
+- Facebook Integration section visually distinguishes "needs setup" state with dashed amber border and badge
+- Data Management section features an animated storage usage bar
+- Theme selector now shows descriptions below each option
+- Photo Guide has increased spacing, red left-border accents on required photos, amber gradient on pro tips, and enhanced CTA shadow
+- All existing functionality preserved, no TypeScript or lint errors
 Task ID: 17
 Agent: Main + FullStack SubAgent
 Task: Fix on-device model access, improve styling, add features
