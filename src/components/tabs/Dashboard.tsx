@@ -20,6 +20,10 @@ import {
   Hash,
   Share2,
   Heart,
+  Activity,
+  ArrowUpDown,
+  Trash2,
+  CircleDot,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
@@ -206,6 +210,67 @@ function DashboardSkeleton() {
   );
 }
 
+// ─── Relative Time Helper ─────────────────────────
+function formatRelativeTime(dateString: string): string {
+  const now = Date.now();
+  const then = new Date(dateString).getTime();
+  const diffMs = now - then;
+  const diffSec = Math.floor(diffMs / 1000);
+  const diffMin = Math.floor(diffSec / 60);
+  const diffHr = Math.floor(diffMin / 60);
+  const diffDay = Math.floor(diffHr / 24);
+  const diffWeek = Math.floor(diffDay / 7);
+
+  if (diffSec < 10) return "just now";
+  if (diffSec < 60) return `${diffSec}s ago`;
+  if (diffMin < 60) return `${diffMin}m ago`;
+  if (diffHr < 24) return `${diffHr}h ago`;
+  if (diffDay < 7) return `${diffDay}d ago`;
+  return `${diffWeek}w ago`;
+}
+
+// ─── Activity Action Config ─────────────────────────
+function getActivityActionConfig(action: string) {
+  switch (action) {
+    case "price_update":
+      return {
+        icon: ArrowUpDown,
+        bgColor: "bg-amber-100 dark:bg-amber-900/40",
+        iconColor: "text-amber-600 dark:text-amber-400",
+      };
+    case "status_change":
+      return {
+        icon: RefreshCw,
+        bgColor: "bg-blue-100 dark:bg-blue-900/40",
+        iconColor: "text-blue-600 dark:text-blue-400",
+      };
+    case "created":
+      return {
+        icon: Plus,
+        bgColor: "bg-emerald-100 dark:bg-emerald-900/40",
+        iconColor: "text-emerald-600 dark:text-emerald-400",
+      };
+    case "deleted":
+      return {
+        icon: Trash2,
+        bgColor: "bg-red-100 dark:bg-red-900/40",
+        iconColor: "text-red-600 dark:text-red-400",
+      };
+    case "ad_created":
+      return {
+        icon: Sparkles,
+        bgColor: "bg-purple-100 dark:bg-purple-900/40",
+        iconColor: "text-purple-600 dark:text-purple-400",
+      };
+    default:
+      return {
+        icon: CircleDot,
+        bgColor: "bg-gray-100 dark:bg-gray-800",
+        iconColor: "text-gray-500 dark:text-gray-400",
+      };
+  }
+}
+
 const quickActions = [
   {
     label: "Add Laptop",
@@ -246,6 +311,7 @@ export function Dashboard() {
     setIsDetailOpen,
     setEditingLaptopId,
     watchlist,
+    activityLogs,
   } = useAppStore();
   const safeLaptops = Array.isArray(laptops) ? laptops : [];
   const [loading, setLoading] = useState(true);
@@ -395,7 +461,21 @@ export function Dashboard() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
       >
-        <div className="rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-700 p-5 text-white shadow-lg shadow-emerald-600/20">
+        <div className="rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-700 p-5 text-white shadow-lg shadow-emerald-600/20 relative overflow-hidden">
+          {/* Decorative mesh/grid pattern overlay */}
+          <div className="absolute inset-0 opacity-[0.07] pointer-events-none" style={{ backgroundImage: "linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)", backgroundSize: "24px 24px" }} />
+          {/* Shine/shimmer sweep every 4 seconds */}
+          <motion.div
+            className="absolute inset-0 pointer-events-none"
+            animate={{ opacity: [0, 0.6, 0] }}
+            transition={{ duration: 1.2, repeat: Infinity, repeatDelay: 2.8, ease: "easeInOut" }}
+          >
+            <motion.div
+              className="absolute inset-y-0 w-1/3 bg-gradient-to-r from-transparent via-white/30 to-transparent"
+              animate={{ x: ["-100%", "300%"], opacity: [0, 0.7, 0] }}
+              transition={{ duration: 1.5, repeat: Infinity, repeatDelay: 2.5, ease: "easeInOut" }}
+            />
+          </motion.div>
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-emerald-100 flex items-center gap-1.5">
@@ -446,7 +526,7 @@ export function Dashboard() {
           return (
             <Card
               key={stat.key}
-              className={`gap-0 py-4 px-4 rounded-xl border border-l-4 ${stat.borderLeft} shadow-sm relative overflow-hidden`}
+              className={`gap-0 py-4 px-4 rounded-xl border border-l-4 ${stat.borderLeft} shadow-sm relative overflow-hidden hover:-translate-y-1 hover:ring-2 hover:ring-current/10 transition-all duration-200`}
             >
               {/* Subtle gradient overlay */}
               <div className="absolute inset-0 bg-gradient-to-br from-transparent to-muted/30 pointer-events-none" />
@@ -468,14 +548,14 @@ export function Dashboard() {
                 </div>
               </CardContent>
               {/* Animated shimmer gradient accent */}
-              <div className="absolute bottom-0 left-0 right-0 h-1 overflow-hidden">
+              <div className="absolute bottom-0 left-0 right-0 h-1 overflow-hidden transition-opacity duration-300">
                 <motion.div
                   className="h-full w-[200%] bg-gradient-to-r from-transparent via-emerald-400 to-transparent dark:via-emerald-600"
                   animate={{ x: ["-50%", "50%"] }}
                   transition={{
                     duration: 2.5,
                     repeat: Infinity,
-                    ease: "easeInOut",
+                    ease: "linear",
                   }}
                 />
               </div>
@@ -491,7 +571,7 @@ export function Dashboard() {
         transition={{ duration: 0.3, delay: 0.2 }}
         className="space-y-3"
       >
-        <h2 className="text-base font-semibold">Quick Actions</h2>
+        <h2 className="text-base font-semibold">Quick Actions<span className="ml-1.5 text-transparent bg-gradient-to-r from-emerald-400 to-teal-400 dark:from-emerald-500 dark:to-teal-500 bg-clip-text">—</span></h2>
         <div className="grid grid-cols-3 gap-3">
           {quickActions.map((action) => {
             const Icon = action.icon;
@@ -500,7 +580,7 @@ export function Dashboard() {
                 key={action.label}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => handleQuickAction(action.action)}
-                className={`flex flex-col items-center justify-center gap-1.5 p-4 rounded-xl bg-gradient-to-br ${action.gradient} text-white shadow-lg ${action.shadow} active:shadow-md transition-shadow duration-200`}
+                className={`flex flex-col items-center justify-center gap-1.5 p-4 rounded-xl bg-gradient-to-br ${action.gradient} text-white shadow-lg ${action.shadow} shadow-inner active:shadow-md transition-shadow duration-200 relative overflow-hidden`}
               >
                 <div className="relative">
                   <div className="size-10 rounded-full bg-white/20 flex items-center justify-center">
@@ -512,6 +592,18 @@ export function Dashboard() {
                       animate={{ scale: [1, 1.5], opacity: [0.6, 0] }}
                       transition={{ duration: 1.5, repeat: Infinity, ease: "easeOut" }}
                     />
+                  )}
+                  {/* Shimmer overlay on Add Laptop button */}
+                  {action.action === "add" && (
+                    <motion.div
+                      className="absolute inset-0 overflow-hidden rounded-xl"
+                    >
+                      <motion.div
+                        className="absolute inset-y-0 w-1/2 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+                        animate={{ x: ["-100%", "200%"] }}
+                        transition={{ duration: 2.5, repeat: Infinity, repeatDelay: 3, ease: "easeInOut" }}
+                      />
+                    </motion.div>
                   )}
                 </div>
                 <div className="text-center">
@@ -533,9 +625,11 @@ export function Dashboard() {
       >
         <h2 className="text-base font-semibold flex items-center gap-2">
           <TrendingUp className="size-4 text-emerald-600 dark:text-emerald-400" />
-          Profit Insights
+          Profit Insights<span className="ml-1.5 text-transparent bg-gradient-to-r from-emerald-400 to-teal-400 dark:from-emerald-500 dark:to-teal-500 bg-clip-text">—</span>
         </h2>
         <Card className="rounded-xl border shadow-sm overflow-hidden relative">
+          {/* Subtle dot pattern background */}
+          <div className="absolute inset-0 pointer-events-none" style={{ backgroundImage: "radial-gradient(circle, rgba(16,185,129,0.08) 1px, transparent 1px)", backgroundSize: "20px 20px" }} />
           {/* Gradient left border accent */}
           <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-emerald-400 via-teal-500 to-emerald-600 dark:from-emerald-600 dark:via-teal-700 dark:to-emerald-800 rounded-l-xl" />
           <CardContent className="p-4 pl-5 space-y-3">
@@ -603,7 +697,7 @@ export function Dashboard() {
       >
         <h2 className="text-base font-semibold flex items-center gap-2">
           <Heart className="size-4 text-rose-500" />
-          Watchlist
+          Watchlist<span className="ml-1.5 text-transparent bg-gradient-to-r from-rose-400 to-pink-400 dark:from-rose-500 dark:to-pink-500 bg-clip-text">—</span>
           {watchlist.length > 0 && (
             <Badge variant="secondary" className="text-[10px]">
               {watchlist.length} item{watchlist.length > 1 ? "s" : ""}
@@ -616,7 +710,12 @@ export function Dashboard() {
             {watchlist.length === 0 ? (
               <div className="flex items-center gap-3 py-2">
                 <div className="size-9 rounded-lg bg-rose-100 dark:bg-rose-900/40 flex items-center justify-center shrink-0">
-                  <Heart className="size-4 text-rose-400 dark:text-rose-500" />
+                  <motion.div
+                    animate={{ scale: [1, 1.2, 1], opacity: [0.5, 1, 0.5] }}
+                    transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                  >
+                    <Heart className="size-4 text-rose-400 dark:text-rose-500" />
+                  </motion.div>
                 </div>
                 <div className="min-w-0">
                   <p className="text-sm font-medium">No watched items</p>
@@ -638,7 +737,7 @@ export function Dashboard() {
                         setSelectedLaptop(watchedLaptop);
                         setIsDetailOpen(true);
                       }}
-                      className="shrink-0 rounded-xl border bg-background/80 dark:bg-gray-900/80 p-3 min-w-[150px] max-w-[180px] text-left hover:shadow-md hover:border-rose-300 dark:hover:border-rose-700 transition-all duration-200"
+                      className="shrink-0 rounded-xl border border-l-2 border-l-rose-400 dark:border-l-rose-600 bg-background/80 dark:bg-gray-900/80 p-3 min-w-[150px] max-w-[180px] text-left hover:shadow-md hover:border-rose-300 dark:hover:border-rose-700 transition-all duration-200"
                     >
                       <div className="flex items-center gap-2 mb-1.5">
                         <span className="text-sm">
@@ -684,11 +783,88 @@ export function Dashboard() {
         </Card>
       </motion.div>
 
+      {/* Recent Activity Feed */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: 0.30 }}
+        className="space-y-3"
+      >
+        <div className="flex items-center justify-between">
+          <h2 className="text-base font-semibold flex items-center gap-2">
+            <Activity className="size-4 text-blue-500" />
+            Recent Activity
+            {activityLogs.length > 0 && (
+              <Badge variant="secondary" className="text-[10px]">
+                {activityLogs.length}
+              </Badge>
+            )}
+          </h2>
+          {activityLogs.length > 0 && (
+            <button
+              onClick={() => toast.info("Full activity log coming soon")}
+              className="text-xs font-medium text-blue-600 dark:text-blue-400 flex items-center gap-1 hover:underline"
+            >
+              View All
+              <ArrowRight className="size-3" />
+            </button>
+          )}
+        </div>
+        <Card className="rounded-xl border shadow-sm overflow-hidden relative">
+          <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-blue-400 via-sky-500 to-blue-500 dark:from-blue-600 dark:via-sky-700 dark:to-blue-800 rounded-l-xl" />
+          <CardContent className="p-4 pl-5">
+            {activityLogs.length === 0 ? (
+              <div className="flex items-center gap-3 py-2">
+                <div className="size-9 rounded-lg bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center shrink-0">
+                  <Activity className="size-4 text-blue-400 dark:text-blue-500" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-medium">No recent activity</p>
+                  <p className="text-xs text-muted-foreground">
+                    Actions like price changes and status updates will appear here
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-0">
+                {[...activityLogs]
+                  .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+                  .slice(0, 5)
+                  .map((entry, index) => {
+                    const actionConfig = getActivityActionConfig(entry.action);
+                    const ActionIcon = actionConfig.icon;
+                    return (
+                      <motion.div
+                        key={entry.id}
+                        initial={{ opacity: 0, x: -8 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 0.2, delay: index * 0.04 }}
+                        className="flex items-center gap-3 py-2.5 first:pt-0 last:pb-0"
+                      >
+                        <div className={`size-8 rounded-lg ${actionConfig.bgColor} flex items-center justify-center shrink-0`}>
+                          <ActionIcon className={`size-3.5 ${actionConfig.iconColor}`} />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium truncate">{entry.detail}</p>
+                          <p className="text-[11px] text-muted-foreground mt-0.5">
+                            {formatRelativeTime(entry.timestamp)}
+                          </p>
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+              </div>
+            )}
+          </CardContent>
+          <div className="h-0.5 bg-gradient-to-r from-blue-400 via-sky-400 to-blue-500 dark:from-blue-600 dark:via-sky-600 dark:to-blue-700 opacity-40" />
+        </Card>
+      </motion.div>
+
       {/* Pricing Calculator */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3, delay: 0.27 }}
+        transition={{ duration: 0.3, delay: 0.33 }}
       >
         <PricingCalculator />
       </motion.div>
@@ -701,7 +877,7 @@ export function Dashboard() {
         className="space-y-3"
       >
         <div className="flex items-center justify-between">
-          <h2 className="text-base font-semibold">Recent Listings</h2>
+          <h2 className="text-base font-semibold">Recent Listings<span className="ml-1.5 text-transparent bg-gradient-to-r from-emerald-400 to-teal-400 dark:from-emerald-500 dark:to-teal-500 bg-clip-text">—</span></h2>
           {recentLaptops.length > 0 && (
             <button
               onClick={() => setActiveTab("inventory")}
@@ -779,12 +955,14 @@ export function Dashboard() {
                 transition={{ duration: 0.2, delay: index * 0.05 }}
               >
                 <Card
-                  className={`rounded-xl py-4 shadow-md hover:shadow-lg hover:bg-accent/40 dark:hover:bg-accent/20 transition-all duration-200 cursor-pointer border-l-[3px] ${getConditionBorderColor(laptop.condition)}`}
+                  className={`rounded-xl py-4 shadow-md hover:shadow-lg hover:bg-accent/40 dark:hover:bg-accent/20 transition-all duration-200 cursor-pointer border-l-[3px] ${getConditionBorderColor(laptop.condition)} relative overflow-hidden`}
                   onClick={() => {
                     setSelectedLaptop(laptop);
                     setIsDetailOpen(true);
                   }}
                 >
+                  {/* Subtle hover gradient overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-emerald-50/50 to-transparent dark:via-emerald-900/20 pointer-events-none" />
                   <CardContent className="p-0 px-4">
                     <div className="flex items-center gap-3">
                       {/* Thumbnail brand icon */}
@@ -812,6 +990,7 @@ export function Dashboard() {
                           </p>
                           {laptop.stockId && (
                             <span className="shrink-0 inline-flex items-center gap-0.5 text-[10px] font-mono font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-900/40 px-1.5 py-0 rounded border border-emerald-200 dark:border-emerald-800">
+                              <span className="size-1.5 rounded-full bg-emerald-500 shrink-0" />
                               <Hash className="size-2.5" />
                               {laptop.stockId}
                             </span>
@@ -878,7 +1057,7 @@ export function Dashboard() {
           <div className="flex items-center justify-between">
             <h2 className="text-base font-semibold flex items-center gap-2">
               <CheckCircle2 className="size-4 text-blue-500" />
-              Recently Sold
+              Recently Sold<span className="ml-1.5 text-transparent bg-gradient-to-r from-blue-400 to-sky-400 dark:from-blue-500 dark:to-sky-500 bg-clip-text">—</span>
               <span className="text-base">🎉</span>
             </h2>
             <Badge variant="secondary" className="text-[10px]">
@@ -958,7 +1137,7 @@ export function Dashboard() {
         <div className="flex items-center justify-between">
           <h2 className="text-base font-semibold flex items-center gap-2">
             <Users className="size-4 text-emerald-600 dark:text-emerald-400" />
-            Buyer Enquiries
+            Buyer Enquiries<span className="ml-1.5 text-transparent bg-gradient-to-r from-emerald-400 to-teal-400 dark:from-emerald-500 dark:to-teal-500 bg-clip-text">—</span>
           </h2>
           <span className="text-xs text-muted-foreground">
             {contacts.length} total

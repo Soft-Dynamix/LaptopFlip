@@ -93,6 +93,14 @@ interface AppState {
   toggleWatchlist: (laptopId: string) => void;
   isWatched: (laptopId: string) => boolean;
 
+  // Compare feature
+  compareIds: string[];
+  addToCompare: (laptopId: string) => void;
+  removeFromCompare: (laptopId: string) => void;
+  clearCompare: () => void;
+  isCompareOpen: boolean;
+  setIsCompareOpen: (open: boolean) => void;
+
   // Buyer contacts (CRM)
   contacts: BuyerContact[];
   setContacts: (contacts: BuyerContact[]) => void;
@@ -312,6 +320,28 @@ export const useAppStore = create<AppState>((set, get) => ({
   isWatched: (laptopId) => {
     return get().watchlist.includes(laptopId);
   },
+
+  // Compare feature
+  compareIds: [],
+  addToCompare: (laptopId) => {
+    set((state) => {
+      if (state.compareIds.length >= 2) {
+        return state; // Max 2 items — toast handled by caller
+      }
+      if (state.compareIds.includes(laptopId)) {
+        return state; // Already added
+      }
+      return { compareIds: [...state.compareIds, laptopId] };
+    });
+  },
+  removeFromCompare: (laptopId) => {
+    set((state) => ({
+      compareIds: state.compareIds.filter((id) => id !== laptopId),
+    }));
+  },
+  clearCompare: () => set({ compareIds: [] }),
+  isCompareOpen: false,
+  setIsCompareOpen: (open) => set({ isCompareOpen: open }),
 
   // Buyer contacts (CRM)
   contacts: [],

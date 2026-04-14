@@ -21,6 +21,7 @@ import { LaptopFormSheet } from "@/components/laptop/LaptopFormSheet";
 import { AdCreatorSheet } from "@/components/ad/AdCreatorSheet";
 import { AdPreviewSheet } from "@/components/ad/AdPreviewSheet";
 import { LaptopDetailSheet } from "@/components/laptop/LaptopDetailSheet";
+import { CompareSheet } from "@/components/laptop/CompareSheet";
 import { ContactsSheet } from "@/components/contacts/ContactsSheet";
 import { cn } from "@/lib/utils";
 
@@ -223,6 +224,7 @@ export default function Home() {
 
       {/* Sheets */}
       <LaptopDetailSheet />
+      <CompareSheet />
       <LaptopFormSheet />
       <AdCreatorSheet />
       <AdPreviewSheet />

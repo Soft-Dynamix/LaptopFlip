@@ -21,6 +21,8 @@ import {
   MessageCircle,
   PackageSearch,
   Heart,
+  GitCompareArrows,
+  Columns2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
@@ -139,6 +141,128 @@ function getConditionBorderColor(condition: string) {
     default:
       return "border-l-gray-400";
   }
+}
+
+function getConditionGradient(condition: string): string {
+  switch (condition) {
+    case "Mint":
+      return "from-emerald-400 via-emerald-500 to-emerald-600";
+    case "Excellent":
+      return "from-blue-400 via-blue-500 to-blue-600";
+    case "Good":
+      return "from-yellow-400 via-yellow-500 to-yellow-600";
+    case "Fair":
+      return "from-orange-400 via-orange-500 to-orange-600";
+    case "Poor":
+      return "from-red-400 via-red-500 to-red-600";
+    default:
+      return "from-gray-400 via-gray-500 to-gray-600";
+  }
+}
+
+// ─── Health Score ──────────────────────────────────────────
+
+interface HealthBreakdown {
+  label: string;
+  points: number;
+  achieved: boolean;
+}
+
+function calculateHealthScore(laptop: LaptopType): { score: number; breakdown: HealthBreakdown[] } {
+  let score = 50;
+  const breakdown: HealthBreakdown[] = [];
+  const add = (label: string, points: number, condition: boolean) => {
+    if (condition) score += points;
+    breakdown.push({ label, points, achieved: condition });
+  };
+
+  const photoList: string[] = Array.isArray(laptop.photos)
+    ? laptop.photos
+    : laptop.photos
+      ? (() => { try { return JSON.parse(laptop.photos); } catch { return []; } })()
+      : [];
+  add("Photo", 10, photoList.length > 0);
+  add("CPU", 5, !!laptop.cpu && laptop.cpu.trim().length > 0);
+  add("RAM", 5, !!laptop.ram && laptop.ram.trim().length > 0);
+  add("Storage", 5, !!laptop.storage && laptop.storage.trim().length > 0);
+  add("GPU", 5, !!laptop.gpu && laptop.gpu.trim().length > 0);
+  add("Notes", 5, !!laptop.notes && laptop.notes.trim().length > 0);
+
+  const condPts: Record<string, number> = { Mint: 15, Excellent: 10, Good: 5, Fair: 0, Poor: -5 };
+  const cp = condPts[laptop.condition] ?? 0;
+  add("Condition", cp, cp > 0);
+
+  const statPts: Record<string, number> = { active: 5, draft: 0, sold: -10, archived: -10 };
+  const sp = statPts[laptop.status] ?? 0;
+  add("Status", sp, laptop.status === "active");
+
+  add("Price Set", 5, laptop.askingPrice > 0);
+  add("Price Range", 5, laptop.askingPrice >= 500 && laptop.askingPrice <= 50000);
+
+  const days = getDaysListed(laptop.createdAt);
+  const agePts = days < 14 ? 5 : days < 30 ? 0 : -5;
+  add("Freshness", agePts, days < 14);
+
+  add("Location", 3, !!laptop.location && laptop.location.trim().length > 0);
+
+  return { score: Math.max(0, Math.min(100, score)), breakdown };
+}
+
+function getHealthColor(score: number): { label: string; ring: string; bg: string; text: string } {
+  if (score >= 80) return { label: "Excellent", ring: "ring-emerald-500/70", bg: "bg-emerald-50 dark:bg-emerald-900/30", text: "text-emerald-700 dark:text-emerald-300" };
+  if (score >= 60) return { label: "Good", ring: "ring-amber-500/70", bg: "bg-amber-50 dark:bg-amber-900/30", text: "text-amber-700 dark:text-amber-300" };
+  if (score >= 40) return { label: "Fair", ring: "ring-orange-500/70", bg: "bg-orange-50 dark:bg-orange-900/30", text: "text-orange-700 dark:text-orange-300" };
+  return { label: "Needs Work", ring: "ring-red-500/70", bg: "bg-red-50 dark:bg-red-900/30", text: "text-red-700 dark:text-red-300" };
+}
+
+function HealthScoreBadge({ laptop }: { laptop: LaptopType }) {
+  const [displayScore, setDisplayScore] = useState(0);
+  const { score, breakdown } = useMemo(() => calculateHealthScore(laptop), [laptop]);
+  const colorInfo = useMemo(() => getHealthColor(score), [score]);
+
+  useEffect(() => {
+    const duration = 800;
+    const startTime = performance.now();
+    let currentScore = 0;
+    const tick = (now: number) => {
+      const elapsed = now - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      currentScore = Math.round(score * eased);
+      setDisplayScore(currentScore);
+      if (progress < 1) requestAnimationFrame(tick);
+    };
+    tick(startTime);
+  }, [score]);
+
+  return (
+    <div className="relative group/hscore">
+      <motion.div
+        initial={{ scale: 0 }}
+        animate={{ scale: 1 }}
+        transition={{ type: "spring", stiffness: 300, damping: 20, delay: 0.1 }}
+        className={`size-7 rounded-full ring-2 ${colorInfo.ring} ${colorInfo.bg} flex items-center justify-center`}
+      >
+        <span className={`text-[10px] font-bold leading-none ${colorInfo.text}`}>
+          {displayScore}
+        </span>
+      </motion.div>
+      {/* Tooltip */}
+      <div className="hidden group-hover/hscore:flex absolute top-full right-0 mt-1.5 z-50 w-52 rounded-xl bg-popover border shadow-xl p-3 flex-col">
+        <p className="text-xs font-bold mb-2">{colorInfo.label} · <span className={colorInfo.text}>{score}</span></p>
+        <div className="space-y-1">
+          {breakdown.map((item, i) => (
+            <div key={i} className="flex items-center justify-between text-[10px]">
+              <span className="text-muted-foreground">{item.label}</span>
+              <span className={item.achieved ? "text-emerald-600 dark:text-emerald-400 font-semibold" : "text-muted-foreground/60"}>
+                {item.points > 0 ? `+${item.points}` : item.points}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function getStatusColor(status: string) {
@@ -279,6 +403,11 @@ export function Inventory() {
     addActivityLog,
     watchlist,
     toggleWatchlist,
+    compareIds,
+    addToCompare,
+    removeFromCompare,
+    isCompareOpen,
+    setIsCompareOpen,
   } = useAppStore();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -563,9 +692,12 @@ export function Inventory() {
       >
         <div className="flex items-center justify-between">
           <div className="space-y-1">
-            <h1 className="text-2xl font-bold text-emerald-700 dark:text-emerald-400 tracking-tight">
-              Inventory
-            </h1>
+            <div>
+              <h1 className="text-2xl font-bold text-emerald-700 dark:text-emerald-400 tracking-tight">
+                Inventory
+              </h1>
+              <div className="h-0.5 w-16 rounded-full bg-gradient-to-r from-emerald-400 via-emerald-500 to-teal-500 mt-1.5" />
+            </div>
             <p className="text-sm text-muted-foreground">
               {filteredLaptops.length} of {laptops.length} laptops
             </p>
@@ -594,6 +726,9 @@ export function Inventory() {
           </div>
         </div>
       </motion.div>
+
+      {/* Divider */}
+      <div className="h-px bg-gradient-to-r from-transparent via-emerald-300/40 dark:via-emerald-700/30 to-transparent -my-3" />
 
       {/* Search */}
       <motion.div
@@ -637,16 +772,23 @@ export function Inventory() {
         </DropdownMenu>
       </motion.div>
 
+      {/* Divider */}
+      <div className="h-px bg-gradient-to-r from-transparent via-emerald-300/40 dark:via-emerald-700/30 to-transparent -my-3" />
+
       {/* Status Summary Bar */}
       {laptops.length > 0 && (
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, delay: 0.08 }}
+          className="rounded-2xl bg-gradient-to-br from-emerald-50/60 via-emerald-50/20 to-transparent dark:from-emerald-900/15 dark:via-emerald-900/5 dark:to-transparent p-3 -mx-1"
         >
           <StatusSummaryBar laptops={laptops} />
         </motion.div>
       )}
+
+      {/* Divider */}
+      <div className="h-px bg-gradient-to-r from-transparent via-emerald-300/40 dark:via-emerald-700/30 to-transparent -my-3" />
 
       {/* Filter Chips */}
       <motion.div
@@ -667,10 +809,26 @@ export function Inventory() {
                 : ""
             }`}
           >
+            <AnimatePresence>
+              {filterStatus === chip.value && (
+                <motion.span
+                  initial={{ scale: 0, width: 0, opacity: 0 }}
+                  animate={{ scale: 1, width: "auto", opacity: 1 }}
+                  exit={{ scale: 0, width: 0, opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="mr-1 inline-flex items-center"
+                >
+                  ✓
+                </motion.span>
+              )}
+            </AnimatePresence>
             {chip.label}
           </Button>
         ))}
       </motion.div>
+
+      {/* Divider */}
+      <div className="h-px bg-gradient-to-r from-transparent via-emerald-300/40 dark:via-emerald-700/30 to-transparent -my-3" />
 
       {/* Laptop List */}
       <div className="space-y-3">
@@ -688,7 +846,12 @@ export function Inventory() {
                   {searchQuery || filterStatus !== "all" ? (
                     <>
                       <div className="relative rounded-full bg-amber-50 dark:bg-amber-900/20 p-5">
-                        <Search className="size-8 text-amber-500 dark:text-amber-400" />
+                        <motion.div
+                          animate={{ y: [0, -5, 0] }}
+                          transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                        >
+                          <Search className="size-8 text-amber-500 dark:text-amber-400" />
+                        </motion.div>
                         <div className="absolute -bottom-1 -right-1 rounded-full bg-white dark:bg-gray-900 p-1.5 shadow-sm">
                           <PackageSearch className="size-4 text-amber-600 dark:text-amber-300" />
                         </div>
@@ -825,6 +988,7 @@ export function Inventory() {
 
                       {/* Price & Actions */}
                       <div className="flex flex-col items-end justify-between shrink-0 py-0.5">
+                        <HealthScoreBadge laptop={laptop} />
                         <div className="flex items-center gap-0.5" onClick={(e) => e.stopPropagation()}>
                           <button
                             onClick={() => handleWhatsAppShare(laptop)}
@@ -937,6 +1101,23 @@ export function Inventory() {
                                 <Copy className="size-4" />
                                 {duplicating ? "Duplicating..." : "Duplicate"}
                               </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  if (compareIds.includes(laptop.id)) {
+                                    removeFromCompare(laptop.id);
+                                    toast.success(`Removed ${laptop.brand} ${laptop.model} from compare`);
+                                  } else if (compareIds.length >= 2) {
+                                    toast.error("Max 2 items to compare");
+                                  } else {
+                                    addToCompare(laptop.id);
+                                    toast.success(`Added ${laptop.brand} ${laptop.model} to compare`);
+                                  }
+                                }}
+                              >
+                                <GitCompareArrows className="size-4" />
+                                {compareIds.includes(laptop.id) ? "Remove from Compare" : "Compare"}
+                              </DropdownMenuItem>
                               <DropdownMenuItem
                                 onClick={() => handleChangeStatus(laptop)}
                               >
@@ -957,6 +1138,7 @@ export function Inventory() {
                       </div>
                     </div>
                   </CardContent>
+                  <div className={`h-0.5 bg-gradient-to-r ${getConditionGradient(laptop.condition)} opacity-50`} />
                 </Card>
               </motion.div>
             );
@@ -992,6 +1174,33 @@ export function Inventory() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Floating Compare Button */}
+      <AnimatePresence>
+        {compareIds.length > 0 && (
+          <motion.button
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0, opacity: 0 }}
+            transition={{ type: "spring", stiffness: 400, damping: 25 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={() => {
+              if (compareIds.length === 2) {
+                setIsCompareOpen(true);
+              } else {
+                toast.info("Select 1 more laptop to compare");
+              }
+            }}
+            className="fixed bottom-20 right-4 z-30 flex items-center gap-2 rounded-full bg-gradient-to-br from-emerald-500 to-emerald-700 hover:from-emerald-600 hover:to-emerald-800 text-white shadow-xl shadow-emerald-600/30 pl-3 pr-4 py-2.5 transition-colors"
+          >
+            <Columns2 className="size-5" />
+            <span className="text-sm font-semibold">Compare</span>
+            <span className="min-w-[20px] h-5 rounded-full bg-white/20 flex items-center justify-center text-[11px] font-bold px-1">
+              {compareIds.length}/2
+            </span>
+          </motion.button>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
