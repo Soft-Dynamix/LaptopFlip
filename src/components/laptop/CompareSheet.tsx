@@ -330,13 +330,14 @@ export function CompareSheet() {
   }, [clearCompare]);
 
   // Look up the two laptops
+  const safeLaptops = Array.isArray(laptops) ? laptops : [];
   const laptopA = useMemo(
-    () => laptops.find((l) => l.id === compareIds[0]) || null,
-    [laptops, compareIds[0]]
+    () => safeLaptops.find((l) => l.id === compareIds[0]) || null,
+    [safeLaptops, compareIds[0]]
   );
   const laptopB = useMemo(
-    () => laptops.find((l) => l.id === compareIds[1]) || null,
-    [laptops, compareIds[1]]
+    () => safeLaptops.find((l) => l.id === compareIds[1]) || null,
+    [safeLaptops, compareIds[1]]
   );
 
   const isReady = laptopA && laptopB;

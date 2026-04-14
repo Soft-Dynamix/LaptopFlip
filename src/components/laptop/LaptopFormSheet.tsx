@@ -788,9 +788,8 @@ export function LaptopFormSheet() {
 
       // Activity logging
       if (isEditing) {
-        const existingLaptop = laptops.find((l) => l.id === editingLaptopId);
+        const existingLaptop = Array.isArray(laptops) ? laptops.find((l) => l.id === editingLaptopId) : undefined;
         if (existingLaptop) {
-          // Check for price change
           const newAskingPrice = formData.askingPrice ? Number(formData.askingPrice) : 0;
           if (existingLaptop.askingPrice !== newAskingPrice && newAskingPrice > 0) {
             addActivityLog({
@@ -945,7 +944,7 @@ export function LaptopFormSheet() {
 
                     {/* Stock ID badge (read-only, only when editing) */}
                     {isEditing && (() => {
-                      const currentLaptop = laptops.find((l) => l.id === editingLaptopId);
+                      const currentLaptop = Array.isArray(laptops) ? laptops.find((l) => l.id === editingLaptopId) : undefined;
                       if (!currentLaptop?.stockId) return null;
                       return (
                         <div className="flex items-center gap-2 mb-2">

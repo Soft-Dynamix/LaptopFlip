@@ -225,9 +225,10 @@ export function ContactsSheet() {
   });
 
   // Derived data
+  const safeLaptops = Array.isArray(laptops) ? laptops : [];
   const laptop = useMemo(
-    () => laptops.find((l) => l.id === contactsSheetLaptopId),
-    [laptops, contactsSheetLaptopId]
+    () => safeLaptops.find((l) => l.id === contactsSheetLaptopId),
+    [safeLaptops, contactsSheetLaptopId]
   );
 
   const laptopContacts = useMemo(

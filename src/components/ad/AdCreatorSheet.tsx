@@ -386,7 +386,7 @@ export function AdCreatorSheet() {
   // Find the laptop from store
   useEffect(() => {
     if (adCreatorLaptopId && isAdCreatorOpen) {
-      const found = laptops.find((l) => l.id === adCreatorLaptopId);
+      const found = Array.isArray(laptops) ? laptops.find((l) => l.id === adCreatorLaptopId) : undefined;
       if (found) {
         setLaptop(found);
       } else {

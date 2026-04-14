@@ -296,7 +296,7 @@ export function AdPreviewSheet() {
   const [isPostDialogOpen, setIsPostDialogOpen] = useState(false);
 
   // Get photos for the current laptop being advertised
-  const adLaptop = laptops.find((l) => l.id === adCreatorLaptopId);
+  const adLaptop = Array.isArray(laptops) ? laptops.find((l) => l.id === adCreatorLaptopId) : undefined;
   const adPhotos = adLaptop ? parsePhotos(adLaptop.photos) : [];
 
   const platformInfo = PLATFORMS.find((p) => p.id === previewPlatform);
