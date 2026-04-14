@@ -1,4 +1,31 @@
 ---
+Task ID: apk-build-v120
+Agent: Main
+Task: Build new APK (v1.2.0) with local-api fix
+
+Work Log:
+- Created Android SDK environment: installed command-line tools + platform-tools + android-36 + build-tools-36.0.0 at ~/android-sdk
+- Installed Temurin JDK 21 at ~/jdk-21 (JRE only was present, needed javac for Gradle)
+- Switched next.config.ts from "standalone" to "export" for static build
+- Added `export const dynamic = "force-static"` to all 16 API route files (required for static export)
+- Added `generateStaticParams()` to dynamic routes: laptops/[id], listings/[id], auth/[...nextauth]
+- Temporarily moved API routes out of src/app/ directory for successful static export build
+- `npx next build` → static export successful (route: / )
+- `npx cap sync android` → web assets copied to android/app/src/main/assets/public
+- Set local.properties: sdk.dir=$HOME/android-sdk
+- `./gradlew assembleDebug` → BUILD SUCCESSFUL (213 tasks, 1m 2s)
+- APK output: 16MB at android/app/build/outputs/apk/debug/app-debug.apk
+- Copied to download/LaptopFlip-v1.2.0-debug.apk
+- Restored API routes and next.config.ts to "standalone" mode
+- Committed all changes including src/lib/local-api.ts (was previously gitignored via local-* pattern, added negation)
+- GitHub push failed: previous Personal Access Token expired/revoked (HTTP 401)
+
+Stage Summary:
+- APK v1.2.0 built successfully (16MB) at download/LaptopFlip-v1.2.0-debug.apk
+- Includes: local-api.ts fix (offline mode now works), all latest UI features
+- GitHub push BLOCKED — Personal Access Token expired, user needs to generate new token
+- Dev server restored to standalone mode, running normally (HTTP 200)
+---
 Task ID: fix-local-api
 Agent: Main
 Task: Fix build error — recreate missing src/lib/local-api.ts module
