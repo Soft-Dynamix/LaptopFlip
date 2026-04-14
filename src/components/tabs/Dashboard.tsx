@@ -25,12 +25,15 @@ import {
   Trash2,
   CircleDot,
   BarChart3,
+  StickyNote,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Input } from "@/components/ui/input";
 import { useAppStore } from "@/lib/store";
 import { apiFetchLaptops } from "@/lib/api";
 import { formatPrice, CONTACT_STATUSES } from "@/lib/types";
@@ -316,6 +319,9 @@ export function Dashboard() {
     activityLogs,
     notifications,
     setNotifications,
+    quickNotes,
+    addQuickNote,
+    deleteQuickNote,
   } = useAppStore();
   const safeLaptops = Array.isArray(laptops) ? laptops : [];
   const [loading, setLoading] = useState(true);
@@ -533,6 +539,25 @@ export function Dashboard() {
               transition={{ duration: 1.5, repeat: Infinity, repeatDelay: 2.5, ease: "easeInOut" }}
             />
           </motion.div>
+          {/* Floating particles */}
+          {[...Array(6)].map((_, i) => (
+            <motion.div
+              key={i}
+              className="absolute w-1 h-1 bg-white/30 rounded-full pointer-events-none"
+              style={{ left: `${15 + i * 15}%`, bottom: '20%' }}
+              animate={{
+                y: [0, -30, 0],
+                opacity: [0, 0.6, 0],
+                scale: [0.5, 1, 0.5],
+              }}
+              transition={{
+                duration: 3 + i * 0.5,
+                repeat: Infinity,
+                delay: i * 0.7,
+                ease: "easeInOut",
+              }}
+            />
+          ))}
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-emerald-100 flex items-center gap-1.5">
@@ -564,6 +589,31 @@ export function Dashboard() {
             </div>
           )}
         </div>
+      </motion.div>
+
+      {/* Quick Stats Strip */}
+      <motion.div
+        initial={{ opacity: 0, y: 5 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: 0.05 }}
+        className="flex gap-3 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-hide"
+      >
+        {[
+          { label: "Avg Price", value: safeLaptops.length > 0 ? formatPrice(Math.round(safeLaptops.reduce((sum: number, l: LaptopType) => sum + l.askingPrice, 0) / safeLaptops.length)) : formatPrice(0), color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-50 dark:bg-emerald-950/30" },
+          { label: "Mint", value: safeLaptops.filter((l: LaptopType) => l.condition === "Mint").length.toString(), color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-50 dark:bg-emerald-950/30" },
+          { label: "Excellent", value: safeLaptops.filter((l: LaptopType) => l.condition === "Excellent").length.toString(), color: "text-blue-600 dark:text-blue-400", bg: "bg-blue-50 dark:bg-blue-950/30" },
+          { label: "Good", value: safeLaptops.filter((l: LaptopType) => l.condition === "Good").length.toString(), color: "text-yellow-600 dark:text-yellow-400", bg: "bg-yellow-50 dark:bg-yellow-950/30" },
+          { label: "Watched", value: watchlist.length.toString(), color: "text-rose-600 dark:text-rose-400", bg: "bg-rose-50 dark:bg-rose-950/30" },
+        ].map((stat) => (
+          <motion.div
+            key={stat.label}
+            whileTap={{ scale: 0.97 }}
+            className={`shrink-0 rounded-lg px-3 py-2 border border-border/50 ${stat.bg} flex flex-col items-center min-w-[70px]`}
+          >
+            <span className={`text-sm font-bold ${stat.color}`}>{stat.value}</span>
+            <span className="text-[10px] text-muted-foreground">{stat.label}</span>
+          </motion.div>
+        ))}
       </motion.div>
 
       {/* Stats Grid with animated counters & shimmer accent */}
@@ -979,6 +1029,77 @@ export function Dashboard() {
         transition={{ duration: 0.3, delay: 0.33 }}
       >
         <PricingCalculator />
+      </motion.div>
+
+      {/* Quick Notes */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: 0.35 }}
+        className="space-y-3"
+      >
+        <h2 className="text-base font-semibold flex items-center gap-2">
+          <StickyNote className="size-4 text-amber-500" />
+          Quick Notes
+          {quickNotes.length > 0 && (
+            <Badge variant="secondary" className="text-[10px]">{quickNotes.length}</Badge>
+          )}
+        </h2>
+        <Card className="rounded-xl border shadow-sm overflow-hidden">
+          <div className="h-0.5 bg-gradient-to-r from-amber-300 via-yellow-400 to-amber-300 dark:from-amber-600 dark:via-yellow-600 dark:to-amber-600 opacity-50" />
+          <CardContent className="p-4 space-y-3">
+            {/* Note input */}
+            <div className="flex gap-2">
+              <Input
+                placeholder="Add a quick note..."
+                className="flex-1 h-9 text-sm rounded-lg"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && (e.target as HTMLInputElement).value.trim()) {
+                    addQuickNote((e.target as HTMLInputElement).value.trim());
+                    (e.target as HTMLInputElement).value = '';
+                  }
+                }}
+              />
+              <Button
+                size="sm"
+                className="h-9 w-9 p-0 rounded-lg bg-amber-500 hover:bg-amber-600 text-white shrink-0"
+                onClick={() => {
+                  const input = document.querySelector<HTMLInputElement>('input[placeholder="Add a quick note..."]');
+                  if (input && input.value.trim()) {
+                    addQuickNote(input.value.trim());
+                    input.value = '';
+                  }
+                }}
+              >
+                <Plus className="size-4" />
+              </Button>
+            </div>
+            {/* Notes list */}
+            {quickNotes.length === 0 ? (
+              <p className="text-xs text-muted-foreground text-center py-2">No notes yet. Add a quick reminder or thought.</p>
+            ) : (
+              <div className="space-y-2 max-h-40 overflow-y-auto">
+                {quickNotes.slice(0, 5).map((note, i) => (
+                  <motion.div
+                    key={`${note}-${i}`}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    className="flex items-start gap-2 group"
+                  >
+                    <div className="size-2 mt-1.5 rounded-full bg-amber-400 shrink-0" />
+                    <p className="text-xs text-muted-foreground flex-1 leading-relaxed">{note}</p>
+                    <button
+                      onClick={() => deleteQuickNote(i)}
+                      className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-red-500 shrink-0"
+                    >
+                      <X className="size-3" />
+                    </button>
+                  </motion.div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </motion.div>
 
       {/* Recent Listings with thumbnail preview */}

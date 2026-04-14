@@ -1,4 +1,163 @@
 ---
+Task ID: 2-a
+Agent: Styling Agent
+Task: Dashboard particles, search glow, filter chip pulse, Photo Guide borders, price pills
+
+Work Log:
+- Added 6 floating particle dots to Dashboard header card with staggered upward drift animation
+- Wrapped Inventory search bar in gradient-glow wrapper with focus-triggered emerald ring + shadow
+- Added pulsing emerald dot indicator to active filter chips (2px, top-right, 1.5s cycle)
+- Added border-l-2 border-l-emerald-500 gradient accents to Photo Guide section cards
+- Added emerald pill background to inventory card price display (bg-emerald-50 dark:bg-emerald-950/30)
+- ESLint: 0 errors
+
+Stage Summary:
+- Dashboard header now has subtle floating particle animation
+- Search bar glows emerald when focused with gradient border overlay
+- Active filter chips have pulsing status dot
+- Photo Guide sections have emerald gradient left borders
+- Price tags have emerald-tinted pill backgrounds for visual hierarchy
+
+---
+Task ID: 2-b
+Agent: Feature Agent
+Task: Quick Stats strip, Quick Notes widget, store updates
+
+Work Log:
+- Added quickNotes: string[], addQuickNote(), deleteQuickNote() to Zustand store
+- Added loadQuickNotes()/persistQuickNotes() helpers with localStorage key laptopflip_quicknotes
+- Added Total Inventory Stats Bar to Dashboard — horizontally scrollable strip with 5 color-coded pills (Avg Price, Mint, Excellent, Good, Watched)
+- Added Quick Notes widget to Dashboard with amber theme, Enter key support, hover-reveal delete, max 10 stored / 5 visible
+- Duplicate button already existed in LaptopDetailSheet — no changes needed
+- ESLint: 0 errors
+
+Stage Summary:
+- Dashboard now has quick stats strip showing condition distribution at a glance
+- Quick Notes widget lets users add sticky reminders (persisted to localStorage)
+- Zustand store extended with quickNotes feature
+- All features working, zero lint errors
+
+---
+Task ID: qa-cycle-1
+Agent: Main
+Task: QA testing cycle — assess status, test, improve styling, add features
+
+Work Log:
+- Read worklog.md — assessed v1.6.0 as latest release, identified gaps for new improvements
+- QA Testing via agent-browser:
+  - Dashboard: All widgets render correctly (stats, quick actions, profit insights, this week, pipeline, watchlist, activity feed, pricing calculator)
+  - Inventory: 2 laptops visible, search, filter chips, status summary bar all functional
+  - Settings: v1.6.0 badge, What's New section, App Tips, Facebook Integration, Appearance, Data Management all present
+  - Photos tab: Photo Guide renders with checklist sections
+  - 0 console errors, 0 alert/toast errors, 0 broken elements
+  - 15 emerald-styled elements confirmed (new price pills + stat strip)
+- Styling improvements (via sub-agents):
+  1. Dashboard header floating particles
+  2. Inventory search bar gradient glow on focus
+  3. Filter chip pulsing status dots
+  4. Photo Guide section gradient left borders
+  5. Inventory card price pill backgrounds
+- New features (via sub-agents):
+  1. Quick Stats strip on Dashboard
+  2. Quick Notes widget with localStorage persistence
+  3. Zustand store extended with quickNotes
+- Verification: ESLint 0 errors, dev server HTTP 200, all new features visible in QA
+
+Stage Summary:
+- Project is stable — v1.6.0 with additional enhancements
+- 5 styling improvements applied (particles, glow, dots, borders, pills)
+- 2 new features added (stats strip, quick notes)
+- Next release candidates: commit and push changes, consider v1.7.0 build
+- No bugs or issues found during QA
+---
+Task ID: 2-a
+Agent: Styling Agent
+Task: 5 styling improvements — particles, search glow, filter dots, photo guide accents, price tag
+
+Work Log:
+- Enhanced Dashboard.tsx gradient header card (line ~542):
+  - Added 6 floating particle dots inside the header card after the shimmer sweep div
+  - Particles drift upward with staggered timing (3-5.5s duration, 0.7s delay between each)
+  - Each particle: 1x1 white/30% opacity rounded dot, animated y/opacity/scale
+  - Positioned at 15-90% horizontal, 20% from bottom
+
+- Enhanced Inventory.tsx search bar (line ~773):
+  - Wrapped Input + DropdownMenu inside a gradient border glow wrapper div
+  - Wrapper toggles between `ring-1 ring-border` (default) and `ring-2 ring-emerald-500/30 shadow-lg shadow-emerald-500/10` (focused)
+  - Added motion.div gradient overlay (`from-emerald-500/20 via-teal-500/20`) that fades in/out on focus
+  - Input updated with `relative z-10` to sit above the gradient overlay
+  - Sort dropdown button repositioned inside wrapper with `z-10`
+
+- Added status dot animation to Inventory.tsx filter chips (line ~877):
+  - Added pulsing emerald-400 dot (2x2px, -top-0.5 -right-0.5) on active filter chips
+  - Dot animates scale [1, 1.5, 1] and opacity [1, 0.5, 1] on 1.5s infinite loop
+  - Only rendered when `filterStatus === chip.value`
+
+- Added gradient left border to PhotoGuide.tsx checklist sections:
+  - "How it works" Card: added `border-l-2 border-l-emerald-500`
+  - "Before you start" Card: added `border-l-2 border-l-emerald-500`
+  - "Pro Tips" section Cards: added `border-l-2 border-l-emerald-500`
+  - "Do's" Card: added `border-l-2 border-l-emerald-500`
+
+- Enhanced Inventory.tsx price tag styling (line ~1069):
+  - Added `bg-emerald-50 dark:bg-emerald-950/30 px-1.5 py-0.5 rounded-lg` to price span
+  - Creates a subtle emerald-tinted pill background around the price text
+
+- ESLint: 0 errors, 0 warnings
+- Dev server: compiled successfully (✓ Compiled), GET / 200
+
+Stage Summary:
+- Dashboard header card now has 6 animated floating particles drifting upward
+- Inventory search bar has animated gradient border glow on focus
+- Active filter chips have a pulsing emerald dot indicator
+- Photo Guide checklist sections have emerald left border accents
+- Inventory card prices have emerald-tinted pill background
+- All changes lint-clean, no existing functionality broken
+
+---
+Task ID: 2-b
+Agent: Feature Agent
+Task: Add Total Inventory Stats Bar, Quick Notes Widget, and verify Duplicate button
+
+Work Log:
+- Updated Zustand store (`src/lib/store.ts`):
+  - Added `quickNotes: string[]`, `addQuickNote`, `deleteQuickNote` to AppState interface
+  - Added `loadQuickNotes()` and `persistQuickNotes()` helper functions with localStorage key `laptopflip_quicknotes`
+  - `loadQuickNotes()` parses from localStorage with SSR safety, limits to 10 notes max
+  - `persistQuickNotes()` writes to localStorage with slice(0, 10) cap
+  - `addQuickNote` prepends new note to array, caps at 10, persists
+  - `deleteQuickNote` filters by index, persists
+
+- Updated Dashboard.tsx (`src/components/tabs/Dashboard.tsx`):
+  - Added imports: `StickyNote`, `X` from lucide-react; `Input` from `@/components/ui/input`
+  - Added `quickNotes`, `addQuickNote`, `deleteQuickNote` to store destructuring
+  - Added **Quick Stats Strip** after the main header card (between header and stats grid):
+    - Horizontally scrollable strip with 5 stat pills
+    - Shows: Avg Price, Mint count, Excellent count, Good count, Watched count
+    - Color-coded backgrounds (emerald, blue, yellow, rose)
+    - Uses `whileTap` scale animation, `scrollbar-hide` class
+  - Added **Quick Notes Widget** after PricingCalculator section:
+    - Amber-themed card with gradient accent bar at top
+    - Input field with Enter key support + amber Add button
+    - Notes displayed as bullet list with amber dot indicators
+    - Hover-to-show delete button (X icon) on each note
+    - Shows count badge, empty state message, max 5 visible notes
+    - Animated entrance with framer-motion
+
+- Verified LaptopDetailSheet.tsx already has Duplicate button:
+  - `handleDuplicate` function exists (lines 501-526)
+  - Duplicate button with Copy icon exists in action buttons (lines 1099-1104)
+  - No changes needed
+
+- ESLint: 0 errors, 0 warnings
+
+Stage Summary:
+- Total Inventory Stats Bar added to Dashboard (5 scrollable stat pills)
+- Quick Notes Widget added to Dashboard (add/delete notes, localStorage persisted, max 10)
+- Duplicate button already existed in LaptopDetailSheet — no changes needed
+- All changes lint-clean, no existing functionality broken
+
+---
 Task ID: release-v160
 Agent: Main
 Task: Build and release APK v1.6.0

@@ -148,7 +148,7 @@ export function PhotoGuide() {
           <BookOpen className="size-4 text-emerald-600 dark:text-emerald-400" />
           How it works
         </h2>
-        <Card className="rounded-xl">
+        <Card className="rounded-xl border-l-2 border-l-emerald-500">
           <CardContent className="p-4 space-y-3">
             <div className="flex items-start gap-3">
               <div className="size-7 rounded-full bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center shrink-0 text-xs font-bold text-emerald-700 dark:text-emerald-300">
@@ -197,7 +197,7 @@ export function PhotoGuide() {
           <CircleDot className="size-4 text-amber-500" />
           Before you start
         </h2>
-        <Card className="rounded-xl overflow-hidden">
+        <Card className="rounded-xl overflow-hidden border-l-2 border-l-emerald-500">
           <CardContent className="p-3">
             <div className="space-y-2">
               {prepTips.map((tip, index) => (
@@ -308,7 +308,7 @@ export function PhotoGuide() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.35 + index * 0.05 }}
             >
-              <Card className="rounded-xl bg-gradient-to-br from-amber-50 to-transparent dark:from-amber-950/20 dark:to-transparent">
+              <Card className="rounded-xl bg-gradient-to-br from-amber-50 to-transparent dark:from-amber-950/20 dark:to-transparent border-l-2 border-l-emerald-500">
                 <CardContent className="p-3 space-y-2">
                   <div className="flex items-center gap-2">
                     <span className="text-base">{section.icon}</span>
@@ -341,7 +341,7 @@ export function PhotoGuide() {
         </h2>
         <div className="grid grid-cols-2 gap-3">
           {/* Do's */}
-          <Card className="rounded-xl border-emerald-200 dark:border-emerald-800">
+          <Card className="rounded-xl border-emerald-200 dark:border-emerald-800 border-l-2 border-l-emerald-500">
             <CardContent className="p-3 space-y-2">
               <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider">
                 Do&apos;s

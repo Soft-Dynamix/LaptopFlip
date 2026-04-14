@@ -770,20 +770,26 @@ export function Inventory() {
         >
           <Search className={`size-4 transition-colors duration-200 ${searchFocused ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground"}`} />
         </motion.div>
-        <Input
-          placeholder="Search by brand, model, status..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          onFocus={() => setSearchFocused(true)}
-          onBlur={() => setSearchFocused(false)}
-          className="pl-9 pr-10 rounded-xl h-10 bg-background"
-        />
-        <DropdownMenu>
+        <div className={`relative rounded-xl transition-all duration-300 ${searchFocused ? 'ring-2 ring-emerald-500/30 shadow-lg shadow-emerald-500/10' : 'ring-1 ring-border'}`}>
+          <motion.div
+            className="absolute -inset-[1px] rounded-xl bg-gradient-to-r from-emerald-500/20 via-teal-500/20 to-emerald-500/20 pointer-events-none"
+            animate={{ opacity: searchFocused ? 1 : 0 }}
+            transition={{ duration: 0.3 }}
+          />
+          <Input
+            placeholder="Search by brand, model, status..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onFocus={() => setSearchFocused(true)}
+            onBlur={() => setSearchFocused(false)}
+            className="pl-9 pr-10 rounded-xl h-10 bg-background relative z-10"
+          />
+          <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
               variant="ghost"
               size="icon"
-              className="absolute right-1 top-1/2 -translate-y-1/2 size-8 text-muted-foreground hover:text-foreground"
+              className="absolute right-1 top-1/2 -translate-y-1/2 size-8 text-muted-foreground hover:text-foreground z-10"
               aria-label="Sort inventory"
             >
               <ArrowUpDown className="size-4" />
@@ -803,7 +809,8 @@ export function Inventory() {
               ))}
             </DropdownMenuRadioGroup>
           </DropdownMenuContent>
-        </DropdownMenu>
+          </DropdownMenu>
+        </div>
       </motion.div>
 
       {/* Divider */}
@@ -869,6 +876,13 @@ export function Inventory() {
                 )}
               </AnimatePresence>
               {chip.label}
+              {filterStatus === chip.value && (
+                <motion.div
+                  className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-400"
+                  animate={{ scale: [1, 1.5, 1], opacity: [1, 0.5, 1] }}
+                  transition={{ duration: 1.5, repeat: Infinity }}
+                />
+              )}
             </Button>
           </motion.div>
         ))}
@@ -1053,7 +1067,7 @@ export function Inventory() {
                           >
                             <Minus className="size-3" />
                           </button>
-                          <span className="text-sm font-bold text-emerald-700 dark:text-emerald-400 min-w-[60px] text-right">
+                          <span className="text-sm font-bold text-emerald-700 dark:text-emerald-400 min-w-[60px] text-right bg-emerald-50 dark:bg-emerald-950/30 px-1.5 py-0.5 rounded-lg">
                             {formatPrice(laptop.askingPrice)}
                           </span>
                           <button

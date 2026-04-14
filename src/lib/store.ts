@@ -104,6 +104,11 @@ interface AppState {
   toggleWatchlist: (laptopId: string) => void;
   isWatched: (laptopId: string) => boolean;
 
+  // Quick Notes
+  quickNotes: string[];
+  addQuickNote: (note: string) => void;
+  deleteQuickNote: (index: number) => void;
+
   // Compare feature
   compareIds: string[];
   addToCompare: (laptopId: string) => void;
@@ -207,6 +212,27 @@ function persistWatchlist(watchlist: string[]) {
   } catch {
     // ignore
   }
+}
+
+/** Load persisted quick notes from localStorage */
+function loadQuickNotes(): string[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem("laptopflip_quicknotes");
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed.slice(0, 10) : [];
+    }
+  } catch {
+    // ignore
+  }
+  return [];
+}
+
+/** Persist quick notes to localStorage */
+function persistQuickNotes(notes: string[]) {
+  if (typeof window === "undefined") return;
+  try { localStorage.setItem("laptopflip_quicknotes", JSON.stringify(notes.slice(0, 10))); } catch { /* ignore */ }
 }
 
 /** Load persisted settings from localStorage */
@@ -360,6 +386,19 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
   isWatched: (laptopId) => {
     return get().watchlist.includes(laptopId);
+  },
+
+  // Quick Notes
+  quickNotes: loadQuickNotes(),
+  addQuickNote: (note) => {
+    const updated = [note, ...get().quickNotes].slice(0, 10);
+    set({ quickNotes: updated });
+    persistQuickNotes(updated);
+  },
+  deleteQuickNote: (index) => {
+    const updated = get().quickNotes.filter((_, i) => i !== index);
+    set({ quickNotes: updated });
+    persistQuickNotes(updated);
   },
 
   // Compare feature
