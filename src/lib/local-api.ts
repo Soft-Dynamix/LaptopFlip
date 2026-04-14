@@ -232,40 +232,131 @@ function generateOfflineAd(
     : laptop.condition === "Fair" ? "👌"
     : "📦";
 
-  const specs: string[] = [];
-  if (laptop.cpu) specs.push(laptop.cpu);
-  if (laptop.ram) specs.push(laptop.ram);
-  if (laptop.storage) specs.push(laptop.storage);
-  if (laptop.gpu) specs.push(laptop.gpu);
-  if (laptop.screenSize) specs.push(`${laptop.screenSize}" display`);
-  if (laptop.batteryHealth && laptop.batteryHealth !== "Good")
-    specs.push(`Battery: ${laptop.batteryHealth}`);
+  const location = laptop.location || adSettings?.defaultLocation || "";
+
+  // ─── Benefit-driven spec builder ──────────────────────────
+  function specWithBenefit(raw: string): string {
+    const lower = raw.toLowerCase();
+    if (/i[3579]|ryzen [3579]|m[123]|m[1-4] pro|m[1-2] max/i.test(lower))
+      return `${raw} — rips through workloads, no sweating`;
+    if (/ram|memory|gb\s*ddr/i.test(lower))
+      return `${raw} — multitask like an absolute boss`;
+    if (/ssd|storage|gb\s*(nvme|solid)?/i.test(lower))
+      return `${raw} — boots in seconds, space for days`;
+    if (/rtx|gtx|radeon|iris|uhd\s*graphics/i.test(lower))
+      return `${raw} — graphics on point, whether you're working or playing`;
+    if (/display|screen|inch|"|fhd|4k|oled|ips/i.test(lower))
+      return `${raw} — gorgeous screen, easy on the eyes`;
+    if (/battery/i.test(lower))
+      return `${raw} — won't leave you hanging`;
+    if (/backlit/i.test(lower))
+      return `${raw} — work anytime, anywhere`;
+    if (/fingerprint|biometric/i.test(lower))
+      return `${raw} — unlock in a flash`;
+    if (/touchscreen/i.test(lower))
+      return `${raw} — tap, swipe, get things done faster`;
+    if (/webcam|camera/i.test(lower))
+      return `${raw} — video calls sorted, crystal clear`;
+    if (/wifi\s*6|wi-fi\s*6|bluetooth/i.test(lower))
+      return `${raw} — lightning-fast wireless, no drama`;
+    if (/thunderbolt|usb-c/i.test(lower))
+      return `${raw} — one cable to rule them all`;
+    if (/numeric|numpad/i.test(lower))
+      return `${raw} — crunch numbers like a pro`;
+    if (/hinge|360|convertible|2-in-1/i.test(lower))
+      return `${raw} — flex it however you work`;
+    if (/windows\s*11|windows\s*10/i.test(lower))
+      return `${raw} — fresh install, no bloatware, ready to go`;
+    return `${raw}`;
+  }
+
+  // Build the benefit-driven spec lines
+  const specLines: string[] = [];
+  if (laptop.cpu) specLines.push(specWithBenefit(laptop.cpu));
+  if (laptop.ram) specLines.push(specWithBenefit(laptop.ram));
+  if (laptop.storage) specLines.push(specWithBenefit(laptop.storage));
+  if (laptop.gpu) specLines.push(specWithBenefit(laptop.gpu));
+  if (laptop.screenSize) specLines.push(specWithBenefit(`${laptop.screenSize}" display`));
+  if (laptop.batteryHealth) {
+    const batteryNote = laptop.batteryHealth.toLowerCase().includes("excellent") || laptop.batteryHealth.toLowerCase().includes("mint")
+      ? "Battery health is stellar — all-day juice"
+      : `Battery health: ${laptop.batteryHealth} — still going strong`;
+    specLines.push(batteryNote);
+  }
+
   const features = laptop.features
     ? laptop.features.split(",").map((f) => f.trim()).filter(Boolean)
     : [];
-  if (features.length > 0) specs.push(...features);
+  if (features.length > 0) {
+    specLines.push(...features.map((f) => specWithBenefit(f)));
+  }
 
-  const location = laptop.location || adSettings?.defaultLocation || "";
+  // ─── Condition trust signal ───────────────────────────────
+  function conditionBlurb(): string {
+    switch (laptop.condition) {
+      case "Mint":
+        return "Mint condition — honestly looks like it came out the box yesterday. Not a scratch.";
+      case "Excellent":
+        return "Excellent condition — barely any signs of use. You'd struggle to tell it's not brand new.";
+      case "Good":
+        return "Good condition — well looked after with normal light wear. Nothing that affects performance at all.";
+      case "Fair":
+        return "Fair condition — got some cosmetic wear, but make no mistake, it works like a charm.";
+      default:
+        return `Condition: ${laptop.condition} — fully functional and ready to go.`;
+    }
+  }
 
+  // ─── Urgency / FOMO lines (varied per call) ──────────────
+  function fomoLine(): string {
+    const lines = [
+      "Deals like this don't come around often — don't sleep on this one!",
+      "At this price, it's NOT going to hang around. Move fast!",
+      "Serious buyers only — this is priced to go and it WILL go quickly.",
+      "I've priced this to sell fast. First person with the cash takes it.",
+      "Won't last long at this price, believe me. Get in before someone else does.",
+    ];
+    return lines[Math.floor(Math.random() * lines.length)];
+  }
+
+  // ─── Trust bundle line ────────────────────────────────────
+  function trustLine(): string {
+    return "✅ Comes with charger  |  ✅ Fresh Windows install, no nonsense  |  ✅ Wiped clean, reset, and ready from the word go";
+  }
+
+  // ─── Colour helper (SA spelling) ─────────────────────────
+  function colourNote(): string {
+    if (!laptop.color) return "";
+    return `Finishes in ${laptop.color} — sharp and clean.`;
+  }
+
+  // ─── Platform templates ──────────────────────────────────
   switch (platform) {
     case "whatsapp": {
       const lines = [
-        `💻 *${laptop.brand} ${laptop.model}* ${conditionEmoji}`,
+        `*🔥 JUST IN — ${laptop.brand.toUpperCase()} ${laptop.model.toUpperCase()}* ${conditionEmoji}`,
         "",
-        `💰 ${priceStr}`,
-        `📐 Condition: ${laptop.condition}`,
-        ...specs.map((s) => `🔹 ${s}`),
+        `*💰 Asking: ${priceStr}*`,
         "",
-      ];
-      if (laptop.notes) lines.push(`📝 ${laptop.notes}`);
-      if (location) lines.push(`📍 ${location}`);
-      lines.push("", "DM me if interested! 🚀");
-      if (adSettings?.whatsappNumber) {
-        lines.push(`📱 ${adSettings.whatsappNumber}`);
-      }
+        `📋 *The rundown:*`,
+        ...specLines.map((s) => `  ▸ ${s}`),
+        "",
+        `🏷️ ${conditionBlurb()}`,
+        laptop.color ? `🎨 ${colourNote()}` : "",
+        trustLine(),
+        "",
+        laptop.notes ? `💬 *Quick note:* ${laptop.notes}` : "",
+        "",
+        `📍 ${location || "Collection arranged countrywide"}`,
+        "",
+        `⚡ ${fomoLine()}`,
+        "",
+        "*Message me RIGHT NOW if you're keen — let's make it happen!* 🚀",
+        adSettings?.whatsappNumber ? `📱 WhatsApp direct: ${adSettings.whatsappNumber}` : "",
+      ].filter(Boolean);
       return {
         platform: "whatsapp",
-        title: `${laptop.brand} ${laptop.model} — ${priceStr}`,
+        title: `${laptop.brand} ${laptop.model} — ${priceStr} 🔥`,
         body: lines.join("\n"),
         price,
       };
@@ -273,21 +364,30 @@ function generateOfflineAd(
 
     case "facebook": {
       const body = [
-        `${conditionEmoji} *${laptop.brand} ${laptop.model}* for sale!`,
+        `${conditionEmoji} *LOOKING FOR A SERIOUS UPGRADE? THIS IS IT.*`,
         "",
-        `Price: ${priceStr}`,
-        `Condition: ${laptop.condition}`,
-        specs.length > 0 ? `Specs: ${specs.join(" | ")}` : "",
-        laptop.notes ? `\n${laptop.notes}` : "",
+        `*${laptop.brand} ${laptop.model}* — ${priceStr}`,
+        "",
+        `*Why this machine is a win:*`,
+        ...specLines.map((s) => `  🔹 ${s}`),
+        "",
+        `*Condition:* ${conditionBlurb()}`,
+        laptop.color ? `*Colour:* ${colourNote()}` : "",
+        trustLine(),
+        "",
+        laptop.notes ? `*My 2 cents:* ${laptop.notes}` : "",
         location ? `📍 ${location}` : "",
         "",
-        "Message me to buy or for more info. First come, first served! 🔥",
-        "#laptopsforsale #southafrica #tech",
-      ].join("\n");
+        fomoLine(),
+        "",
+        "*Drop me a message NOW or comment SOLD if you're keen. First come, first served — no holding!* 🔥",
+        "",
+        "#laptopsforsale #southafrica #capetown #johannesburg #durban #techdeals #laptopdeals #workfromhome #studentsa",
+      ].filter(Boolean).join("\n");
 
       return {
         platform: "facebook",
-        title: `SELL: ${laptop.brand} ${laptop.model} — ${priceStr} (${laptop.condition})`,
+        title: `${laptop.brand} ${laptop.model} — ${priceStr} | ${laptop.condition} Condition 🔥`,
         body: body.trim(),
         price,
       };
@@ -295,21 +395,32 @@ function generateOfflineAd(
 
     case "gumtree": {
       const body = [
-        `${laptop.brand} ${laptop.model} — ${laptop.condition} Condition`,
+        `⚡ ${laptop.brand} ${laptop.model} — ${laptop.condition} Condition — ${priceStr}`,
         "",
-        `Price: ${priceStr}`,
+        `If you're reading this, you're in the right place. This ${laptop.brand} ${laptop.model} is an absolute gem and it's priced to move. Here's what you're getting:`,
         "",
-        "Specifications:",
-        ...specs.map((s) => `• ${s}`),
-        laptop.notes ? `\nNotes: ${laptop.notes}` : "",
-        location ? `Location: ${location}` : "",
+        "SPECIFICATIONS & BENEFITS:",
+        ...specLines.map((s) => `  • ${s}`),
         "",
-        "Contact me today — this won't last long!",
-      ].join("\n");
+        `CONDITION: ${conditionBlurb()}`,
+        laptop.color ? `COLOUR: ${colourNote()}` : "",
+        "",
+        `WHAT'S INCLUDED:`,
+        `  • Original charger`,
+        `  • Fresh, clean install — no bloatware, no nonsense`,
+        `  • Fully wiped and reset, ready for its new owner`,
+        "",
+        laptop.notes ? `SELLER'S NOTE: ${laptop.notes}` : "",
+        location ? `LOCATION: ${location}` : "",
+        "",
+        fomoLine(),
+        "",
+        `Contact me today — I respond fast. Don't be the one who misses out on this!`,
+      ].filter(Boolean).join("\n");
 
       return {
         platform: "gumtree",
-        title: `${laptop.brand} ${laptop.model} ${laptop.condition} — ${priceStr}`,
+        title: `${laptop.brand} ${laptop.model} ${laptop.condition} — ${priceStr} | Priced to Sell`,
         body: body.trim(),
         price,
       };
@@ -317,18 +428,34 @@ function generateOfflineAd(
 
     case "olx": {
       const body = [
-        `${laptop.brand} ${laptop.model} for sale in ${location || "South Africa"}.`,
-        `${laptop.condition} condition at ${priceStr}.`,
+        `Looking for a reliable, powerful laptop in ${location || "South Africa"}? This ${laptop.brand} ${laptop.model} ticks every box — and then some.`,
         "",
-        specs.length > 0 ? `Specs: ${specs.join(", ")}` : "",
-        laptop.notes ? `\n${laptop.notes}` : "",
+        `${conditionEmoji} Condition: ${laptop.condition}`,
+        `💰 Price: ${priceStr} (negotiable within reason — but honestly, it's already a steal)`,
         "",
-        "Contact seller for more details. Quick sale preferred.",
-      ].join("\n").trim();
+        "HERE'S WHAT'S UNDER THE HOOD:",
+        ...specLines.map((s) => `  ✦ ${s}`),
+        "",
+        conditionBlurb(),
+        laptop.color ? colourNote() : "",
+        "",
+        "WHY BUY FROM ME?",
+        "  ✓ Charger included — you're sorted from day one",
+        "  ✓ Fresh OS install, zero bloatware, plug and play",
+        "  ✓ Honest condition assessment — what you see is what you get",
+        "  ✓ Fast, friendly communication",
+        "",
+        laptop.notes ? `EXTRA DETAILS: ${laptop.notes}` : "",
+        location ? `📍 ${location} — collection or delivery can be arranged` : "",
+        "",
+        fomoLine(),
+        "",
+        "Send me a message RIGHT NOW — let's get this sorted before someone else grabs it!",
+      ].filter(Boolean).join("\n");
 
       return {
         platform: "olx",
-        title: `${laptop.brand} ${laptop.model} - ${priceStr} [${laptop.condition}]`,
+        title: `${laptop.brand} ${laptop.model} — ${priceStr} [${laptop.condition}] | Must See!`,
         body,
         price,
       };
