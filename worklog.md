@@ -2293,3 +2293,31 @@ Stage Summary:
 - All Facebook fixes included (Post Everywhere dialog, token bridging, withToken helper)
 - Key issue: Future APK builds must follow same process (switch to export mode, move API routes, build, restore, sync, build APK)
 - Dev server already running on port 3000
+
+---
+Task ID: 1
+Agent: Main Agent
+Task: Fix Facebook sharing in Capacitor Android APK
+
+Work Log:
+- Deep analysis of current sharing code in FacebookPostDialog.tsx and Inventory.tsx
+- Research confirmed: navigator.share() does NOT work in Android WebView (Chromium limitation)
+- Research confirmed: window.open(url, '_system') does NOT work in Capacitor WebView
+- Identified @capacitor/share as the ONLY correct solution (wraps native Android ACTION_SEND intent)
+- Installed @capacitor/share@8.0.1 package
+- Rewrote shareWithImages() to use @capacitor/share as primary method in Capacitor
+- Rewrote handleNativeShare() with proper native share flow + clipboard fallback
+- Rewrote handleMarketplace() to use native share sheet with Marketplace URL
+- Fixed WhatsApp sharing in Inventory.tsx with same approach
+- Used dynamic imports to avoid SSR issues during static export build
+- Built fresh static export (output: "export") with API routes temporarily moved
+- Ran cap sync — confirmed @capacitor/share registered in Android native project
+- Built debug APK (16MB) with Gradle
+- Created GitHub release v1.5.0 with APK uploaded
+
+Stage Summary:
+- APK v1.5.0 published: https://github.com/Soft-Dynamix/LaptopFlip/releases/tag/v1.5.0
+- Key fix: @capacitor/share replaces broken window.open('_system') and non-functional navigator.share()
+- Native Android share sheet now appears when user taps Share — they can pick Facebook directly
+- WhatsApp sharing in Inventory.tsx also fixed with same approach
+- All lint checks pass
