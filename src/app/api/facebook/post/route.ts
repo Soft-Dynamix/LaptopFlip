@@ -46,22 +46,41 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get current connection
+    // Get current connection from DB
     const connection = await db.facebookConnection.findFirst({
       orderBy: { createdAt: 'desc' },
     });
 
-    if (!connection || !connection.accessToken) {
+    // Use provided token (page token, user token from client) or DB connection token
+    const accessToken = typeof body.accessToken === 'string' && body.accessToken
+      ? body.accessToken
+      : typeof body.userAccessToken === 'string' && body.userAccessToken
+        ? body.userAccessToken
+        : connection?.accessToken;
+
+    if (!accessToken) {
       return NextResponse.json(
         { error: 'No Facebook connection. Please connect your Facebook account first.' },
         { status: 401 }
       );
     }
 
-    // Use provided accessToken (e.g. page token) or fall back to stored user token
-    const accessToken = typeof body.accessToken === 'string' && body.accessToken
-      ? body.accessToken
-      : connection.accessToken;
+    // Create or reuse connection for DB record
+    let connectionId = connection?.id;
+    if (!connection && accessToken) {
+      // Token came from client (localStorage) — create a DB record
+      const newConn = await db.facebookConnection.create({
+        data: {
+          accessToken,
+          facebookUserId: 'local',
+          facebookName: 'Local User',
+          facebookEmail: '',
+          profilePicUrl: '',
+          tokenExpiresAt: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000), // ~60 days
+        },
+      });
+      connectionId = newConn.id;
+    }
 
     // Get laptop info if laptopId provided (for ad title)
     let adTitle = body.adTitle ?? '';
@@ -77,7 +96,7 @@ export async function POST(request: NextRequest) {
     // Create a pending FacebookPost record first
     const facebookPost = await db.facebookPost.create({
       data: {
-        connectionId: connection.id,
+        connectionId: connectionId,
         listingId: body.listingId ?? null,
         laptopId: body.laptopId ?? null,
         targetType: body.targetType,

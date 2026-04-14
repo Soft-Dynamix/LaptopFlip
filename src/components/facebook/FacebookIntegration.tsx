@@ -17,14 +17,12 @@ import {
   AlertCircle,
   Globe,
   Image as ImageIcon,
-  WifiOff,
   Check,
   X,
   Copy,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import { isLocalMode } from '@/lib/api';
 
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -160,59 +158,56 @@ export function FacebookIntegration({ onConnectedChange }: { onConnectedChange?:
   const [quickStats, setQuickStats] = useState<FacebookQuickStats | null>(null);
   const [showDisconnectDialog, setShowDisconnectDialog] = useState(false);
 
-  const isOffline = typeof window !== 'undefined' && isLocalMode();
-
-  // Fetch connection status
+  // Fetch connection status — always try API first
   const fetchStatus = useCallback(async () => {
     try {
-      // In local mode (APK), check localStorage for saved connection
-      if (isLocalMode()) {
-        try {
-          const saved = localStorage.getItem('laptopflip_fb_connection');
-          if (saved) {
-            const parsed = JSON.parse(saved);
-            if (parsed && parsed.accessToken) {
-              setStatus({
-                connected: true,
-                user: {
-                  id: parsed.facebookUserId || '',
-                  name: parsed.facebookName || 'Facebook User',
-                  pictureUrl: parsed.profilePicUrl || '',
-                  connectedAt: parsed.connectedAt || new Date().toISOString(),
-                },
-              });
-              setLoading(false);
-              return;
-            }
+      // Always try API first (works in both web and APK with local server)
+      try {
+        const res = await fetch('/api/facebook/status');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.connected && data.connection) {
+            setStatus({
+              connected: true,
+              user: {
+                id: data.connection.facebookUserId || data.connection.id || '',
+                name: data.connection.facebookName || 'Facebook User',
+                pictureUrl: data.connection.profilePicUrl || '',
+                connectedAt: data.connection.connectedAt || data.connection.createdAt || '',
+              },
+            });
+            setLoading(false);
+            return;
           }
-        } catch {
-          // localStorage not available or corrupt data
         }
-        setStatus({ connected: false });
-        setLoading(false);
-        return;
+      } catch {
+        // API failed, fall through to localStorage
       }
 
-      const res = await fetch('/api/facebook/status');
-      if (res.ok) {
-        const data = await res.json();
-        // Map API response to component interface
-        if (data.connected && data.connection) {
-          setStatus({
-            connected: true,
-            user: {
-              id: data.connection.facebookUserId || data.connection.id || '',
-              name: data.connection.facebookName || 'Facebook User',
-              pictureUrl: data.connection.profilePicUrl || '',
-              connectedAt: data.connection.connectedAt || data.connection.createdAt || '',
-            },
-          });
-        } else {
-          setStatus({ connected: false });
+      // Fallback: check localStorage
+      try {
+        const saved = localStorage.getItem('laptopflip_fb_connection');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed && parsed.accessToken) {
+            setStatus({
+              connected: true,
+              user: {
+                id: parsed.facebookUserId || '',
+                name: parsed.facebookName || 'Facebook User',
+                pictureUrl: parsed.profilePicUrl || '',
+                connectedAt: parsed.connectedAt || new Date().toISOString(),
+              },
+            });
+            setLoading(false);
+            return;
+          }
         }
-      } else {
-        setStatus({ connected: false });
+      } catch {
+        // localStorage not available or corrupt data
       }
+
+      setStatus({ connected: false });
     } catch {
       setStatus({ connected: false });
     } finally {
@@ -231,9 +226,8 @@ export function FacebookIntegration({ onConnectedChange }: { onConnectedChange?:
     fetchStatus();
   }, [fetchStatus]);
 
-  // Fetch pages when connected
+  // Fetch pages when connected — always try API first
   const fetchPages = useCallback(async () => {
-    if (isLocalMode()) return; // No server in local mode
     setPagesLoading(true);
     try {
       const res = await fetch('/api/facebook/pages');
@@ -259,9 +253,8 @@ export function FacebookIntegration({ onConnectedChange }: { onConnectedChange?:
     }
   }, []);
 
-  // Fetch groups when connected
+  // Fetch groups when connected — always try API first
   const fetchGroups = useCallback(async () => {
-    if (isLocalMode()) return; // No server in local mode
     setGroupsLoading(true);
     try {
       const res = await fetch('/api/facebook/groups');
@@ -286,9 +279,8 @@ export function FacebookIntegration({ onConnectedChange }: { onConnectedChange?:
     }
   }, []);
 
-  // Fetch quick stats
+  // Fetch quick stats — always try API first
   const fetchStats = useCallback(async () => {
-    if (isLocalMode()) return; // No server in local mode
     try {
       const res = await fetch('/api/facebook/insights');
       if (res.ok) {
@@ -334,10 +326,74 @@ export function FacebookIntegration({ onConnectedChange }: { onConnectedChange?:
     setConnectError(null);
 
     try {
-      // In local mode (APK), save token to localStorage directly
-      if (isLocalMode()) {
-        // Simulate a brief delay for UX feedback
-        await new Promise((r) => setTimeout(r, 800));
+      // Always try the API first (works in both web and APK with local server)
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 15000);
+
+      let apiSuccess = false;
+      try {
+        const res = await fetch('/api/facebook/connect', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ accessToken: trimmedToken }),
+          signal: controller.signal,
+        });
+        clearTimeout(timeout);
+
+        if (res.ok) {
+          apiSuccess = true;
+          const data = await res.json();
+          setTokenInput('');
+          setConnectState('success');
+
+          // Also save to localStorage as backup
+          try {
+            localStorage.setItem('laptopflip_fb_connection', JSON.stringify({
+              accessToken: trimmedToken,
+              facebookUserId: data.connection?.facebookUserId || 'api',
+              facebookName: data.connection?.facebookName || 'Facebook User',
+              profilePicUrl: data.connection?.profilePicUrl || '',
+              isTokenValid: true,
+              connectedAt: new Date().toISOString(),
+            }));
+          } catch { /* localStorage not available */ }
+
+          if (data.isLongLived) {
+            toast.success('Facebook connected! Token valid for 60 days.', {
+              description: `Connected as ${data.connection?.facebookName || 'Facebook User'}`,
+              duration: 5000,
+            });
+          } else {
+            toast.success('Facebook connected!', {
+              description: 'Short-lived token saved (~2 hours). Configure App Secret for 60-day tokens.',
+              duration: 7000,
+            });
+          }
+
+          await fetchStatus();
+          setTimeout(() => setConnectState('idle'), 2000);
+        } else {
+          let errorMsg = 'Failed to connect';
+          try {
+            const data = await res.json();
+            errorMsg = data.error || errorMsg;
+            if (res.status === 401) {
+              errorMsg = 'Invalid or expired token. Please generate a fresh token from Facebook Graph Explorer.';
+            }
+          } catch {
+            errorMsg = `Server error (${res.status}). Please try again.`;
+          }
+
+          setConnectError(errorMsg);
+          setConnectState('error');
+          toast.error('Connection failed', { description: errorMsg, duration: 8000 });
+        }
+      } catch (apiErr) {
+        // API failed (offline/truly local) — fall back to localStorage
+        clearTimeout(timeout);
+        console.warn('API connect failed, falling back to localStorage:', apiErr);
+
+        await new Promise((r) => setTimeout(r, 500));
 
         const connectionData = {
           accessToken: trimmedToken,
@@ -347,7 +403,6 @@ export function FacebookIntegration({ onConnectedChange }: { onConnectedChange?:
           profilePicUrl: '',
           isTokenValid: true,
           connectedAt: new Date().toISOString(),
-          isLocalMode: true,
         };
         localStorage.setItem('laptopflip_fb_connection', JSON.stringify(connectionData));
         setStatus({
@@ -362,67 +417,10 @@ export function FacebookIntegration({ onConnectedChange }: { onConnectedChange?:
         setTokenInput('');
         setConnectState('success');
         toast.success('Facebook token saved locally!', {
-          description: 'Token stored on this device.',
+          description: 'Token stored on this device. Go online for full features.',
           duration: 5000,
         });
-        // Reset state after showing success
         setTimeout(() => setConnectState('idle'), 2000);
-        return;
-      }
-
-      // Server mode: call API with timeout
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 15000);
-
-      const res = await fetch('/api/facebook/connect', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ accessToken: trimmedToken }),
-        signal: controller.signal,
-      });
-      clearTimeout(timeout);
-
-      if (res.ok) {
-        const data = await res.json();
-        setTokenInput('');
-        setConnectState('success');
-
-        if (data.isLongLived) {
-          toast.success('Facebook connected! Token valid for 60 days.', {
-            description: `Connected as ${data.connection?.facebookName || 'Facebook User'}`,
-            duration: 5000,
-          });
-        } else {
-          toast.success('Facebook connected!', {
-            description: 'Short-lived token saved (~2 hours). Configure App Secret for 60-day tokens.',
-            duration: 7000,
-          });
-        }
-
-        await fetchStatus();
-        setTimeout(() => setConnectState('idle'), 2000);
-      } else {
-        // Parse error from server
-        let errorMsg = 'Failed to connect';
-        try {
-          const data = await res.json();
-          errorMsg = data.error || errorMsg;
-
-          // Provide more helpful error messages
-          if (res.status === 401) {
-            errorMsg = 'Invalid or expired token. Please generate a fresh token from Facebook Graph Explorer.';
-          }
-        } catch {
-          errorMsg = `Server error (${res.status}). Please try again.`;
-        }
-
-        setConnectError(errorMsg);
-        setConnectState('error');
-        toast.error('Connection failed', {
-          description: errorMsg,
-          duration: 8000,
-        });
-        // Keep error visible, user can dismiss by typing a new token
       }
     } catch (err) {
       if (err instanceof DOMException && err.name === 'AbortError') {
@@ -433,13 +431,28 @@ export function FacebookIntegration({ onConnectedChange }: { onConnectedChange?:
         toast.error('Network error', { duration: 5000 });
       }
       setConnectState('error');
-    } finally {
-      // Don't reset to idle on error — keep the error state visible
-      if (connectState !== 'error') {
-        // Will be reset by success timeout
-      }
     }
   };
+
+  // Auto-read clipboard when component mounts
+  useEffect(() => {
+    if (status?.connected) return;
+    const tryReadClipboard = async () => {
+      try {
+        if (navigator.clipboard?.readText) {
+          const text = await navigator.clipboard.readText();
+          // Facebook tokens are long strings without spaces
+          if (text && text.length > 50 && !text.includes(' ') && !text.includes('\n')) {
+            setTokenInput(text);
+            toast.success('Token detected from clipboard!', { duration: 3000 });
+          }
+        }
+      } catch {
+        // Clipboard permission denied or not available — that's fine
+      }
+    };
+    tryReadClipboard();
+  }, [status?.connected]);
 
   // Clear error when user types a new token
   const handleTokenChange = (value: string) => {
@@ -460,31 +473,25 @@ export function FacebookIntegration({ onConnectedChange }: { onConnectedChange?:
   const handleDisconnect = async () => {
     setDisconnecting(true);
     try {
-      // In local mode, clear localStorage
-      if (isLocalMode()) {
-        localStorage.removeItem('laptopflip_fb_connection');
+      // Clear localStorage regardless
+      try { localStorage.removeItem('laptopflip_fb_connection'); } catch {}
+
+      // Try server disconnect
+      try {
+        const res = await fetch('/api/facebook/disconnect', { method: 'POST' });
+        if (res.ok) {
+          toast.success('Facebook account disconnected');
+        }
+      } catch {
+        // Server not available, localStorage already cleared
         toast.success('Facebook token removed from this device');
-        setStatus({ connected: false });
-        if (onConnectedChange) onConnectedChange(false);
-        setPages([]);
-        setGroups([]);
-        setQuickStats(null);
-        setDisconnecting(false);
-        setShowDisconnectDialog(false);
-        return;
       }
 
-      const res = await fetch('/api/facebook/disconnect', { method: 'POST' });
-      if (res.ok) {
-        toast.success('Facebook account disconnected');
-        setStatus({ connected: false });
-        if (onConnectedChange) onConnectedChange(false);
-        setPages([]);
-        setGroups([]);
-        setQuickStats(null);
-      } else {
-        toast.error('Failed to disconnect');
-      }
+      setStatus({ connected: false });
+      if (onConnectedChange) onConnectedChange(false);
+      setPages([]);
+      setGroups([]);
+      setQuickStats(null);
     } catch {
       toast.error('Failed to disconnect');
     } finally {
@@ -553,16 +560,6 @@ export function FacebookIntegration({ onConnectedChange }: { onConnectedChange?:
             </div>
 
             <CardContent className="p-4 space-y-4">
-              {/* Offline mode banner */}
-              {isOffline && (
-                <div className="flex items-center gap-2 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg px-3 py-2">
-                  <WifiOff className="size-4 text-amber-600 dark:text-amber-400 shrink-0" />
-                  <p className="text-xs text-amber-700 dark:text-amber-300">
-                    Offline mode — token will be saved locally on this device
-                  </p>
-                </div>
-              )}
-
               {/* Quick Connect Banner */}
               <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-xl p-3.5">
                 <div className="flex items-start gap-2.5">
