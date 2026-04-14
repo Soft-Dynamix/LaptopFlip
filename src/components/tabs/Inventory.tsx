@@ -815,7 +815,7 @@ export function Inventory() {
           <motion.div
             key={chip.value}
             whileTap={{ scale: 0.9 }}
-            animate={filterStatus === chip.value ? { scale: [1, 1.05, 1] } : { scale: 1 }}
+            animate={filterStatus === chip.value ? { scale: 1.05 } : { scale: 1 }}
             transition={filterStatus === chip.value ? { type: "spring", stiffness: 400, damping: 15 } : { duration: 0.15 }}
           >
             <Button
