@@ -1,4 +1,40 @@
 ---
+Task ID: release-v160
+Agent: Main
+Task: Build and release APK v1.6.0
+
+Work Log:
+- Assessed project state: many improvements since v1.5.0 were never packaged into APK
+- Added improvements for v1.6.0:
+  - Version bump to 1.6.0 in Settings.tsx (badge + about section)
+  - "What's New" changelog section in Settings with 7 feature highlights
+  - "This Week" summary widget on Dashboard (listed/sold/revenue)
+  - Custom emerald-tinted scrollbar styling globally
+- Built APK:
+  - Switched next.config.ts to output: "export"
+  - Moved API routes to /tmp/api-routes-backup/
+  - npx next build → static export successful
+  - npx cap sync android → 5 plugins synced in 0.3s
+  - ./gradlew assembleDebug → BUILD SUCCESSFUL (243 tasks, 2s)
+  - APK: 16MB at download/LaptopFlip-v1.6.0-debug.apk
+- Restored dev environment:
+  - API routes restored to src/app/api/
+  - next.config.ts back to output: "standalone"
+  - Dev server running (HTTP 200)
+- GitHub release:
+  - Committed: "feat: v1.6.0 — Performance & Polish release"
+  - Pushed to main (a0c6054..dac8939)
+  - Created release v1.6.0 (ID: 309054774)
+  - Uploaded APK (16.4MB)
+  - Release URL: https://github.com/Soft-Dynamix/LaptopFlip/releases/tag/v1.6.0
+
+Stage Summary:
+- APK v1.6.0 (16MB) released to GitHub
+- Includes all accumulated improvements since v1.5.0
+- Dev environment fully restored
+- ESLint clean, dev server running
+
+---
 Task ID: 1
 Agent: Main
 Task: Version 1.6.0 improvements — version bump, changelog, weekly widget, scrollbar styling
