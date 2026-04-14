@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useSession } from 'next-auth/react';
 import {
   Facebook,
   CheckCircle2,
@@ -21,9 +20,13 @@ import {
   Globe,
   Image as ImageIcon,
   LogIn,
+  WifiOff,
+  Check,
+  X,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { isLocalMode } from '@/lib/api';
 
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -98,6 +101,8 @@ interface FacebookQuickStats {
   totalImpressions: number;
 }
 
+type ConnectState = 'idle' | 'connecting' | 'success' | 'error';
+
 // ─── Animation variants ───────────────────────────
 
 const container = {
@@ -152,7 +157,8 @@ export function FacebookIntegration({ onConnectedChange }: { onConnectedChange?:
   const [status, setStatus] = useState<FacebookConnectionStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [tokenInput, setTokenInput] = useState('');
-  const [connecting, setConnecting] = useState(false);
+  const [connectState, setConnectState] = useState<ConnectState>('idle');
+  const [connectError, setConnectError] = useState<string | null>(null);
   const [disconnecting, setDisconnecting] = useState(false);
   const [showTokenGuide, setShowTokenGuide] = useState(false);
   const [pages, setPages] = useState<FacebookPage[]>([]);
@@ -162,15 +168,46 @@ export function FacebookIntegration({ onConnectedChange }: { onConnectedChange?:
   const [quickStats, setQuickStats] = useState<FacebookQuickStats | null>(null);
   const [showDisconnectDialog, setShowDisconnectDialog] = useState(false);
   const [nextAuthConnecting, setNextAuthConnecting] = useState(false);
-  const { data: session } = useSession();
 
-  const hasAppId = typeof window !== 'undefined' && !!process.env.NEXT_PUBLIC_FACEBOOK_APP_ID;
+  const isOffline = typeof window !== 'undefined' && isLocalMode();
+
+  // Check if Facebook App is properly configured (not placeholder)
+  const isFacebookAppConfigured =
+    typeof window !== 'undefined' &&
+    !!process.env.NEXT_PUBLIC_FACEBOOK_APP_ID &&
+    process.env.NEXT_PUBLIC_FACEBOOK_APP_ID !== 'your_facebook_app_id_here';
 
   // Fetch connection status
-  // The API returns { connected, connection: { facebookUserId, facebookName, ... } }
-  // but the component expects { connected, user: { id, name, pictureUrl, connectedAt } }
   const fetchStatus = useCallback(async () => {
     try {
+      // In local mode (APK), check localStorage for saved connection
+      if (isLocalMode()) {
+        try {
+          const saved = localStorage.getItem('laptopflip_fb_connection');
+          if (saved) {
+            const parsed = JSON.parse(saved);
+            if (parsed && parsed.accessToken) {
+              setStatus({
+                connected: true,
+                user: {
+                  id: parsed.facebookUserId || '',
+                  name: parsed.facebookName || 'Facebook User',
+                  pictureUrl: parsed.profilePicUrl || '',
+                  connectedAt: parsed.connectedAt || new Date().toISOString(),
+                },
+              });
+              setLoading(false);
+              return;
+            }
+          }
+        } catch {
+          // localStorage not available or corrupt data
+        }
+        setStatus({ connected: false });
+        setLoading(false);
+        return;
+      }
+
       const res = await fetch('/api/facebook/status');
       if (res.ok) {
         const data = await res.json();
@@ -211,6 +248,7 @@ export function FacebookIntegration({ onConnectedChange }: { onConnectedChange?:
 
   // Fetch pages when connected
   const fetchPages = useCallback(async () => {
+    if (isLocalMode()) return; // No server in local mode
     setPagesLoading(true);
     try {
       const res = await fetch('/api/facebook/pages');
@@ -227,6 +265,7 @@ export function FacebookIntegration({ onConnectedChange }: { onConnectedChange?:
 
   // Fetch groups when connected
   const fetchGroups = useCallback(async () => {
+    if (isLocalMode()) return; // No server in local mode
     setGroupsLoading(true);
     try {
       const res = await fetch('/api/facebook/groups');
@@ -243,6 +282,7 @@ export function FacebookIntegration({ onConnectedChange }: { onConnectedChange?:
 
   // Fetch quick stats
   const fetchStats = useCallback(async () => {
+    if (isLocalMode()) return; // No server in local mode
     try {
       const res = await fetch('/api/facebook/insights');
       if (res.ok) {
@@ -263,15 +303,7 @@ export function FacebookIntegration({ onConnectedChange }: { onConnectedChange?:
     }
   }, [status?.connected, fetchPages, fetchGroups, fetchStats]);
 
-  // Check if Facebook App is properly configured (not placeholder)
-  const isFacebookAppConfigured =
-    typeof window !== 'undefined' &&
-    !!process.env.NEXT_PUBLIC_FACEBOOK_APP_ID &&
-    process.env.NEXT_PUBLIC_FACEBOOK_APP_ID !== 'your_facebook_app_id_here';
-
-  // NextAuth Facebook Sign-In (redirect-based flow)
-  // NOTE: redirect:false doesn't work reliably in Next.js 16 App Router.
-  // We use a full redirect to Facebook OAuth, then handle the callback on return.
+  // NextAuth Facebook Sign-In
   const handleNextAuthSignIn = () => {
     if (!isFacebookAppConfigured) {
       toast.error('Facebook App not configured', {
@@ -281,35 +313,92 @@ export function FacebookIntegration({ onConnectedChange }: { onConnectedChange?:
       return;
     }
     setNextAuthConnecting(true);
-    // Store that we're expecting a callback so we can restore settings tab
     try {
       sessionStorage.setItem('fb_connect_pending', '1');
     } catch {
       // sessionStorage may not be available
     }
-    // Redirect to NextAuth Facebook sign-in — will come back to /?fb_callback=1
     window.location.href = `/api/auth/signin/facebook?callbackUrl=${encodeURIComponent(window.location.origin + '/?fb_callback=1')}`;
   };
 
-  // This useEffect has been moved to page.tsx (top-level) since the redirect
-  // lands on the root page (/), not on a /settings route.
-  // See page.tsx → handleFacebookCallback()
-
-  // Connect with manual token
+  // ─── Connect with manual token (MAIN FIX) ───────
   const handleConnect = async () => {
-    if (!tokenInput.trim()) {
-      toast.error('Please enter an access token');
+    const trimmedToken = tokenInput.trim();
+
+    // Validate token before sending
+    if (!trimmedToken) {
+      setConnectError('Please enter an access token');
       return;
     }
-    setConnecting(true);
+
+    // Basic validation: Facebook tokens are long strings (no spaces)
+    if (trimmedToken.includes(' ')) {
+      setConnectError('Token should not contain spaces. Make sure you copied the full token without any extra characters.');
+      return;
+    }
+
+    if (trimmedToken.length < 20) {
+      setConnectError('Token seems too short. Facebook access tokens are typically 100+ characters long.');
+      return;
+    }
+
+    setConnectState('connecting');
+    setConnectError(null);
+
     try {
+      // In local mode (APK), save token to localStorage directly
+      if (isLocalMode()) {
+        // Simulate a brief delay for UX feedback
+        await new Promise((r) => setTimeout(r, 800));
+
+        const connectionData = {
+          accessToken: trimmedToken,
+          facebookUserId: 'local_user',
+          facebookName: 'Local User',
+          facebookEmail: '',
+          profilePicUrl: '',
+          isTokenValid: true,
+          connectedAt: new Date().toISOString(),
+          isLocalMode: true,
+        };
+        localStorage.setItem('laptopflip_fb_connection', JSON.stringify(connectionData));
+        setStatus({
+          connected: true,
+          user: {
+            id: connectionData.facebookUserId,
+            name: connectionData.facebookName,
+            pictureUrl: connectionData.profilePicUrl,
+            connectedAt: connectionData.connectedAt,
+          },
+        });
+        setTokenInput('');
+        setConnectState('success');
+        toast.success('Facebook token saved locally!', {
+          description: 'Token stored on this device.',
+          duration: 5000,
+        });
+        // Reset state after showing success
+        setTimeout(() => setConnectState('idle'), 2000);
+        return;
+      }
+
+      // Server mode: call API with timeout
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 15000);
+
       const res = await fetch('/api/facebook/connect', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ accessToken: tokenInput.trim() }),
+        body: JSON.stringify({ accessToken: trimmedToken }),
+        signal: controller.signal,
       });
+      clearTimeout(timeout);
+
       if (res.ok) {
         const data = await res.json();
+        setTokenInput('');
+        setConnectState('success');
+
         if (data.isLongLived) {
           toast.success('Facebook connected! Token valid for 60 days.', {
             description: `Connected as ${data.connection?.facebookName || 'Facebook User'}`,
@@ -317,86 +406,86 @@ export function FacebookIntegration({ onConnectedChange }: { onConnectedChange?:
           });
         } else {
           toast.success('Facebook connected!', {
-            description: 'Short-lived token saved (~2 hours). Add FACEBOOK_APP_SECRET to .env for 60-day tokens.',
+            description: 'Short-lived token saved (~2 hours). Configure App Secret for 60-day tokens.',
             duration: 7000,
           });
         }
-        setTokenInput('');
-        await fetchStatus();
-      } else {
-        const data = await res.json().catch(() => ({}));
-        toast.error(data.error || 'Failed to connect', {
-          description: 'Make sure your token is valid. Generate a new one from developers.facebook.com/tools/explorer/',
-          duration: 6000,
-        });
-      }
-    } catch {
-      toast.error('Connection failed. Check your network and try again.');
-    } finally {
-      setConnecting(false);
-    }
-  };
 
-  // Connect with OAuth (FB SDK)
-  const handleOAuthConnect = () => {
-    if (!hasAppId) return;
-    try {
-      // Use FB SDK if loaded, otherwise redirect
-      if (typeof window !== 'undefined' && (window as unknown as Record<string, unknown>).FB) {
-        const FB = (window as any).FB as {
-          login: (cb: (res: { authResponse?: { accessToken: string } }) => void, opts: Record<string, unknown>) => void;
-        };
-        FB.login(
-          (response: { authResponse?: { accessToken: string } }) => {
-            if (response.authResponse?.accessToken) {
-              handleTokenConnect(response.authResponse.accessToken);
-            } else {
-              toast.error('Facebook login was cancelled');
-            }
-          },
-          {
-            scope: 'pages_manage_posts,pages_read_engagement,publish_to_groups,groups_access_member_info',
+        await fetchStatus();
+        setTimeout(() => setConnectState('idle'), 2000);
+      } else {
+        // Parse error from server
+        let errorMsg = 'Failed to connect';
+        try {
+          const data = await res.json();
+          errorMsg = data.error || errorMsg;
+
+          // Provide more helpful error messages
+          if (res.status === 401) {
+            errorMsg = 'Invalid or expired token. Please generate a fresh token from Facebook Graph Explorer.';
           }
-        );
-      } else {
-        toast.info('Facebook SDK not loaded. Use manual token entry.');
+        } catch {
+          errorMsg = `Server error (${res.status}). Please try again.`;
+        }
+
+        setConnectError(errorMsg);
+        setConnectState('error');
+        toast.error('Connection failed', {
+          description: errorMsg,
+          duration: 8000,
+        });
+        // Keep error visible, user can dismiss by typing a new token
       }
-    } catch {
-      toast.error('OAuth connection failed. Use manual token entry.');
+    } catch (err) {
+      if (err instanceof DOMException && err.name === 'AbortError') {
+        setConnectError('Connection timed out. Check your internet connection and try again.');
+        toast.error('Connection timed out', { duration: 5000 });
+      } else {
+        setConnectError('Network error. Please check your connection and try again.');
+        toast.error('Network error', { duration: 5000 });
+      }
+      setConnectState('error');
+    } finally {
+      // Don't reset to idle on error — keep the error state visible
+      if (connectState !== 'error') {
+        // Will be reset by success timeout
+      }
     }
   };
 
-  const handleTokenConnect = async (token: string) => {
-    setConnecting(true);
-    try {
-      const res = await fetch('/api/facebook/connect', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ accessToken: token }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.isLongLived) {
-          toast.success('Facebook connected! Token valid for 60 days.');
-        } else {
-          toast.success('Facebook connected! (Short-lived token, ~2 hours)');
-        }
-        await fetchStatus();
-      } else {
-        const data = await res.json().catch(() => ({}));
-        toast.error(data.error || 'Failed to connect');
-      }
-    } catch {
-      toast.error('Connection failed');
-    } finally {
-      setConnecting(false);
+  // Clear error when user types a new token
+  const handleTokenChange = (value: string) => {
+    setTokenInput(value);
+    if (connectState === 'error') {
+      setConnectState('idle');
+      setConnectError(null);
     }
+  };
+
+  // Retry handler
+  const handleRetry = () => {
+    setConnectState('idle');
+    setConnectError(null);
   };
 
   // Disconnect
   const handleDisconnect = async () => {
     setDisconnecting(true);
     try {
+      // In local mode, clear localStorage
+      if (isLocalMode()) {
+        localStorage.removeItem('laptopflip_fb_connection');
+        toast.success('Facebook token removed from this device');
+        setStatus({ connected: false });
+        if (onConnectedChange) onConnectedChange(false);
+        setPages([]);
+        setGroups([]);
+        setQuickStats(null);
+        setDisconnecting(false);
+        setShowDisconnectDialog(false);
+        return;
+      }
+
       const res = await fetch('/api/facebook/disconnect', { method: 'POST' });
       if (res.ok) {
         toast.success('Facebook account disconnected');
@@ -429,6 +518,10 @@ export function FacebookIntegration({ onConnectedChange }: { onConnectedChange?:
 
   // ─── Not Connected ─────────────────────────────
   if (!status?.connected) {
+    const isConnecting = connectState === 'connecting';
+    const isSuccess = connectState === 'success';
+    const isError = connectState === 'error';
+
     return (
       <motion.div variants={container} initial="hidden" animate="show">
         {/* Connect Card */}
@@ -472,22 +565,26 @@ export function FacebookIntegration({ onConnectedChange }: { onConnectedChange?:
             </div>
 
             <CardContent className="p-4 space-y-4">
+              {/* Offline mode banner */}
+              {isOffline && (
+                <div className="flex items-center gap-2 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg px-3 py-2">
+                  <WifiOff className="size-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                  <p className="text-xs text-amber-700 dark:text-amber-300">
+                    Offline mode — token will be saved locally on this device
+                  </p>
+                </div>
+              )}
+
               {/* Primary: NextAuth Facebook Login */}
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
                   <LogIn className="size-4 text-muted-foreground" />
                   <p className="text-sm font-medium">Facebook Login</p>
-                  {session && (
-                    <Badge className="bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 border-0 text-[10px] gap-1">
-                      <CheckCircle2 className="size-3" />
-                      Signed In
-                    </Badge>
-                  )}
                 </div>
 
                 <Button
                   onClick={handleNextAuthSignIn}
-                  disabled={nextAuthConnecting || connecting}
+                  disabled={nextAuthConnecting || isConnecting}
                   className={cn(
                     'w-full h-11 rounded-lg gap-2.5 text-sm font-semibold shadow-md',
                     isFacebookAppConfigured
@@ -522,7 +619,11 @@ export function FacebookIntegration({ onConnectedChange }: { onConnectedChange?:
                 </p>
               </div>
 
-              <Separator />
+              <div className="flex items-center gap-3">
+                <Separator className="flex-1" />
+                <span className="text-[10px] text-muted-foreground font-medium uppercase">or</span>
+                <Separator className="flex-1" />
+              </div>
 
               {/* Manual Token Entry (fallback) */}
               <div className="space-y-3">
@@ -531,26 +632,123 @@ export function FacebookIntegration({ onConnectedChange }: { onConnectedChange?:
                   <p className="text-sm font-medium">Manual Token Entry</p>
                 </div>
 
+                {/* Token input + Connect button */}
                 <div className="flex gap-2">
-                  <Input
-                    placeholder="Paste your access token..."
-                    className="flex-1 rounded-lg text-sm h-10"
-                    value={tokenInput}
-                    onChange={(e) => setTokenInput(e.target.value)}
-                    type="password"
-                  />
+                  <div className="flex-1 relative">
+                    <Input
+                      placeholder="Paste your access token..."
+                      className={cn(
+                        'rounded-lg text-sm h-11 pr-8',
+                        isError && 'border-red-300 dark:border-red-700 focus-visible:ring-red-300',
+                        isSuccess && 'border-emerald-300 dark:border-emerald-700 focus-visible:ring-emerald-300'
+                      )}
+                      value={tokenInput}
+                      onChange={(e) => handleTokenChange(e.target.value)}
+                      type="password"
+                      disabled={isConnecting}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !isConnecting && tokenInput.trim()) {
+                          handleConnect();
+                        }
+                      }}
+                    />
+                    {/* Clear button */}
+                    {tokenInput && !isConnecting && (
+                      <button
+                        onClick={() => {
+                          setTokenInput('');
+                          setConnectState('idle');
+                          setConnectError(null);
+                        }}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 size-6 rounded-full bg-muted hover:bg-muted-foreground/10 flex items-center justify-center transition-colors"
+                      >
+                        <X className="size-3 text-muted-foreground" />
+                      </button>
+                    )}
+                  </div>
                   <Button
-                    onClick={handleConnect}
-                    disabled={connecting || !tokenInput.trim()}
-                    className="h-10 rounded-lg bg-[#1877F2] hover:bg-[#1565D8] text-white px-4"
+                    onClick={isError ? handleRetry : handleConnect}
+                    disabled={isConnecting || (!tokenInput.trim() && !isError)}
+                    className={cn(
+                      'h-11 rounded-lg text-white px-5 text-sm font-semibold transition-all duration-300 min-w-[90px]',
+                      isConnecting
+                        ? 'bg-[#1877F2]/80 cursor-wait'
+                        : isSuccess
+                        ? 'bg-emerald-500 hover:bg-emerald-600'
+                        : isError
+                        ? 'bg-amber-500 hover:bg-amber-600'
+                        : 'bg-[#1877F2] hover:bg-[#1565D8]'
+                    )}
                   >
-                    {connecting ? (
-                      <Loader2 className="size-4 animate-spin" />
+                    {isConnecting ? (
+                      <motion.div
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                      >
+                        <Loader2 className="size-4" />
+                      </motion.div>
+                    ) : isSuccess ? (
+                      <motion.div
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        transition={{ type: 'spring', stiffness: 400, damping: 20 }}
+                      >
+                        <Check className="size-5" />
+                      </motion.div>
+                    ) : isError ? (
+                      'Retry'
                     ) : (
                       'Connect'
                     )}
                   </Button>
                 </div>
+
+                {/* Inline error message */}
+                <AnimatePresence>
+                  {connectError && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -8, height: 0 }}
+                      animate={{ opacity: 1, y: 0, height: 'auto' }}
+                      exit={{ opacity: 0, y: -8, height: 0 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <div className="flex items-start gap-2 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-lg px-3 py-2.5">
+                        <AlertCircle className="size-4 text-red-500 shrink-0 mt-0.5" />
+                        <p className="text-xs text-red-700 dark:text-red-300 leading-relaxed flex-1">
+                          {connectError}
+                        </p>
+                        <button
+                          onClick={() => {
+                            setConnectError(null);
+                            setConnectState('idle');
+                          }}
+                          className="shrink-0 mt-0.5"
+                        >
+                          <X className="size-3.5 text-red-400 hover:text-red-600" />
+                        </button>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* Success message */}
+                <AnimatePresence>
+                  {isSuccess && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -8, height: 0 }}
+                      animate={{ opacity: 1, y: 0, height: 'auto' }}
+                      exit={{ opacity: 0, y: -8, height: 0 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <div className="flex items-center gap-2 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-lg px-3 py-2.5">
+                        <CheckCircle2 className="size-4 text-emerald-500 shrink-0" />
+                        <p className="text-xs text-emerald-700 dark:text-emerald-300 font-medium">
+                          Connected successfully!
+                        </p>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
 
                 {/* Token guide */}
                 <Collapsible open={showTokenGuide} onOpenChange={setShowTokenGuide}>
