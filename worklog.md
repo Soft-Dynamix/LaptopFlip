@@ -1,4 +1,35 @@
 ---
+Task ID: fix-facebook-connect-ux
+Agent: Main
+Task: Fix Facebook account connection - simplify UX and remove broken OAuth flow
+
+Work Log:
+- Diagnosed why users can't connect Facebook:
+  1. "Sign in with Facebook" button doesn't work — `NEXT_PUBLIC_FACEBOOK_APP_ID` and `FACEBOOK_APP_SECRET` not configured in `.env`
+  2. Manual token entry was buried under "or" separator with confusing instructions
+  3. Token guide was hidden behind a collapsible toggle — most users never saw it
+  4. Permission names were listed in plain text — hard to select/copy
+- Fix: Completely rewrote the connection UI:
+  - Removed broken "Sign in with Facebook" OAuth button (needs server config)
+  - Removed "or" separator — token entry is now the primary (only) method
+  - Added prominent amber "Connect in 4 easy steps" banner at the top
+  - Token guide is now **always visible** (not hidden behind toggle)
+  - Permission names displayed as blue chips with a "Copy all" button
+  - Added direct "Open Explorer" link in step 1
+  - Reduced from 5 steps to 3 clear steps
+  - Added PERMISSIONS constant array for copy-all feature
+- Cleaned up unused code: removed LogIn, ChevronDown, ChevronUp, Collapsible imports
+- Removed nextAuthConnecting state and handleNextAuthSignIn function
+- Removed showTokenGuide state and isFacebookAppConfigured check
+- ESLint clean (0 errors), dev server compiled successfully
+
+Stage Summary:
+- Facebook connection UI is now dead simple: 3 steps + copy permissions + paste token + connect
+- No more confusion about OAuth vs manual — just one clear flow
+- Permission chips with copy-all make it easy to set up Graph Explorer correctly
+- All unused code removed, no lint errors
+
+---
 Task ID: fix-post-everywhere-stale-closure
 Agent: Main
 Task: Fix "Post Everywhere" dialog opening then immediately closing (doing nothing)

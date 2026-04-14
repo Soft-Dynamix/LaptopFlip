@@ -9,8 +9,6 @@ import {
   Users,
   Store,
   BarChart3,
-  ChevronDown,
-  ChevronUp,
   RefreshCw,
   Unplug,
   ExternalLink,
@@ -19,10 +17,10 @@ import {
   AlertCircle,
   Globe,
   Image as ImageIcon,
-  LogIn,
   WifiOff,
   Check,
   X,
+  Copy,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -46,11 +44,6 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible';
 
 // ─── Types ────────────────────────────────────────
 
@@ -143,12 +136,12 @@ const FEATURES = [
   },
 ];
 
+const PERMISSIONS = ['pages_manage_posts', 'pages_read_engagement', 'publish_to_groups', 'groups_access_member_info'];
+
 const TOKEN_STEPS = [
-  'Go to developers.facebook.com/tools/explorer/',
-  'Select your app or create a test app',
-  'Select "User access token"',
-  'Add permissions: pages_manage_posts, pages_read_engagement, publish_to_groups, groups_access_member_info',
-  'Generate token and paste it below',
+  { step: 1, text: 'Open Facebook Graph Explorer in your browser', action: 'https://developers.facebook.com/tools/explorer/', actionLabel: 'Open Explorer' },
+  { step: 2, text: 'Click "User access token" and add these permissions:' },
+  { step: 3, text: 'Click "Generate Access Token" → copy the token → paste below' },
 ];
 
 // ─── Component ────────────────────────────────────
@@ -160,22 +153,14 @@ export function FacebookIntegration({ onConnectedChange }: { onConnectedChange?:
   const [connectState, setConnectState] = useState<ConnectState>('idle');
   const [connectError, setConnectError] = useState<string | null>(null);
   const [disconnecting, setDisconnecting] = useState(false);
-  const [showTokenGuide, setShowTokenGuide] = useState(false);
   const [pages, setPages] = useState<FacebookPage[]>([]);
   const [pagesLoading, setPagesLoading] = useState(false);
   const [groups, setGroups] = useState<FacebookGroup[]>([]);
   const [groupsLoading, setGroupsLoading] = useState(false);
   const [quickStats, setQuickStats] = useState<FacebookQuickStats | null>(null);
   const [showDisconnectDialog, setShowDisconnectDialog] = useState(false);
-  const [nextAuthConnecting, setNextAuthConnecting] = useState(false);
 
   const isOffline = typeof window !== 'undefined' && isLocalMode();
-
-  // Check if Facebook App is properly configured (not placeholder)
-  const isFacebookAppConfigured =
-    typeof window !== 'undefined' &&
-    !!process.env.NEXT_PUBLIC_FACEBOOK_APP_ID &&
-    process.env.NEXT_PUBLIC_FACEBOOK_APP_ID !== 'your_facebook_app_id_here';
 
   // Fetch connection status
   const fetchStatus = useCallback(async () => {
@@ -324,25 +309,7 @@ export function FacebookIntegration({ onConnectedChange }: { onConnectedChange?:
     }
   }, [status?.connected, fetchPages, fetchGroups, fetchStats]);
 
-  // NextAuth Facebook Sign-In
-  const handleNextAuthSignIn = () => {
-    if (!isFacebookAppConfigured) {
-      toast.error('Facebook App not configured', {
-        description: 'Set NEXT_PUBLIC_FACEBOOK_APP_ID and FACEBOOK_APP_SECRET in .env to enable OAuth login. Use manual token entry below.',
-        duration: 6000,
-      });
-      return;
-    }
-    setNextAuthConnecting(true);
-    try {
-      sessionStorage.setItem('fb_connect_pending', '1');
-    } catch {
-      // sessionStorage may not be available
-    }
-    window.location.href = `/api/auth/signin/facebook?callbackUrl=${encodeURIComponent(window.location.origin + '/?fb_callback=1')}`;
-  };
-
-  // ─── Connect with manual token (MAIN FIX) ───────
+  // ─── Connect with manual token ───────────────────
   const handleConnect = async () => {
     const trimmedToken = tokenInput.trim();
 
@@ -596,68 +563,29 @@ export function FacebookIntegration({ onConnectedChange }: { onConnectedChange?:
                 </div>
               )}
 
-              {/* Primary: NextAuth Facebook Login */}
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <LogIn className="size-4 text-muted-foreground" />
-                  <p className="text-sm font-medium">Facebook Login</p>
+              {/* Quick Connect Banner */}
+              <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-xl p-3.5">
+                <div className="flex items-start gap-2.5">
+                  <div className="size-8 rounded-lg bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center shrink-0">
+                    <Shield className="size-4 text-amber-600 dark:text-amber-400" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-xs font-semibold text-amber-800 dark:text-amber-300">
+                      Connect in 4 easy steps
+                    </p>
+                    <p className="text-[10px] text-amber-700 dark:text-amber-400 mt-0.5 leading-relaxed">
+                      Generate a free access token from Facebook, paste it below, and you&apos;re connected!
+                    </p>
+                  </div>
                 </div>
-
-                <Button
-                  onClick={handleNextAuthSignIn}
-                  disabled={nextAuthConnecting || isConnecting}
-                  className={cn(
-                    'w-full h-11 rounded-lg gap-2.5 text-sm font-semibold shadow-md',
-                    isFacebookAppConfigured
-                      ? 'bg-[#1877F2] hover:bg-[#1565D8] text-white shadow-[#1877F2]/20'
-                      : 'bg-muted text-muted-foreground shadow-none border border-dashed border-muted-foreground/30 cursor-pointer'
-                  )}
-                >
-                  {nextAuthConnecting ? (
-                    <>
-                      <Loader2 className="size-4 animate-spin" />
-                      Connecting...
-                    </>
-                  ) : (
-                    <>
-                      <svg className="size-5" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
-                      </svg>
-                      {isFacebookAppConfigured ? 'Sign in with Facebook' : 'Sign in with Facebook'}
-                    </>
-                  )}
-                </Button>
-                <p className={cn(
-                  'text-[10px] text-center leading-relaxed',
-                  isFacebookAppConfigured
-                    ? 'text-muted-foreground'
-                    : 'text-amber-600 dark:text-amber-400'
-                )}>
-                  {isFacebookAppConfigured
-                    ? 'Uses secure OAuth. Your credentials never touch our servers.'
-                    : '⚠ Facebook App not configured. Click for setup instructions.'
-                  }
-                </p>
               </div>
 
-              <div className="flex items-center gap-3">
-                <Separator className="flex-1" />
-                <span className="text-[10px] text-muted-foreground font-medium uppercase">or</span>
-                <Separator className="flex-1" />
-              </div>
-
-              {/* Manual Token Entry (fallback) */}
+              {/* Token input + Connect button */}
               <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <Shield className="size-4 text-muted-foreground" />
-                  <p className="text-sm font-medium">Manual Token Entry</p>
-                </div>
-
-                {/* Token input + Connect button */}
                 <div className="flex gap-2">
                   <div className="flex-1 relative">
                     <Input
-                      placeholder="Paste your access token..."
+                      placeholder="Paste your Facebook access token here..."
                       className={cn(
                         'rounded-lg text-sm h-11 pr-8',
                         isError && 'border-red-300 dark:border-red-700 focus-visible:ring-red-300',
@@ -771,50 +699,53 @@ export function FacebookIntegration({ onConnectedChange }: { onConnectedChange?:
                   )}
                 </AnimatePresence>
 
-                {/* Token guide */}
-                <Collapsible open={showTokenGuide} onOpenChange={setShowTokenGuide}>
-                  <CollapsibleTrigger asChild>
-                    <button className="flex items-center gap-1.5 text-xs text-[#1877F2] hover:underline">
-                      {showTokenGuide ? (
-                        <ChevronUp className="size-3.5" />
-                      ) : (
-                        <ChevronDown className="size-3.5" />
-                      )}
-                      How to get your access token
-                    </button>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent>
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: 'auto' }}
-                      exit={{ opacity: 0, height: 0 }}
-                      className="mt-2 bg-muted/50 rounded-lg p-3 space-y-2"
-                    >
-                      {TOKEN_STEPS.map((step, idx) => (
-                        <div key={idx} className="flex items-start gap-2">
-                          <span className="size-5 rounded-full bg-[#1877F2] text-white text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5">
-                            {idx + 1}
-                          </span>
-                          <p className="text-xs text-muted-foreground leading-relaxed">
-                            {step}
-                          </p>
-                        </div>
+                {/* Token guide — always visible */}
+                <div className="bg-muted/50 rounded-xl p-3.5 space-y-3">
+                  <p className="text-[11px] font-semibold text-muted-foreground">How to get your token:</p>
+                  {TOKEN_STEPS.map((step, idx) => (
+                    <div key={idx} className="flex items-start gap-2.5">
+                      <span className="size-5 rounded-full bg-[#1877F2] text-white text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5">
+                        {step.step}
+                      </span>
+                      <p className="text-[11px] text-muted-foreground leading-relaxed flex-1">
+                        {step.text}
+                        {'action' in step && (
+                          <button
+                            onClick={() => window.open(step.action!, '_blank')}
+                            className="inline-flex items-center gap-1 text-[#1877F2] hover:underline font-semibold ml-1"
+                          >
+                            <ExternalLink className="size-3" />
+                            {step.actionLabel}
+                          </button>
+                        )}
+                      </p>
+                    </div>
+                  ))}
+                  {/* Permission chips */}
+                  <div className="ml-7.5 pl-0.5">
+                    <p className="text-[10px] text-muted-foreground mb-1.5 font-medium">Required permissions:</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {PERMISSIONS.map((perm) => (
+                        <span
+                          key={perm}
+                          className="inline-flex items-center gap-1 text-[10px] bg-[#1877F2]/10 text-[#1877F2] dark:bg-[#1877F2]/20 dark:text-blue-300 px-2 py-0.5 rounded-full font-mono"
+                        >
+                          {perm}
+                        </span>
                       ))}
                       <button
                         onClick={() => {
-                          window.open(
-                            'https://developers.facebook.com/tools/explorer/',
-                            '_blank'
-                          );
+                          navigator.clipboard.writeText(PERMISSIONS.join(', '));
+                          toast.success('Permissions copied!');
                         }}
-                        className="flex items-center gap-1.5 text-xs text-[#1877F2] hover:underline mt-1"
+                        className="inline-flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground bg-background border rounded-full px-2 py-0.5 transition-colors"
                       >
-                        <ExternalLink className="size-3" />
-                        Open Facebook Graph Explorer
+                        <Copy className="size-2.5" />
+                        Copy all
                       </button>
-                    </motion.div>
-                  </CollapsibleContent>
-                </Collapsible>
+                    </div>
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>
