@@ -1,4 +1,64 @@
 ---
+Task ID: 5b
+Agent: Notification Agent
+Task: Enhanced notification bell + dropdown panel
+
+Work Log:
+- Read Dashboard.tsx, NotificationCenter.tsx, store.ts, and types.ts to understand current notification setup
+- Updated `AppNotification` type in types.ts to add `"draft_reminder"` to the notification type union
+- Rewrote NotificationCenter.tsx with major enhancements:
+  - **Animated badge pulse**: Added emerald-500 badge (size-5, rounded-full, absolute -top-1 -right-1) with pulsing ring animation using `motion.span` scale [1, 1.4, 1] + opacity [0.6, 0, 0.6] repeating every 2s
+  - **Enhanced dropdown panel**: Changed from w-72 to w-80, bg-card instead of bg-popover, rounded-xl, shadow-xl, max-h-80 overflow-y-auto
+  - **Notification items**: Changed layout to flex with hover:bg-muted/50, px-3 py-2.5; added icon background container (rounded-lg with type-specific colors); added line-clamp-2 for description
+  - **Dismiss animation**: Added `dismissingIds` state and `handleDismiss` with exit animation (opacity 0, x 24, scale 0.95) via AnimatePresence + motion.div; dismissed notifications animate out instead of staying visible with reduced opacity
+  - **Empty state**: Changed from plain text to animated CheckCircle2 icon with "You're all caught up!" message
+  - **View all footer**: Added bottom section with "View all notifications" link that shows toast "Full notification center coming soon"
+  - **Last 5 only**: Visible notifications now sorted by timestamp (newest first) and sliced to 5
+  - **Clear all animation**: All items animate out simultaneously before clearing
+  - Added `FileEdit` icon import for draft_reminder notifications
+  - Added `getNotificationIconBg()` helper for type-specific icon backgrounds
+- Updated Dashboard.tsx:
+  - Added `notifications` and `setNotifications` to the Zustand store destructuring
+  - Added smart notification generation useEffect (runs when loading changes):
+    - Detects stale listings (active + >14 days old) and adds notification with unique ID `smart-stale-listing-14d`
+    - Detects draft laptops and adds notification with unique ID `smart-draft-reminder`
+    - Only adds if not already existing (checks by ID pattern)
+    - Uses `setNotifications` to persist to store
+- Ran `bun run lint` — 0 errors, 0 warnings
+
+Stage Summary:
+- Notification bell now has emerald-500 badge with animated pulsing ring (repeating every 2s)
+- Dropdown panel shows last 5 notifications with type-colored icon backgrounds, hover effects, and dismiss animations
+- Dismissed notifications animate out (fade + slide right + scale down) instead of staying visible
+- Empty state shows animated checkmark with "You're all caught up!" message
+- "View all notifications" footer link shows informational toast
+- Dashboard auto-generates smart notifications for stale listings (>14 days) and draft laptops on mount
+- New `draft_reminder` notification type with violet FileEdit icon support
+- ESLint clean (0 errors, 0 warnings)
+
+---
+Task ID: 4b
+Agent: CSV Export Agent
+Task: Implement CSV export from Inventory tab
+
+Work Log:
+- Analyzed existing `handleExportCsv` function in Inventory.tsx — found it already had CSV export wired up but with incomplete/incorrect columns
+- Updated CSV column headers to match requirements: Stock ID, Brand, Model, CPU, RAM, Storage, GPU, Screen Size, Condition, Battery Health, Purchase Price, Asking Price, Profit Margin, Status, Location, Notes, Created Date
+- Added missing data fields: Stock ID (`l.stockId`), Location (`l.location`), Notes (`l.notes`)
+- Replaced absolute profit value with percentage-based Profit Margin (`((askingPrice - purchasePrice) / askingPrice * 100).toFixed(1)%`)
+- Improved Created Date formatting using `toLocaleDateString("en-ZA")` for YYYY/MM/DD format
+- Removed unnecessary DaysListed column (not in requirements)
+- Verified button wiring: `onClick={handleExportCsv}` and `disabled={filteredLaptops.length === 0}` already correct
+- Verified download filename: `laptopflip-inventory-YYYY-MM-DD.csv` via `toISOString().slice(0, 10)`
+- Verified toast notification: `Exported ${filteredLaptops.length} laptops to CSV`
+- Ran `bun run lint` — 0 errors
+
+Stage Summary:
+- CSV export from Inventory tab now exports 17 columns matching the full spec
+- Export respects current search/filter (uses filteredLaptops, not all laptops)
+- Button disabled when no filtered results
+- Uses Blob + URL.createObjectURL + anchor click trick (no new dependencies)
+- ESLint clean (0 errors)
 ---
 Task ID: fix-facebook-sharing-marketplace
 Agent: Main

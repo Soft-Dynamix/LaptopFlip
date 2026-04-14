@@ -499,18 +499,23 @@ export function Inventory() {
 
   const handleExportCsv = useCallback(() => {
     const headers = [
-      "Brand", "Model", "CPU", "RAM", "Storage", "GPU", "Screen",
-      "Condition", "Battery", "PurchasePrice", "AskingPrice", "Profit",
-      "Status", "CreatedAt", "DaysListed"
+      "Stock ID", "Brand", "Model", "CPU", "RAM", "Storage", "GPU",
+      "Screen Size", "Condition", "Battery Health", "Purchase Price",
+      "Asking Price", "Profit Margin", "Status", "Location", "Notes",
+      "Created Date"
     ];
 
     const rows = filteredLaptops.map((l) => {
       const profit = l.askingPrice - l.purchasePrice;
-      const now = new Date();
-      const created = new Date(l.createdAt);
-      const daysListed = Math.max(0, Math.floor((now.getTime() - created.getTime()) / (1000 * 60 * 60 * 24)));
+      const margin = l.askingPrice > 0
+        ? `${((profit / l.askingPrice) * 100).toFixed(1)}%`
+        : "0%";
+      const createdDate = new Date(l.createdAt).toLocaleDateString("en-ZA", {
+        year: "numeric", month: "2-digit", day: "2-digit"
+      });
 
       return [
+        l.stockId || "",
         l.brand,
         l.model,
         l.cpu,
@@ -522,10 +527,11 @@ export function Inventory() {
         l.batteryHealth,
         l.purchasePrice,
         l.askingPrice,
-        profit,
+        margin,
         l.status,
-        l.createdAt,
-        daysListed,
+        l.location || "",
+        l.notes || "",
+        createdDate,
       ];
     });
 
@@ -806,32 +812,45 @@ export function Inventory() {
         className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1"
       >
         {filterChips.map((chip) => (
-          <Button
+          <motion.div
             key={chip.value}
-            variant={filterStatus === chip.value ? "default" : "outline"}
-            size="sm"
-            onClick={() => setFilterStatus(chip.value)}
-            className={`rounded-full text-xs shrink-0 ${
-              filterStatus === chip.value
-                ? "bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-600 hover:to-emerald-800 text-white shadow-sm"
-                : ""
-            }`}
+            whileTap={{ scale: 0.9 }}
+            animate={filterStatus === chip.value ? { scale: [1, 1.05, 1] } : { scale: 1 }}
+            transition={filterStatus === chip.value ? { type: "spring", stiffness: 400, damping: 15 } : { duration: 0.15 }}
           >
-            <AnimatePresence>
-              {filterStatus === chip.value && (
-                <motion.span
-                  initial={{ scale: 0, width: 0, opacity: 0 }}
-                  animate={{ scale: 1, width: "auto", opacity: 1 }}
-                  exit={{ scale: 0, width: 0, opacity: 0 }}
-                  transition={{ duration: 0.2 }}
-                  className="mr-1 inline-flex items-center"
-                >
-                  ✓
-                </motion.span>
-              )}
-            </AnimatePresence>
-            {chip.label}
-          </Button>
+            <Button
+              variant={filterStatus === chip.value ? "default" : "outline"}
+              size="sm"
+              onClick={() => setFilterStatus(chip.value)}
+              className={`rounded-full text-xs shrink-0 ${
+                filterStatus === chip.value
+                  ? "bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-600 hover:to-emerald-800 text-white shadow-sm"
+                  : ""
+              }`}
+            >
+              <AnimatePresence>
+                {filterStatus === chip.value && (
+                  <motion.span
+                    initial={{ scale: 0, width: 0, opacity: 0 }}
+                    animate={{ scale: 1, width: "auto", opacity: 1 }}
+                    exit={{ scale: 0, width: 0, opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="mr-1 inline-flex items-center"
+                  >
+                    <svg className="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                      <motion.path
+                        d="M5 13l4 4L19 7"
+                        initial={{ pathLength: 0 }}
+                        animate={{ pathLength: 1 }}
+                        transition={{ duration: 0.3, ease: "easeOut" }}
+                      />
+                    </svg>
+                  </motion.span>
+                )}
+              </AnimatePresence>
+              {chip.label}
+            </Button>
+          </motion.div>
         ))}
       </motion.div>
 
@@ -907,12 +926,14 @@ export function Inventory() {
             return (
               <motion.div
                 key={laptop.id}
-                initial={{ opacity: 0, y: 15 }}
+                initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, x: -50, transition: { duration: 0.15 } }}
                 transition={{
-                  duration: 0.2,
-                  delay: index * 0.04,
+                  type: "spring",
+                  stiffness: 400,
+                  damping: 30,
+                  delay: index * 0.05,
                 }}
                 layout
               >

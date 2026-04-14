@@ -888,10 +888,10 @@ export function LaptopFormSheet() {
           {formStep === "photos" && !isEditing && (
             <motion.div
               key="photos"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              transition={{ duration: 0.2 }}
+              initial={{ opacity: 0, y: 40, scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 40, scale: 0.96 }}
+              transition={{ type: "spring", stiffness: 300, damping: 25 }}
               className="flex-1 flex flex-col overflow-hidden"
             >
               <PhotoCaptureStep
@@ -907,10 +907,10 @@ export function LaptopFormSheet() {
           {formStep === "details" && (
             <motion.div
               key="details"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              transition={{ duration: 0.2 }}
+              initial={{ opacity: 0, y: 40, scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 40, scale: 0.96 }}
+              transition={{ type: "spring", stiffness: 300, damping: 25 }}
               className="flex-1 flex flex-col overflow-hidden"
             >
               {fetchingLaptop ? (

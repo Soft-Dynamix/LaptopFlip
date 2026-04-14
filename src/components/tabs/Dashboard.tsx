@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
-import { motion } from "framer-motion";
+import { motion, useScroll, useTransform } from "framer-motion";
 import {
   Laptop,
   Eye,
@@ -312,11 +312,17 @@ export function Dashboard() {
     setEditingLaptopId,
     watchlist,
     activityLogs,
+    notifications,
+    setNotifications,
   } = useAppStore();
   const safeLaptops = Array.isArray(laptops) ? laptops : [];
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const greeting = getGreeting();
+
+  // Parallax scroll effect for header
+  const { scrollY } = useScroll();
+  const headerParallaxY = useTransform(scrollY, [0, 200], [0, -40]);
 
   // Animated counters
   const animatedTotal = useCountUp(dashboardStats.totalLaptops, 600, !loading);
@@ -373,6 +379,54 @@ export function Dashboard() {
     }
     load();
   }, [fetchLaptops]);
+
+  // ─── Smart Notification Generation ─────────────────────────
+  // Auto-generate notifications for stale listings (>14 days) and drafts
+  useEffect(() => {
+    if (safeLaptops.length === 0) return;
+
+    const existingIds = new Set(notifications.map((n) => n.id));
+    const newNotifications = [...notifications];
+
+    // Stale listing alert: active laptops older than 14 days
+    const fourteenDaysAgo = Date.now() - 14 * 24 * 60 * 60 * 1000;
+    const staleListings = safeLaptops.filter(
+      (l: LaptopType) =>
+        l.status === "active" &&
+        new Date(l.createdAt).getTime() < fourteenDaysAgo
+    );
+    const staleId = "smart-stale-listing-14d";
+    if (staleListings.length > 0 && !existingIds.has(staleId)) {
+      newNotifications.unshift({
+        id: staleId,
+        type: "stale_listing",
+        title: `Stale listing alert`,
+        message: `${staleListings.length} laptop(s) have been active for 14+ days. Consider updating prices or refreshing your listings.`,
+        timestamp: new Date().toISOString(),
+        dismissed: false,
+      });
+    }
+
+    // Draft reminder
+    const draftCount = safeLaptops.filter(
+      (l: LaptopType) => l.status === "draft"
+    ).length;
+    const draftId = "smart-draft-reminder";
+    if (draftCount > 0 && !existingIds.has(draftId)) {
+      newNotifications.unshift({
+        id: draftId,
+        type: "draft_reminder",
+        title: `Draft laptop(s) waiting`,
+        message: `${draftCount} draft laptop(s) waiting to be listed. Complete your listings to start selling.`,
+        timestamp: new Date().toISOString(),
+        dismissed: false,
+      });
+    }
+
+    if (newNotifications.length !== notifications.length) {
+      setNotifications(newNotifications);
+    }
+  }, [loading, safeLaptops, notifications, setNotifications]);
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -460,6 +514,7 @@ export function Dashboard() {
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
+        style={{ y: headerParallaxY }}
       >
         <div className="rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-700 p-5 text-white shadow-lg shadow-emerald-600/20 relative overflow-hidden">
           {/* Decorative mesh/grid pattern overlay */}
@@ -524,10 +579,15 @@ export function Dashboard() {
             : getAnimatedValue(stat.key).toString();
 
           return (
-            <Card
+            <motion.div
               key={stat.key}
-              className={`gap-0 py-4 px-4 rounded-xl border border-l-4 ${stat.borderLeft} shadow-sm relative overflow-hidden hover:-translate-y-1 hover:ring-2 hover:ring-current/10 transition-all duration-200`}
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ type: "spring", stiffness: 300, damping: 20, delay: index * 0.05 }}
             >
+              <Card
+                className={`gap-0 py-4 px-4 rounded-xl border border-l-4 ${stat.borderLeft} shadow-sm relative overflow-hidden hover:-translate-y-1 hover:ring-2 hover:ring-current/10 transition-all duration-200`}
+              >
               {/* Subtle gradient overlay */}
               <div className="absolute inset-0 bg-gradient-to-br from-transparent to-muted/30 pointer-events-none" />
               <CardContent className="p-0 relative z-10">
@@ -560,6 +620,7 @@ export function Dashboard() {
                 />
               </div>
             </Card>
+            </motion.div>
           );
         })}
       </motion.div>
@@ -578,10 +639,18 @@ export function Dashboard() {
             return (
               <motion.button
                 key={action.label}
-                whileTap={{ scale: 0.95 }}
+                whileTap={{ scale: 0.97 }}
                 onClick={() => handleQuickAction(action.action)}
                 className={`flex flex-col items-center justify-center gap-1.5 p-4 rounded-xl bg-gradient-to-br ${action.gradient} text-white shadow-lg ${action.shadow} shadow-inner active:shadow-md transition-shadow duration-200 relative overflow-hidden`}
               >
+                {/* Gradient shimmer overlay — sweeps left to right, 2s cycle */}
+                <motion.div className="absolute inset-0 overflow-hidden rounded-xl pointer-events-none">
+                  <motion.div
+                    className="absolute inset-y-0 w-1/2 bg-gradient-to-r from-transparent via-white/15 to-transparent"
+                    animate={{ x: ["-100%", "200%"] }}
+                    transition={{ duration: 2, repeat: Infinity, repeatDelay: 3, ease: "easeInOut" }}
+                  />
+                </motion.div>
                 <div className="relative">
                   <div className="size-10 rounded-full bg-white/20 flex items-center justify-center">
                     <Icon className="size-5" />
@@ -593,20 +662,8 @@ export function Dashboard() {
                       transition={{ duration: 1.5, repeat: Infinity, ease: "easeOut" }}
                     />
                   )}
-                  {/* Shimmer overlay on Add Laptop button */}
-                  {action.action === "add" && (
-                    <motion.div
-                      className="absolute inset-0 overflow-hidden rounded-xl"
-                    >
-                      <motion.div
-                        className="absolute inset-y-0 w-1/2 bg-gradient-to-r from-transparent via-white/20 to-transparent"
-                        animate={{ x: ["-100%", "200%"] }}
-                        transition={{ duration: 2.5, repeat: Infinity, repeatDelay: 3, ease: "easeInOut" }}
-                      />
-                    </motion.div>
-                  )}
                 </div>
-                <div className="text-center">
+                <div className="text-center relative z-10">
                   <span className="text-xs font-semibold block">{action.label}</span>
                   <span className="text-[10px] text-white/70 block">{action.subtitle}</span>
                 </div>

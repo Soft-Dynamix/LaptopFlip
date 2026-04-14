@@ -180,7 +180,7 @@ export function getAppCurrency(): CurrencyCode {
 
 export interface AppNotification {
   id: string;
-  type: "stale_listing" | "price_suggestion" | "welcome_back" | "tip";
+  type: "stale_listing" | "price_suggestion" | "welcome_back" | "tip" | "draft_reminder";
   title: string;
   message: string;
   laptopId?: string;

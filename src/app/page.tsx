@@ -169,8 +169,8 @@ export default function Home() {
               return (
                 <motion.button
                   key={tab.id}
-                  whileTap={{ scale: 0.9 }}
-                  transition={{ duration: 0.1 }}
+                  whileTap={{ scale: 0.92 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 17 }}
                   onClick={() => handleTabClick(tab.id)}
                   className={cn(
                     "relative flex flex-col items-center justify-center gap-0.5 py-1 px-3 rounded-xl transition-all duration-200 min-w-[3.5rem]",
@@ -182,10 +182,24 @@ export default function Home() {
                   <Icon className={cn("w-5 h-5 transition-transform duration-200", isActive && "scale-110")} />
                   {tab.label && (
                     <span className={cn(
-                      "text-[10px] font-medium leading-tight transition-all duration-200",
+                      "text-[10px] font-medium leading-tight transition-all duration-200 relative",
                       isActive && "bg-emerald-100 dark:bg-emerald-900/30 rounded-full px-2"
                     )}>
                       {tab.label}
+                      {/* Shimmer effect on active tab text pill */}
+                      {isActive && (
+                        <motion.span
+                          className="absolute inset-0 rounded-full overflow-hidden pointer-events-none"
+                          animate={{ opacity: [0.3, 0.8, 0.3] }}
+                          transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                        >
+                          <motion.span
+                            className="absolute inset-y-0 w-1/3 bg-gradient-to-r from-transparent via-white/60 to-transparent"
+                            animate={{ x: ["-150%", "250%"] }}
+                            transition={{ duration: 2.5, repeat: Infinity, repeatDelay: 1.5, ease: "easeInOut" }}
+                          />
+                        </motion.span>
+                      )}
                     </span>
                   )}
                   {/* Active indicator: small pill below the label */}
