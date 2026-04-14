@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Facebook,
@@ -418,11 +418,16 @@ export function FacebookPostDialog({
   const executeNextStep = useCallback(async () => {
     if (currentStep >= postSteps.length) {
       // All done!
+      isExecutingRef.current = false;
       toast.success('All done! Ad posted everywhere 🎉', { duration: 5000 });
       setIsMultiPost(false);
       onClose();
       return;
     }
+
+    // Prevent duplicate execution
+    if (isExecutingRef.current) return;
+    isExecutingRef.current = true;
 
     const step = postSteps[currentStep];
     setPostSteps(prev => prev.map((s, i) => i === currentStep ? { ...s, status: 'active' } : s));
@@ -434,12 +439,14 @@ export function FacebookPostDialog({
         if (!shared) {
           // If share was cancelled, don't continue
           setPostSteps(prev => prev.map((s, i) => i > currentStep ? { ...s, status: 'skipped' } : s));
+          isExecutingRef.current = false;
           setTimeout(() => {
             toast.info('Multi-post stopped. You can retry individual posts.');
             setIsMultiPost(false);
           }, 500);
           return;
         }
+        isExecutingRef.current = false;
         setCurrentStep(currentStep + 1);
         break;
       }
@@ -455,6 +462,7 @@ export function FacebookPostDialog({
           // Wait a moment for user to process
           await new Promise(r => setTimeout(r, 3000));
         }
+        isExecutingRef.current = false;
         setCurrentStep(currentStep + 1);
         break;
       }
@@ -474,6 +482,7 @@ export function FacebookPostDialog({
         } catch {
           setPostSteps(prev => prev.map((s, i) => i === currentStep ? { ...s, status: 'skipped' } : s));
         }
+        isExecutingRef.current = false;
         setCurrentStep(currentStep + 1);
         break;
       }
@@ -493,19 +502,24 @@ export function FacebookPostDialog({
         } catch {
           setPostSteps(prev => prev.map((s, i) => i === currentStep ? { ...s, status: 'skipped' } : s));
         }
+        isExecutingRef.current = false;
         setCurrentStep(currentStep + 1);
         break;
       }
     }
   }, [currentStep, postSteps, adTitle, shareText, imageFiles, supportsFileShare, adBody, laptopId, listingId, pages, groups]);
 
+  // Guard to prevent duplicate step execution
+  const isExecutingRef = useRef(false);
+
   // Auto-advance multi-post steps
   useEffect(() => {
     if (!isMultiPost) return;
+    if (isExecutingRef.current) return;
     if (currentStep < postSteps.length) {
       const step = postSteps[currentStep];
-      if (step.status === 'active') {
-        // Small delay for UI to update
+      if (step.status === 'pending') {
+        // Small delay for UI to update, then start executing
         const timer = setTimeout(() => executeNextStep(), 800);
         return () => clearTimeout(timer);
       }
