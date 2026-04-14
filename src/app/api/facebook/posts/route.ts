@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 
+export const dynamic = "force-static";
+
 /**
  * GET /api/facebook/posts
  *

@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 
+export const dynamic = "force-static";
+
+export function generateStaticParams() {
+  return [];
+}
+
 // GET /api/laptops/[id] — Return a single laptop by ID
 export async function GET(
   _request: NextRequest,

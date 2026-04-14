@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { getUserPages, validateToken } from '@/lib/facebook-api';
 
+export const dynamic = "force-static";
+
 /**
  * GET /api/facebook/pages
  *

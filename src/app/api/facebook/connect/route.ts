@@ -5,6 +5,8 @@ import {
   exchangeShortTokenForLong,
 } from '@/lib/facebook-api';
 
+export const dynamic = "force-static";
+
 /**
  * POST /api/facebook/connect
  *

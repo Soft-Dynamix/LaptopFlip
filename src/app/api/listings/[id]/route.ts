@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 
+export const dynamic = "force-static";
+
+export function generateStaticParams() {
+  return [];
+}
+
 // PUT /api/listings/[id] — Update a listing (status change)
 export async function PUT(
   request: NextRequest,

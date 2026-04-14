@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { getPostInsights, type PostInsights } from '@/lib/facebook-api';
 
+export const dynamic = "force-static";
+
 /**
  * GET /api/facebook/insights
  *
