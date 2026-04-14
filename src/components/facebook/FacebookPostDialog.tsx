@@ -93,6 +93,25 @@ function openSystemUrl(url: string) {
   }
 }
 
+/** Check if running inside Capacitor native app */
+function isCapacitor(): boolean {
+  return !!(window as Record<string, unknown>).Capacitor;
+}
+
+/** Open Facebook app with pre-filled post (works in APK) */
+function openFacebookAppWithDraft(text: string, url?: string): boolean {
+  try {
+    // Use FB intent URI to open Facebook app directly with a composer
+    const fbUrl = url
+      ? `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}&quote=${encodeURIComponent(text)}`
+      : `https://www.facebook.com/sharer/sharer.php?quote=${encodeURIComponent(text)}`;
+    openSystemUrl(fbUrl);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 async function copyToClipboard(text: string): Promise<boolean> {
   try {
     if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -142,6 +161,12 @@ async function shareWithImages(
   text: string,
   files: File[]
 ): Promise<boolean> {
+  // In Capacitor APK, navigator.share() is unreliable — use Facebook intent directly
+  if (isCapacitor()) {
+    return openFacebookAppWithDraft(text);
+  }
+
+  // On web, use the native share sheet
   if (!navigator.share) return false;
   try {
     if (files.length > 0 && canShareFiles()) {
@@ -343,17 +368,24 @@ export function FacebookPostDialog({
   const handleNativeShare = useCallback(async () => {
     const shared = await shareWithImages(adTitle, shareText, imageFiles);
     if (shared) {
-      toast.success('Shared!');
+      toast.success('Opening Facebook...');
     } else {
-      // Fallback: copy + open FB
+      // Web fallback: copy + open FB
       const copied = await copyToClipboard(shareText);
-      openSystemUrl(`https://www.facebook.com/sharer/sharer.php?quote=${encodeURIComponent(shareText)}`);
+      openFacebookAppWithDraft(shareText);
       toast.info(copied ? 'Text copied & Facebook opened!' : 'Facebook opened!');
     }
     onClose();
   }, [adTitle, shareText, imageFiles, onClose]);
 
   const handleMarketplace = useCallback(async () => {
+    // In APK, go directly to Marketplace listing page
+    if (isCapacitor()) {
+      openSystemUrl('https://www.facebook.com/marketplace/create/');
+      toast.success('Marketplace opened!', { duration: 3000 });
+      onClose();
+      return;
+    }
     if (supportsFileShare) {
       const shared = await shareWithImages(adTitle, shareText, imageFiles);
       if (shared) {
