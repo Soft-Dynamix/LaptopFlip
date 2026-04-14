@@ -222,6 +222,13 @@ export function FacebookPostDialog({
   const hasImages = imageFiles.length > 0;
   const supportsFileShare = canShareFiles() && hasImages;
 
+  // Reset execution guard when dialog opens
+  useEffect(() => {
+    if (open) {
+      isExecutingRef.current = false;
+    }
+  }, [open]);
+
   // Check connection and fetch targets when dialog opens
   useEffect(() => {
     if (!open) return;
@@ -527,7 +534,15 @@ export function FacebookPostDialog({
   }, [isMultiPost, currentStep, postSteps, executeNextStep]);
 
   const handleClose = () => {
-    if (!posting && !isMultiPost) onClose();
+    if (isMultiPost) {
+      // Allow cancelling multi-post mid-flow
+      setIsMultiPost(false);
+      isExecutingRef.current = false;
+      setPostSteps(prev => prev.map(s => s.status === 'active' ? { ...s, status: 'pending' } : s));
+      toast.info('Multi-post cancelled');
+      return;
+    }
+    if (!posting) onClose();
   };
 
   const handleAction = () => {

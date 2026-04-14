@@ -1,4 +1,29 @@
 ---
+Task ID: fix-post-everywhere-stuck
+Agent: Main
+Task: Fix "Post Everywhere" multi-post dialog getting stuck (steps never execute)
+
+Work Log:
+- User reported: "Post Everywhere" modal opens but all steps remain frozen in pending state
+- Diagnosed root cause in `FacebookPostDialog.tsx`:
+  - `startMultiPost()` initializes all steps with `status: 'pending'`
+  - The `useEffect` that auto-advances steps only triggered when `step.status === 'active'`
+  - Since steps started as `'pending'`, the effect **never fired** → infinite freeze
+- Fix 1: Changed useEffect condition from `'active'` → `'pending'` so steps trigger execution immediately
+- Fix 2: Added `useRef(false)` execution guard (`isExecutingRef`) to prevent duplicate step execution from React strict mode double-rendering
+- Fix 3: Added reset of `isExecutingRef` when dialog opens (`useEffect` on `open`)
+- Fix 4: Each step's `setCurrentStep()` call now resets `isExecutingRef.current = false` to allow next step
+- Fix 5: Improved `handleClose()` to allow canceling multi-post mid-flow (shows "Multi-post cancelled" toast)
+- ESLint clean (0 errors), dev server running (HTTP 200)
+
+Stage Summary:
+- "Post Everywhere" multi-post flow now correctly auto-advances through all steps
+- Steps animate from pending → active → done/skipped in sequence
+- Users can cancel multi-post by closing the dialog mid-flow
+- No duplicate execution risk from strict mode re-renders
+- Cron job 88738 set up for webDevReview every 15 minutes
+
+---
 Task ID: 5b
 Agent: Notification Agent
 Task: Enhanced notification bell + dropdown panel
