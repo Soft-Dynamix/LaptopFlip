@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Plus,
@@ -27,6 +27,9 @@ import {
   Sparkles,
   ArrowRight,
   Hash,
+  AlertTriangle,
+  ExternalLink,
+  Pencil,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -626,6 +629,98 @@ function PhotoCaptureStep({
 }
 
 // ──────────────────────────────────────────────
+// Duplicate Detection Alert
+// ──────────────────────────────────────────────
+
+function DuplicateDetectionAlert({
+  brand,
+  model,
+  editingId,
+}: {
+  brand: string;
+  model: string;
+  editingId: string | null;
+}) {
+  const laptops = useAppStore((s) => s.laptops);
+  const setSelectedLaptop = useAppStore((s) => s.setSelectedLaptop);
+  const setIsDetailOpen = useAppStore((s) => s.setIsDetailOpen);
+  const setIsFormOpen = useAppStore((s) => s.setIsFormOpen);
+  const setEditingLaptopId = useAppStore((s) => s.setEditingLaptopId);
+
+  const duplicate = useMemo(() => {
+    if (!brand || !model) return null;
+    const brandLower = brand.toLowerCase();
+    const modelLower = model.toLowerCase();
+
+    const safeLaptops = Array.isArray(laptops) ? laptops : [];
+    return safeLaptops.find(
+      (l) =>
+        l.id !== editingId &&
+        l.brand.toLowerCase() === brandLower &&
+        l.model.toLowerCase() === modelLower &&
+        l.status !== "sold" &&
+        l.status !== "archived"
+    );
+  }, [brand, model, editingId, laptops]);
+
+  if (!duplicate) return null;
+
+  const handleViewDuplicate = () => {
+    setIsFormOpen(false);
+    setSelectedLaptop(duplicate);
+    setIsDetailOpen(true);
+  };
+
+  const handleEditDuplicate = () => {
+    setEditingLaptopId(duplicate.id);
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -5, height: 0 }}
+      animate={{ opacity: 1, y: 0, height: "auto" }}
+      exit={{ opacity: 0, y: -5, height: 0 }}
+      className="rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30 p-3 space-y-2"
+    >
+      <div className="flex items-start gap-2">
+        <motion.div
+          animate={{ scale: [1, 1.1, 1] }}
+          transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+        >
+          <AlertTriangle className="size-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+        </motion.div>
+        <div className="min-w-0 flex-1">
+          <p className="text-xs font-semibold text-amber-700 dark:text-amber-300">
+            Similar laptop in stock
+          </p>
+          <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-0.5">
+            You already have a{" "}
+            <span className="font-semibold">{duplicate.brand} {duplicate.model}</span>{" "}
+            ({duplicate.condition}) in your inventory.
+          </p>
+          <div className="flex items-center gap-2 mt-2">
+            <button
+              onClick={handleViewDuplicate}
+              className="inline-flex items-center gap-1 text-[10px] font-medium text-amber-700 dark:text-amber-300 hover:underline"
+            >
+              <ExternalLink className="size-3" />
+              View it
+            </button>
+            <button
+              onClick={handleEditDuplicate}
+              className="inline-flex items-center gap-1 text-[10px] font-medium text-emerald-700 dark:text-emerald-300 hover:underline"
+            >
+              <Pencil className="size-3" />
+              Edit it
+            </button>
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+// ──────────────────────────────────────────────
 // Main LaptopFormSheet Component
 // ──────────────────────────────────────────────
 
@@ -995,6 +1090,13 @@ export function LaptopFormSheet() {
                           onChange={(e) => updateField("model", e.target.value)}
                         />
                       </FormField>
+
+                      {/* Duplicate Detection Alert */}
+                      <DuplicateDetectionAlert
+                        brand={formData.brand === "__custom__" ? customBrandInput.trim() : formData.brand.trim()}
+                        model={formData.model.trim()}
+                        editingId={editingLaptopId}
+                      />
 
                       <div className="grid grid-cols-2 gap-3">
                         <FormField label="Year">

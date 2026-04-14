@@ -435,6 +435,7 @@ export function Inventory() {
   const [sortBy, setSortBy] = useState<SortOption>("newest");
   const [debouncedQuery, setDebouncedQuery] = useState(searchQuery);
   const [duplicating, setDuplicating] = useState(false);
+  const [searchFocused, setSearchFocused] = useState(false);
   const deletedLaptopRef = useRef<LaptopType | null>(null);
 
   // Debounce search query
@@ -762,11 +763,19 @@ export function Inventory() {
         transition={{ duration: 0.3, delay: 0.05 }}
         className="relative"
       >
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
+        <motion.div
+          className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none z-10"
+          animate={{ scale: searchFocused ? 1.2 : 1 }}
+          transition={{ type: "spring", stiffness: 400, damping: 15 }}
+        >
+          <Search className={`size-4 transition-colors duration-200 ${searchFocused ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground"}`} />
+        </motion.div>
         <Input
           placeholder="Search by brand, model, status..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
+          onFocus={() => setSearchFocused(true)}
+          onBlur={() => setSearchFocused(false)}
           className="pl-9 pr-10 rounded-xl h-10 bg-background"
         />
         <DropdownMenu>

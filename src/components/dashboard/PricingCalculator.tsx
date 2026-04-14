@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Calculator, ChevronDown, Info, TrendingUp } from "lucide-react";
+import { Calculator, ChevronDown, Info, TrendingUp, Zap, Gauge } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,6 +26,128 @@ const CONDITIONS = ["Mint", "Excellent", "Good", "Fair", "Poor"] as const;
 const AGES = ["New", "1yr", "2yr", "3yr+"] as const;
 const YES_NO = ["Yes", "No"] as const;
 
+const CONDITION_MULTIPLIERS: Record<string, { value: number; label: string; color: string; darkColor: string }> = {
+  "Mint":      { value: 1.10, label: "+10%", color: "text-emerald-600",  darkColor: "dark:text-emerald-400" },
+  "Excellent": { value: 1.05, label: "+5%",  color: "text-sky-600",      darkColor: "dark:text-sky-400" },
+  "Good":      { value: 1.00, label: "0%",   color: "text-amber-600",    darkColor: "dark:text-amber-400" },
+  "Fair":      { value: 0.90, label: "-10%", color: "text-orange-600",   darkColor: "dark:text-orange-400" },
+  "Poor":      { value: 0.80, label: "-20%", color: "text-red-600",      darkColor: "dark:text-red-400" },
+};
+
+const QUICK_PRESETS = [
+  { label: "Budget", sub: "Under R5k", range: [1000, 5000], icon: "🏷️", color: "from-amber-500 to-orange-500" },
+  { label: "Mid-Range", sub: "R5k–R15k", range: [5000, 15000], icon: "💰", color: "from-emerald-500 to-teal-500" },
+  { label: "Premium", sub: "R15k+", range: [15000, 50000], icon: "👑", color: "from-rose-500 to-pink-500" },
+];
+
+// ─── Visual Gauge Component ─────────────────────────
+function PriceGauge({ value, min, max, suggested }: { value: number; min: number; max: number; suggested: number }) {
+  // Normalize suggested price to a 0-100 scale for the gauge
+  const range = Math.max(max - min, 1);
+  const normalized = Math.min(100, Math.max(0, ((suggested - min) / range) * 100));
+
+  // Determine gauge color based on position
+  const gaugeColor = normalized < 25
+    ? "text-amber-500"
+    : normalized < 50
+    ? "text-emerald-500"
+    : normalized < 75
+    ? "text-sky-500"
+    : "text-rose-500";
+
+  const gaugeBg = normalized < 25
+    ? "stroke-amber-500"
+    : normalized < 50
+    ? "stroke-emerald-500"
+    : normalized < 75
+    ? "stroke-sky-500"
+    : "stroke-rose-500";
+
+  // Arc parameters for a semicircle gauge
+  const radius = 40;
+  const strokeWidth = 6;
+  const cx = 50;
+  const cy = 52;
+  const startAngle = -180;
+  const endAngle = 0;
+  const angle = startAngle + (normalized / 100) * (endAngle - startAngle);
+
+  const startX = cx + radius * Math.cos((startAngle * Math.PI) / 180);
+  const startY = cy + radius * Math.sin((startAngle * Math.PI) / 180);
+  const endX = cx + radius * Math.cos((angle * Math.PI) / 180);
+  const endY = cy + radius * Math.sin((angle * Math.PI) / 180);
+  const largeArcFlag = normalized > 50 ? 1 : 0;
+  const pathD = `M ${startX} ${startY} A ${radius} ${radius} 0 ${largeArcFlag} 1 ${endX} ${endY}`;
+
+  // Background arc
+  const bgEndX = cx + radius * Math.cos((endAngle * Math.PI) / 180);
+  const bgEndY = cy + radius * Math.sin((endAngle * Math.PI) / 180);
+  const bgPathD = `M ${startX} ${startY} A ${radius} ${radius} 0 0 1 ${bgEndX} ${bgEndY}`;
+
+  return (
+    <div className="flex flex-col items-center">
+      <div className="relative w-[120px] h-[70px]">
+        <svg viewBox="0 0 100 65" className="w-full h-full">
+          {/* Background track */}
+          <path
+            d={bgPathD}
+            fill="none"
+            strokeWidth={strokeWidth}
+            stroke="currentColor"
+            className="text-muted/30"
+            strokeLinecap="round"
+          />
+          {/* Filled arc */}
+          <motion.path
+            d={pathD}
+            fill="none"
+            strokeWidth={strokeWidth}
+            strokeLinecap="round"
+            className={gaugeBg}
+            initial={{ pathLength: 0 }}
+            animate={{ pathLength: 1 }}
+            transition={{ duration: 0.8, ease: "easeOut" }}
+          />
+          {/* Needle dot */}
+          <motion.circle
+            cx={endX}
+            cy={endY}
+            r={3}
+            className="fill-current"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1, cx: endX, cy: endY }}
+            transition={{ duration: 0.8, ease: "easeOut" }}
+            style={{ color: normalized < 25 ? "#f59e0b" : normalized < 50 ? "#10b981" : normalized < 75 ? "#0ea5e9" : "#f43f5e" }}
+          />
+        </svg>
+        {/* Center label */}
+        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 text-center">
+          <Gauge className={`size-3.5 mx-auto mb-0.5 ${gaugeColor}`} />
+          <span className="text-[10px] text-muted-foreground font-medium">Market Position</span>
+        </div>
+      </div>
+
+      {/* Range indicators */}
+      <div className="flex items-center gap-3 mt-1 w-full max-w-[200px]">
+        <div className="flex-1 text-center">
+          <p className="text-[10px] text-muted-foreground">Min</p>
+          <p className="text-xs font-semibold">{formatPrice(min)}</p>
+        </div>
+        <motion.div
+          className="h-px flex-1 bg-gradient-to-r from-amber-400 via-emerald-500 to-rose-400 opacity-50"
+          initial={{ scaleX: 0 }}
+          animate={{ scaleX: 1 }}
+          transition={{ duration: 0.6, delay: 0.3 }}
+        />
+        <div className="flex-1 text-center">
+          <p className="text-[10px] text-muted-foreground">Max</p>
+          <p className="text-xs font-semibold">{formatPrice(max)}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function PricingCalculator() {
   const [isOpen, setIsOpen] = useState(false);
   const [condition, setCondition] = useState<string>("Good");
@@ -33,6 +155,8 @@ export function PricingCalculator() {
   const [hasBox, setHasBox] = useState<string>("Yes");
   const [hasCharger, setHasCharger] = useState<string>("Yes");
   const [basePrice, setBasePrice] = useState<string>("");
+
+  const condMultiplier = CONDITION_MULTIPLIERS[condition] || CONDITION_MULTIPLIERS["Good"];
 
   const result = useMemo(() => {
     const price = parseFloat(basePrice);
@@ -69,6 +193,10 @@ export function PricingCalculator() {
     const minPrice = Math.round(suggestedPrice * 0.9);
     const maxPrice = Math.round(suggestedPrice * 1.1);
 
+    // Market range boundaries (budget: 1k-5k, mid: 5k-15k, premium: 15k-50k)
+    const marketMin = 1000;
+    const marketMax = 50000;
+
     // Estimated days to sell based on condition
     let estDays: number;
     let sellLabel: string;
@@ -87,12 +215,20 @@ export function PricingCalculator() {
       suggestedPrice,
       minPrice,
       maxPrice,
+      marketMin,
+      marketMax,
       estDays,
       sellLabel,
       profitMargin,
       effectiveMarkup: effectiveMarkup * 100,
     };
   }, [basePrice, condition, age, hasBox, hasCharger]);
+
+  const handlePresetClick = (range: [number, number]) => {
+    // Set base price to the midpoint of the range
+    const mid = Math.round((range[0] + range[1]) / 2);
+    setBasePrice(mid.toString());
+  };
 
   return (
     <Card className="rounded-xl border shadow-sm overflow-hidden">
@@ -123,6 +259,31 @@ export function PricingCalculator() {
 
         <CollapsibleContent>
           <div className="px-4 pb-4 space-y-4 border-t border-border/50 pt-4">
+            {/* Quick Price Presets */}
+            <div className="space-y-2">
+              <Label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                <Zap className="size-3 text-amber-500" />
+                Quick Price Range
+              </Label>
+              <div className="grid grid-cols-3 gap-2">
+                {QUICK_PRESETS.map((preset, i) => (
+                  <motion.button
+                    key={preset.label}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => handlePresetClick(preset.range)}
+                    className={`rounded-xl p-2.5 text-center bg-gradient-to-br ${preset.color} text-white shadow-sm hover:shadow-md transition-shadow duration-200`}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.05 }}
+                  >
+                    <span className="text-lg block">{preset.icon}</span>
+                    <span className="text-[10px] font-semibold block mt-0.5">{preset.label}</span>
+                    <span className="text-[9px] text-white/80 block">{preset.sub}</span>
+                  </motion.button>
+                ))}
+              </div>
+            </div>
+
             {/* Base Price Input */}
             <div className="space-y-2">
               <Label className="text-xs font-medium text-muted-foreground">
@@ -160,6 +321,13 @@ export function PricingCalculator() {
                     ))}
                   </SelectContent>
                 </Select>
+                {/* Condition multiplier indicator */}
+                <div className="flex items-center gap-1.5 px-1">
+                  <div className={`size-1.5 rounded-full ${condMultiplier.value >= 1 ? "bg-emerald-500" : "bg-red-400"}`} />
+                  <span className={`text-[10px] font-semibold ${condMultiplier.color} ${condMultiplier.darkColor}`}>
+                    {condMultiplier.label} adjustment
+                  </span>
+                </div>
               </div>
 
               <div className="space-y-1.5">
@@ -226,8 +394,16 @@ export function PricingCalculator() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -8 }}
                   transition={{ duration: 0.2 }}
-                  className="space-y-3 p-4 rounded-xl bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800"
+                  className="space-y-4 p-4 rounded-xl bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800"
                 >
+                  {/* Visual Gauge */}
+                  <PriceGauge
+                    value={result.suggestedPrice}
+                    min={result.marketMin}
+                    max={result.marketMax}
+                    suggested={result.suggestedPrice}
+                  />
+
                   <div className="flex items-center justify-between">
                     <p className="text-xs font-medium text-emerald-700 dark:text-emerald-300">
                       Suggested Asking Price
@@ -245,18 +421,41 @@ export function PricingCalculator() {
                   </p>
 
                   <div className="grid grid-cols-2 gap-3">
-                    <div className="p-2.5 rounded-lg bg-white/60 dark:bg-white/5">
+                    <motion.div
+                      className="p-2.5 rounded-lg bg-white/60 dark:bg-white/5"
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.1 }}
+                    >
                       <p className="text-[10px] text-muted-foreground">Min Price</p>
                       <p className="text-sm font-semibold text-muted-foreground">
                         {formatPrice(result.minPrice)}
                       </p>
-                    </div>
-                    <div className="p-2.5 rounded-lg bg-white/60 dark:bg-white/5">
+                    </motion.div>
+                    <motion.div
+                      className="p-2.5 rounded-lg bg-white/60 dark:bg-white/5"
+                      initial={{ opacity: 0, x: 10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.1 }}
+                    >
                       <p className="text-[10px] text-muted-foreground">Max Price</p>
                       <p className="text-sm font-semibold text-muted-foreground">
                         {formatPrice(result.maxPrice)}
                       </p>
-                    </div>
+                    </motion.div>
+                  </div>
+
+                  {/* Condition breakdown */}
+                  <div className="flex items-center gap-2 p-2 rounded-lg bg-white/40 dark:bg-white/5">
+                    <Badge variant="outline" className="text-[10px] border-emerald-300 dark:border-emerald-700">
+                      {condition}
+                    </Badge>
+                    <span className="text-[10px] text-muted-foreground">
+                      Markup: <span className="font-semibold text-emerald-700 dark:text-emerald-400">{result.effectiveMarkup.toFixed(0)}%</span>
+                    </span>
+                    <span className="text-[10px] text-muted-foreground">
+                      Adj: <span className={`font-semibold ${condMultiplier.color} ${condMultiplier.darkColor}`}>{condMultiplier.label}</span>
+                    </span>
                   </div>
 
                   <div className="flex items-center gap-2 pt-1">
@@ -284,7 +483,7 @@ export function PricingCalculator() {
 
             {/* Formula Info */}
             <p className="text-[10px] text-muted-foreground text-center">
-              Formula: base × condition markup − age/box/charger deductions
+              Formula: base × condition markup × condition adj − age/box/charger deductions
             </p>
           </div>
         </CollapsibleContent>

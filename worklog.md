@@ -2321,3 +2321,85 @@ Stage Summary:
 - Native Android share sheet now appears when user taps Share — they can pick Facebook directly
 - WhatsApp sharing in Inventory.tsx also fixed with same approach
 - All lint checks pass
+
+---
+Task ID: cron-review-20260415
+Agent: Auto Review Agent
+Task: Periodic review - QA, improve AI prompts, add features, improve styling
+
+Work Log:
+- Reviewed full project worklog (40+ entries spanning entire project history)
+- QA testing via agent-browser: all tabs load, no runtime errors, lint clean (0 errors)
+- Dev server confirmed healthy (HTTP 200, compiled successfully)
+
+**AI Prompt Improvements (3 files, user request from previous session):**
+1. `/src/app/api/generate-ad/route.ts`:
+   - Expanded SYSTEM_PROMPT with richer "Honest Hustler" persona (backstory, 8 hook styles, SA culture refs)
+   - Enhanced all 4 platform instructions with creative audience descriptions and retailer price comparisons
+   - Added randomization to buildFallbackAd() (5+ hook options per platform, 2-3 intro variations)
+   - New spec benefit mappings: AI/Copilot, OLED, 4K, Touchscreen, numeric keypad, 360° hinge
+   - Expanded fallbackAudiences() with 2-3 variants each, SA-context audiences
+2. `/src/lib/local-api.ts`:
+   - Added pick() utility for randomization on every ad generation
+   - Every spec benefit now has 2-3 variations
+   - FOMO lines expanded from 5 → 12 unique options
+   - New feature mappings: AI, OLED, 4K, Touchscreen
+   - Added SA-flavoured battery and trust lines
+3. `/src/lib/on-device-llm.ts`:
+   - Expanded system prompt from ~20 lines to ~40 lines with full persona definition
+   - Added SA culture refs (loadshedding, braai, Varsity life) and retailer references
+   - Enhanced all 4 platform rules with multiple hook styles
+   - Added randomization to buildOnDeviceContext()
+
+**New Features Added:**
+1. Sales Pipeline Tracker (`/src/components/dashboard/SalesPipelineTracker.tsx`):
+   - 5-stage visual pipeline: Draft → Listed → Contacted → Negotiating → Sold
+   - Colored progress bars with animated fills per stage
+   - Click to advance laptops between stages
+   - Expandable items showing laptop name + price
+   - Zustand store persistence via localStorage
+
+2. Enhanced Pricing Calculator:
+   - 3 Quick-price preset buttons: Budget (under R5k), Mid-Range (R5k-15k), Premium (R15k+)
+   - Visual semicircle gauge showing market position
+   - Condition multiplier indicator (Mint +10% to Poor -20%)
+   - Animated min/max price range indicators
+
+3. Duplicate Detection Alert:
+   - Detects matching brand+model for existing non-sold laptops
+   - Amber warning with "View it" and "Edit it" action links
+   - Only triggers when both brand and model fields are filled
+
+**Styling Improvements:**
+1. Dashboard stat cards: Spring entrance animation with stagger
+2. Inventory search bar: Search icon scales 1.2x with bounce on focus, turns emerald
+3. Bottom nav: Smooth sliding full-background pill using layoutId animation
+4. Card border accents: Stage-specific colored left borders on pipeline tracker
+5. Button hover shadows: Growing shadow + translateY(-1px) on hover
+6. Animated gradient background: Subtle shifting emerald/teal radial gradients on main container
+
+Stage Summary:
+- All 3 prompt files improved with more creative, engaging, varied ad generation
+- 3 new features: Sales Pipeline, Enhanced Pricing, Duplicate Detection
+- 6 styling improvements across dashboard, inventory, and navigation
+- ESLint clean (0 errors), dev server healthy (HTTP 200), no runtime errors
+- Browser QA verified: all components render correctly
+
+## Current Project Status:
+- LaptopFlip v1.5.0 published (Facebook sharing fix with @capacitor/share)
+- Mobile-first Next.js 16 app with Capacitor Android APK
+- Features: Dashboard, Inventory, Photo Guide, Ad Creator, Facebook Integration, Sales Pipeline
+- AI ad generation: 3-tier system (server LLM, on-device LLM, offline templates)
+- All prompts now significantly more engaging and varied
+
+## Unresolved/Risks:
+- APK needs rebuild to include new features (requires fresh static export + cap sync + gradle build)
+- Some platform rules are triplicated across 3 files (maintenance burden)
+- On-device Qwen3-0.6B model produces weaker output than server-side glm-4-flash
+- No automated tests exist
+
+## Priority Recommendations:
+1. Build new APK (v1.6.0) with all latest features + prompt improvements
+2. Consider consolidating platform rules into a shared module to reduce duplication
+3. Add sample laptops for better demo/testing experience
+4. Consider adding onboarding flow for first-time users

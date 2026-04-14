@@ -36,6 +36,7 @@ import { formatPrice, CONTACT_STATUSES } from "@/lib/types";
 import type { Laptop as LaptopType } from "@/lib/types";
 import { PricingCalculator } from "@/components/dashboard/PricingCalculator";
 import { SalesAnalytics } from "@/components/dashboard/SalesAnalytics";
+import { SalesPipelineTracker } from "@/components/dashboard/SalesPipelineTracker";
 import { NotificationCenter } from "@/components/notifications/NotificationCenter";
 
 // ─── Animated Counter Hook ─────────────────────────
@@ -743,6 +744,15 @@ export function Dashboard() {
           </CardContent>
           <div className="h-0.5 bg-gradient-to-r from-emerald-400 via-teal-400 to-emerald-500 dark:from-emerald-600 dark:via-teal-600 dark:to-emerald-700 opacity-60" />
         </Card>
+      </motion.div>
+
+      {/* Sales Pipeline Tracker */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: 0.285 }}
+      >
+        <SalesPipelineTracker />
       </motion.div>
 
       {/* Watchlist Widget */}

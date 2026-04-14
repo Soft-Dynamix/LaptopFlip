@@ -92,7 +92,7 @@ export default function Home() {
   );
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className="min-h-screen flex flex-col bg-background app-gradient-bg">
       {/* Scroll-based top status bar */}
       <AnimatePresence>
         {scrolled && (
@@ -135,7 +135,7 @@ export default function Home() {
         </AnimatePresence>
       </main>
 
-      {/* Bottom Navigation — Frosted glass effect */}
+      {/* Bottom Navigation — Frosted glass effect with sliding pill */}
       <nav className="fixed bottom-0 left-0 right-0 z-40">
         {/* Gradient top accent — 2px emerald line */}
         <div className="h-0.5 bg-gradient-to-r from-transparent via-emerald-500 to-transparent" />
@@ -159,7 +159,7 @@ export default function Home() {
                     onClick={() => handleTabClick(tab.id)}
                     className="relative -mt-7"
                   >
-                    <div className="w-14 h-14 rounded-full bg-gradient-to-br from-emerald-500 to-emerald-700 hover:from-emerald-600 hover:to-emerald-800 flex items-center justify-center shadow-xl shadow-emerald-600/40 transition-all duration-200">
+                    <div className="w-14 h-14 rounded-full bg-gradient-to-br from-emerald-500 to-emerald-700 hover:from-emerald-600 hover:to-emerald-800 flex items-center justify-center shadow-xl shadow-emerald-600/40 transition-all duration-200 btn-hover-shadow">
                       <Icon className="w-7 h-7 text-white" />
                     </div>
                   </motion.button>
@@ -182,31 +182,28 @@ export default function Home() {
                   <Icon className={cn("w-5 h-5 transition-transform duration-200", isActive && "scale-110")} />
                   {tab.label && (
                     <span className={cn(
-                      "text-[10px] font-medium leading-tight transition-all duration-200 relative",
-                      isActive && "bg-emerald-100 dark:bg-emerald-900/30 rounded-full px-2"
+                      "text-[10px] font-medium leading-tight transition-all duration-200 relative z-10"
                     )}>
                       {tab.label}
-                      {/* Shimmer effect on active tab text pill */}
-                      {isActive && (
-                        <motion.span
-                          className="absolute inset-0 rounded-full overflow-hidden pointer-events-none"
-                          animate={{ opacity: [0.3, 0.8, 0.3] }}
-                          transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-                        >
-                          <motion.span
-                            className="absolute inset-y-0 w-1/3 bg-gradient-to-r from-transparent via-white/60 to-transparent"
-                            animate={{ x: ["-150%", "250%"] }}
-                            transition={{ duration: 2.5, repeat: Infinity, repeatDelay: 1.5, ease: "easeInOut" }}
-                          />
-                        </motion.span>
-                      )}
                     </span>
+                  )}
+                  {/* Sliding pill behind active tab */}
+                  {isActive && (
+                    <motion.div
+                      layoutId="activeTabPillBg"
+                      className="absolute inset-0 bg-emerald-100/70 dark:bg-emerald-900/25 rounded-xl z-0"
+                      transition={{
+                        type: "spring",
+                        stiffness: 350,
+                        damping: 30,
+                      }}
+                    />
                   )}
                   {/* Active indicator: small pill below the label */}
                   {isActive && (
                     <motion.div
                       layoutId="activeTabPill"
-                      className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-5 h-1 bg-emerald-600 dark:bg-emerald-400 rounded-full"
+                      className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-5 h-1 bg-emerald-600 dark:bg-emerald-400 rounded-full z-10"
                       transition={{
                         type: "spring",
                         stiffness: 400,
@@ -218,7 +215,7 @@ export default function Home() {
                   {isActive && (
                     <motion.div
                       layoutId="activeTabDot"
-                      className="absolute top-0.5 right-1 w-1.5 h-1.5 bg-emerald-500 rounded-full"
+                      className="absolute top-0.5 right-1 w-1.5 h-1.5 bg-emerald-500 rounded-full z-10"
                       transition={{
                         type: "spring",
                         stiffness: 400,

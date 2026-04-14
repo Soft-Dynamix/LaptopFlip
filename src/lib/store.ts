@@ -3,6 +3,17 @@ import type { Laptop, LaptopFormData, AdPreview, Platform, ActivityLogEntry, App
 import { defaultLaptopForm, PLATFORMS } from "./types";
 import type { ModelProgress } from "./on-device-llm";
 
+// ─── Sales Pipeline Types ─────────────────────────
+export type SalesStage = 'draft' | 'listed' | 'contacted' | 'negotiating' | 'sold';
+
+export const SALES_STAGES: { id: SalesStage; label: string; color: string; darkColor: string; bgColor: string; darkBgColor: string; textColor: string; darkTextColor: string }[] = [
+  { id: 'draft',       label: 'Draft',       color: 'bg-gray-500',      darkColor: 'dark:bg-gray-400',      bgColor: 'bg-gray-100',      darkBgColor: 'dark:bg-gray-800/40', textColor: 'text-gray-700',   darkTextColor: 'dark:text-gray-300' },
+  { id: 'listed',      label: 'Listed',      color: 'bg-emerald-500',   darkColor: 'dark:bg-emerald-400',   bgColor: 'bg-emerald-100',   darkBgColor: 'dark:bg-emerald-900/40', textColor: 'text-emerald-700', darkTextColor: 'dark:text-emerald-300' },
+  { id: 'contacted',   label: 'Contacted',   color: 'bg-sky-500',       darkColor: 'dark:bg-sky-400',       bgColor: 'bg-sky-100',       darkBgColor: 'dark:bg-sky-900/40', textColor: 'text-sky-700',   darkTextColor: 'dark:text-sky-300' },
+  { id: 'negotiating', label: 'Negotiating', color: 'bg-amber-500',     darkColor: 'dark:bg-amber-400',     bgColor: 'bg-amber-100',     darkBgColor: 'dark:bg-amber-900/40', textColor: 'text-amber-700', darkTextColor: 'dark:text-amber-300' },
+  { id: 'sold',        label: 'Sold',        color: 'bg-rose-500',      darkColor: 'dark:bg-rose-400',      bgColor: 'bg-rose-100',      darkBgColor: 'dark:bg-rose-900/40', textColor: 'text-rose-700',   darkTextColor: 'dark:text-rose-300' },
+];
+
 interface AppSettings {
   currency: string;
   region: string;
@@ -101,6 +112,11 @@ interface AppState {
   isCompareOpen: boolean;
   setIsCompareOpen: (open: boolean) => void;
 
+  // Sales pipeline
+  laptopStages: Record<string, SalesStage>;
+  updateLaptopStage: (laptopId: string, stage: SalesStage) => void;
+  getLaptopStage: (laptopId: string) => SalesStage;
+
   // Buyer contacts (CRM)
   contacts: BuyerContact[];
   setContacts: (contacts: BuyerContact[]) => void;
@@ -142,6 +158,31 @@ const defaultChecklist: Record<string, boolean> = {
 };
 
 let _activityCounter = 0;
+
+/** Load persisted sales pipeline stages from localStorage */
+function loadLaptopStages(): Record<string, SalesStage> {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = localStorage.getItem("laptopflip_stages");
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      return typeof parsed === "object" && parsed !== null ? parsed : {};
+    }
+  } catch {
+    // ignore
+  }
+  return {};
+}
+
+/** Persist sales pipeline stages to localStorage */
+function persistLaptopStages(stages: Record<string, SalesStage>) {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem("laptopflip_stages", JSON.stringify(stages));
+  } catch {
+    // ignore
+  }
+}
 
 /** Load persisted watchlist from localStorage */
 function loadWatchlist(): string[] {
@@ -342,6 +383,19 @@ export const useAppStore = create<AppState>((set, get) => ({
   clearCompare: () => set({ compareIds: [] }),
   isCompareOpen: false,
   setIsCompareOpen: (open) => set({ isCompareOpen: open }),
+
+  // Sales pipeline
+  laptopStages: loadLaptopStages(),
+  updateLaptopStage: (laptopId, stage) => {
+    set((state) => {
+      const updated = { ...state.laptopStages, [laptopId]: stage };
+      persistLaptopStages(updated);
+      return { laptopStages: updated };
+    });
+  },
+  getLaptopStage: (laptopId) => {
+    return get().laptopStages[laptopId] || 'draft';
+  },
 
   // Buyer contacts (CRM)
   contacts: [],
