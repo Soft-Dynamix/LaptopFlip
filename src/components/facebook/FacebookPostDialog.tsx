@@ -9,7 +9,6 @@ import {
   Users,
   Globe,
   ExternalLink,
-  Eye,
   Check,
   AlertCircle,
   Share2,
@@ -17,6 +16,7 @@ import {
   ClipboardCopy,
   ShoppingBag,
   MessageSquare,
+  Zap,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { isLocalMode } from '@/lib/api';
@@ -80,7 +80,6 @@ interface FacebookPostDialogProps {
  * On web, window.open with _blank works normally.
  */
 function openSystemUrl(url: string) {
-  // Capacitor detection — use _system target to open in system browser
   const win = window as Record<string, unknown>;
   if (win.Capacitor) {
     // @ts-expect-error — Capacitor _system target
@@ -99,7 +98,6 @@ async function copyToClipboard(text: string): Promise<boolean> {
       await navigator.clipboard.writeText(text);
       return true;
     }
-    // Fallback for older browsers / WebView
     const textarea = document.createElement('textarea');
     textarea.value = text;
     textarea.style.position = 'fixed';
@@ -132,13 +130,18 @@ export function FacebookPostDialog({
   const [selectedPageId, setSelectedPageId] = useState<string>('');
   const [selectedGroupId, setSelectedGroupId] = useState<string>('');
   const [posting, setPosting] = useState(false);
-  const [postingStatus, setPostingStatus] = useState<'idle' | 'copying' | 'opening' | 'success' | 'error'>('idle');
+  const [postingStatus, setPostingStatus] = useState<'idle' | 'success'>('idle');
   const [pages, setPages] = useState<FacebookPage[]>([]);
   const [groups, setGroups] = useState<FacebookGroup[]>([]);
   const [loadingTargets, setLoadingTargets] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
 
   const offline = typeof window !== 'undefined' && isLocalMode();
+
+  // Build the full share text once
+  const shareText = adPrice
+    ? `${adTitle}\n${adPrice}\n\n${adBody}`
+    : `${adTitle}\n\n${adBody}`;
 
   // Check connection and fetch targets when dialog opens
   useEffect(() => {
@@ -147,7 +150,6 @@ export function FacebookPostDialog({
     const fetchData = async () => {
       setLoadingTargets(true);
       try {
-        // In local mode, check localStorage
         if (isLocalMode()) {
           try {
             const saved = localStorage.getItem('laptopflip_fb_connection');
@@ -160,14 +162,12 @@ export function FacebookPostDialog({
           return;
         }
 
-        // Server mode
         const statusRes = await fetch('/api/facebook/status');
         if (statusRes.ok) {
           const statusData = await statusRes.json();
           setIsConnected(statusData.connected);
         }
 
-        // Fetch pages — API returns { success, pages: [...] }
         const pagesRes = await fetch('/api/facebook/pages');
         if (pagesRes.ok) {
           const pagesData = await pagesRes.json();
@@ -194,7 +194,6 @@ export function FacebookPostDialog({
           }
         }
 
-        // Fetch groups
         const groupsRes = await fetch('/api/facebook/groups');
         if (groupsRes.ok) {
           const groupsData = await groupsRes.json();
@@ -221,142 +220,65 @@ export function FacebookPostDialog({
     fetchData();
   }, [open, selectedPageId, selectedGroupId]);
 
-  // Set default target when prop changes
   useEffect(() => {
-    if (defaultTarget) {
-      setTargetType(defaultTarget);
-    }
+    if (defaultTarget) setTargetType(defaultTarget);
   }, [defaultTarget]);
 
   // ─── Share Methods ───────────────────────────────
 
   /**
-   * Method 1: Native Share API (works on Android, including Capacitor WebView)
-   * This is the BEST option for mobile — uses the OS share sheet which includes
-   * Facebook, WhatsApp, and all installed sharing apps.
+   * Method 1: Native Share API — truly direct, no copy-paste!
+   * Opens the Android/iOS share sheet. Pick Facebook, WhatsApp, etc.
+   * The text goes DIRECTLY into the chosen app.
    */
   const handleNativeShare = useCallback(async () => {
-    const shareText = adPrice
-      ? `${adTitle}\n${adPrice}\n\n${adBody}`
-      : `${adTitle}\n\n${adBody}`;
-
-    // Try native share first (Android 6+, modern iOS)
     if (navigator.share) {
       try {
         await navigator.share({
           title: adTitle,
           text: shareText,
         });
-        setPostingStatus('success');
-        toast.success('Shared successfully!');
-        setTimeout(() => {
-          setPostingStatus('idle');
-          onClose();
-        }, 1500);
+        toast.success('Shared!');
+        onClose();
         return;
       } catch (err) {
-        // User cancelled — not an error
-        if ((err as DOMException).name === 'AbortError') {
-          return;
-        }
-        // Share failed for another reason — fall through to clipboard
+        if ((err as DOMException).name === 'AbortError') return;
       }
     }
-
-    // Fallback: copy to clipboard + open Facebook share URL
-    setPostingStatus('copying');
-    const copied = await copyToClipboard(shareText);
-    setPostingStatus('opening');
-
-    if (copied) {
-      toast.success('Ad copied to clipboard!', {
-        description: 'You can paste it in the Facebook window.',
-        duration: 4000,
-      });
-    }
-
-    // Open Facebook share dialog
-    const fbShareUrl = `https://www.facebook.com/sharer/sharer.php?quote=${encodeURIComponent(shareText)}`;
-    openSystemUrl(fbShareUrl);
-
-    setPostingStatus('success');
-    setTimeout(() => {
-      setPostingStatus('idle');
-      onClose();
-    }, 2000);
-  }, [adTitle, adBody, adPrice, onClose]);
+    // No native share on this device — fall back to Facebook sharer URL
+    handleFacebookSharer();
+  }, [adTitle, shareText, onClose]);
 
   /**
-   * Method 2: Share directly to Facebook (uses fb:// or facebook.com URL)
-   * Opens Facebook with a pre-filled status/message.
+   * Method 2: Facebook Sharer — direct, pre-filled text, just tap "Post"
+   * Uses Facebook's own share dialog with the text already filled in.
    */
-  const handleFacebookDirect = useCallback(async () => {
-    const shareText = adPrice
-      ? `${adTitle}\n${adPrice}\n\n${adBody}`
-      : `${adTitle}\n\n${adBody}`;
-
-    setPostingStatus('copying');
-
-    // Always copy to clipboard first (as backup)
-    const copied = await copyToClipboard(shareText);
-    setPostingStatus('opening');
-
-    if (copied) {
-      toast.success('Ad copied to clipboard!', {
-        description: 'Paste it in your Facebook post.',
-        duration: 4000,
-      });
-    }
-
-    // Try Facebook app deep link first, fall back to web
-    // The fb:// protocol opens the Facebook app if installed
-    const fbUrl = `https://www.facebook.com/`;
+  const handleFacebookSharer = useCallback(() => {
+    const fbUrl = `https://www.facebook.com/sharer/sharer.php?quote=${encodeURIComponent(shareText)}`;
     openSystemUrl(fbUrl);
-
-    setPostingStatus('success');
-    setTimeout(() => {
-      setPostingStatus('idle');
-      onClose();
-    }, 2000);
-  }, [adTitle, adBody, adPrice, onClose]);
+    toast.success('Facebook opened!', {
+      description: 'Your ad text is pre-filled. Just tap "Post".',
+      duration: 4000,
+    });
+    onClose();
+  }, [shareText, onClose]);
 
   /**
-   * Method 3: Share to Facebook Marketplace
-   * Opens Facebook Marketplace listing creation page.
-   * Copies ad content to clipboard so user can paste it.
+   * Method 3: Marketplace — opens Facebook Marketplace new listing page.
+   * Unfortunately Facebook doesn't allow pre-filling Marketplace listing fields via URL.
+   * We copy the text to clipboard so you can paste it into the description.
    */
-  const handleMarketplaceShare = useCallback(async () => {
-    const shareText = adPrice
-      ? ` selling for ${adPrice}\n\n${adBody}`
-      : `\n\n${adBody}`;
-    const fullText = `${adTitle}${shareText}`;
-
-    setPostingStatus('copying');
-    const copied = await copyToClipboard(fullText);
-    setPostingStatus('opening');
-
-    if (copied) {
-      toast.success('Ad copied to clipboard!', {
-        description: 'Open Marketplace → tap "Sell" → paste the ad text in the description field.',
-        duration: 8000,
-      });
-    } else {
-      toast.info('Open Facebook Marketplace and create a new listing.', {
-        description: 'You\'ll need to copy the ad text manually.',
-        duration: 6000,
-      });
-    }
-
-    // Open Facebook Marketplace create listing page
-    const marketplaceUrl = 'https://www.facebook.com/marketplace/create/';
-    openSystemUrl(marketplaceUrl);
-
-    setPostingStatus('success');
-    setTimeout(() => {
-      setPostingStatus('idle');
-      onClose();
-    }, 2000);
-  }, [adTitle, adBody, adPrice, onClose]);
+  const handleMarketplace = useCallback(async () => {
+    const copied = await copyToClipboard(shareText);
+    openSystemUrl('https://www.facebook.com/marketplace/create/');
+    toast.success(copied ? 'Copied & Marketplace opened!' : 'Marketplace opened!', {
+      description: copied
+        ? 'Tap the description field and paste your ad text.'
+        : 'Copy the ad text from your laptop and paste it in.',
+      duration: 6000,
+    });
+    onClose();
+  }, [shareText, onClose]);
 
   // API-based posting for Page/Group (server mode only)
   const handlePost = async () => {
@@ -389,15 +311,10 @@ export function FacebookPostDialog({
 
       if (res.ok) {
         const data = await res.json();
-        toast.success('Ad posted to Facebook!', {
+        toast.success('Ad posted!', {
           description: data.postUrl ? (
-            <a
-              href={data.postUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-[#1877F2] underline flex items-center gap-1"
-            >
-              View post on Facebook <ExternalLink className="size-3" />
+            <a href={data.postUrl} target="_blank" rel="noopener noreferrer" className="text-[#1877F2] underline flex items-center gap-1">
+              View post <ExternalLink className="size-3" />
             </a>
           ) : undefined,
           duration: 6000,
@@ -405,93 +322,66 @@ export function FacebookPostDialog({
         onClose();
       } else {
         const data = await res.json().catch(() => ({}));
-        toast.error(data.error || 'Failed to post. Please try again.');
+        toast.error(data.error || 'Failed to post. Try again.');
       }
     } catch {
-      toast.error('Network error. Check your connection and try again.');
+      toast.error('Network error. Check connection and try again.');
     } finally {
       setPosting(false);
     }
   };
 
   const handleClose = () => {
-    if (!posting && postingStatus !== 'copying' && postingStatus !== 'opening') {
-      onClose();
+    if (!posting) onClose();
+  };
+
+  const handleAction = () => {
+    switch (targetType) {
+      case 'share': handleNativeShare(); break;
+      case 'fb_share': handleFacebookSharer(); break;
+      case 'marketplace': handleMarketplace(); break;
+      case 'page':
+      case 'group': handlePost(); break;
     }
   };
 
-  const isActionPending = postingStatus === 'copying' || postingStatus === 'opening';
+  const getButtonLabel = () => {
+    if (posting) return 'Posting...';
+    if (postingStatus === 'success') return 'Done!';
+    switch (targetType) {
+      case 'share': return 'Share...';
+      case 'fb_share': return 'Open Facebook';
+      case 'marketplace': return 'Open Marketplace';
+      case 'page': return 'Post to Page';
+      case 'group': return 'Post to Group';
+      default: return 'Share';
+    }
+  };
 
-  const targetOptions: { type: TargetType; label: string; icon: React.ElementType; desc: string; available: boolean }[] = [
-    { type: 'share', label: 'Share', icon: Share2, desc: 'Share via any app', available: true },
-    { type: 'fb_share', label: 'Facebook', icon: Facebook, desc: 'Open Facebook to post', available: true },
+  const getButtonIcon = () => {
+    if (posting) return <Loader2 className="size-4 animate-spin" />;
+    if (postingStatus === 'success') return <Check className="size-4" />;
+    switch (targetType) {
+      case 'share': return <Share2 className="size-4" />;
+      case 'fb_share': return <Facebook className="size-4" />;
+      case 'marketplace': return <ShoppingBag className="size-4" />;
+      case 'page':
+      case 'group': return <Facebook className="size-4" />;
+      default: return <Share2 className="size-4" />;
+    }
+  };
+
+  const targetOptions: { type: TargetType; label: string; icon: React.ElementType; desc: string; available: boolean; badge?: string }[] = [
+    { type: 'share', label: 'Share', icon: Zap, desc: 'Direct to any app — no copy/paste', available: true, badge: 'Best' },
+    { type: 'fb_share', label: 'Facebook', icon: Facebook, desc: 'Pre-filled post — just tap Post', available: true },
     { type: 'marketplace', label: 'Marketplace', icon: ShoppingBag, desc: 'List on Marketplace', available: true },
-    { type: 'page', label: 'My Page', icon: Store, desc: 'Post to a Page you manage', available: isConnected && !offline },
+    { type: 'page', label: 'My Page', icon: Store, desc: 'Post to a Page', available: isConnected && !offline },
     { type: 'group', label: 'Group', icon: Users, desc: 'Share to a Group', available: isConnected && !offline },
   ];
 
   const availableTargets = targetOptions.filter((t) => t.available);
   const selectedPage = pages.find((p) => p.id === selectedPageId);
   const selectedGroup = groups.find((g) => g.id === selectedGroupId);
-
-  const handleAction = () => {
-    switch (targetType) {
-      case 'share':
-        handleNativeShare();
-        break;
-      case 'fb_share':
-        handleFacebookDirect();
-        break;
-      case 'marketplace':
-        handleMarketplaceShare();
-        break;
-      case 'page':
-      case 'group':
-        handlePost();
-        break;
-    }
-  };
-
-  const getActionButtonLabel = () => {
-    if (isActionPending) {
-      return postingStatus === 'copying' ? 'Copying...' : 'Opening...';
-    }
-    if (postingStatus === 'success') {
-      return 'Done!';
-    }
-    switch (targetType) {
-      case 'share':
-        return 'Share via...';
-      case 'fb_share':
-        return 'Open Facebook';
-      case 'marketplace':
-        return 'Go to Marketplace';
-      case 'page':
-        return 'Post to Page';
-      case 'group':
-        return 'Post to Group';
-      default:
-        return 'Share';
-    }
-  };
-
-  const getActionButtonIcon = () => {
-    if (isActionPending) return <Loader2 className="size-4 animate-spin" />;
-    if (postingStatus === 'success') return <Check className="size-4" />;
-    switch (targetType) {
-      case 'share':
-        return <Share2 className="size-4" />;
-      case 'fb_share':
-        return <Facebook className="size-4" />;
-      case 'marketplace':
-        return <ShoppingBag className="size-4" />;
-      case 'page':
-      case 'group':
-        return <Facebook className="size-4" />;
-      default:
-        return <Share2 className="size-4" />;
-    }
-  };
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && handleClose()}>
@@ -503,17 +393,14 @@ export function FacebookPostDialog({
             </div>
             Share to Facebook
           </DialogTitle>
-          <DialogDescription>
-            Choose how to share your ad
-          </DialogDescription>
+          <DialogDescription>Choose how to share your ad</DialogDescription>
         </DialogHeader>
 
-        {/* Offline mode notice */}
         {offline && (
           <div className="flex items-center gap-2 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg px-3 py-2">
             <WifiOff className="size-4 text-amber-600 dark:text-amber-400 shrink-0" />
-            <p className="text-xs text-amber-700 dark:text-amber-300">
-              Offline mode — share opens Facebook app or browser
+            <p className="text-xs text-muted-foreground">
+              Offline mode — sharing opens external apps
             </p>
           </div>
         )}
@@ -532,28 +419,22 @@ export function FacebookPostDialog({
                   <motion.button
                     key={opt.type}
                     whileTap={{ scale: 0.97 }}
-                    onClick={() => {
-                      setTargetType(opt.type);
-                      setPostingStatus('idle');
-                    }}
+                    onClick={() => setTargetType(opt.type)}
                     className={`relative flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition-all duration-200 ${
                       isSelected
                         ? 'border-[#1877F2] bg-[#1877F2]/5 shadow-sm'
                         : 'border-transparent bg-muted/50 hover:bg-muted'
                     }`}
                   >
-                    <Icon
-                      className={`size-4 transition-colors ${
-                        isSelected ? 'text-[#1877F2]' : 'text-muted-foreground'
-                      }`}
-                    />
-                    <span
-                      className={`text-[11px] font-medium transition-colors text-center leading-tight ${
-                        isSelected ? 'text-[#1877F2]' : 'text-muted-foreground'
-                      }`}
-                    >
+                    <Icon className={`size-4 transition-colors ${isSelected ? 'text-[#1877F2]' : 'text-muted-foreground'}`} />
+                    <span className={`text-[11px] font-medium text-center leading-tight transition-colors ${isSelected ? 'text-[#1877F2]' : 'text-muted-foreground'}`}>
                       {opt.label}
                     </span>
+                    {opt.badge && (
+                      <span className="absolute -top-1.5 left-1/2 -translate-x-1/2 text-[8px] font-bold bg-emerald-500 text-white px-1.5 py-0.5 rounded-full leading-none">
+                        {opt.badge}
+                      </span>
+                    )}
                     {isSelected && (
                       <motion.div
                         layoutId="postTargetCheck"
@@ -569,130 +450,20 @@ export function FacebookPostDialog({
                 );
               })}
             </div>
-            {availableTargets.length < targetOptions.length && !offline && (
-              <p className="text-[10px] text-muted-foreground text-center">
-                Connect your Facebook account in Settings to unlock Page & Group posting
-              </p>
-            )}
           </div>
 
-          {/* Target Selector (for page/group/marketplace) */}
+          {/* Target info cards */}
           <AnimatePresence mode="wait">
-            {targetType === 'page' && (
-              <motion.div
-                key="page-selector"
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -8 }}
-                transition={{ duration: 0.2 }}
-                className="space-y-2"
-              >
-                <p className="text-xs font-medium text-muted-foreground">Select Page</p>
-                {loadingTargets ? (
-                  <Skeleton className="h-10 rounded-lg w-full" />
-                ) : pages.length === 0 ? (
-                  <p className="text-xs text-muted-foreground py-2">
-                    No pages found. Check your permissions.
-                  </p>
-                ) : (
-                  <div className="space-y-2">
-                    <Select value={selectedPageId} onValueChange={setSelectedPageId}>
-                      <SelectTrigger className="rounded-lg">
-                        <SelectValue placeholder="Choose a page" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {pages.map((page) => (
-                          <SelectItem key={page.id} value={page.id}>
-                            {page.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {selectedPage && (
-                      <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        className="flex items-center gap-2 p-2 bg-muted/50 rounded-lg"
-                      >
-                        <Avatar className="size-6">
-                          <AvatarImage src={selectedPage.pictureUrl} />
-                          <AvatarFallback className="text-[10px] bg-[#1877F2]/10 text-[#1877F2]">
-                            {selectedPage.name.charAt(0)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <span className="text-xs text-muted-foreground">
-                          {selectedPage.category || 'Facebook Page'}
-                        </span>
-                      </motion.div>
-                    )}
-                  </div>
-                )}
-              </motion.div>
-            )}
-
-            {targetType === 'group' && (
-              <motion.div
-                key="group-selector"
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -8 }}
-                transition={{ duration: 0.2 }}
-                className="space-y-2"
-              >
-                <p className="text-xs font-medium text-muted-foreground">Select Group</p>
-                {loadingTargets ? (
-                  <Skeleton className="h-10 rounded-lg w-full" />
-                ) : groups.length === 0 ? (
-                  <p className="text-xs text-muted-foreground py-2">
-                    No groups found. Check your permissions.
-                  </p>
-                ) : (
-                  <Select value={selectedGroupId} onValueChange={setSelectedGroupId}>
-                    <SelectTrigger className="rounded-lg">
-                      <SelectValue placeholder="Choose a group" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {groups.map((group) => (
-                        <SelectItem key={group.id} value={group.id}>
-                          {group.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-                {selectedGroup && (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="flex items-center gap-2 p-2 bg-muted/50 rounded-lg"
-                  >
-                    <Badge variant="secondary" className="text-[10px] h-4 px-1.5">
-                      {selectedGroup.privacy || 'Group'}
-                    </Badge>
-                    <span className="text-xs text-muted-foreground">
-                      {selectedGroup.name}
-                    </span>
-                  </motion.div>
-                )}
-              </motion.div>
-            )}
-
-            {targetType === 'marketplace' && (
-              <motion.div
-                key="marketplace-info"
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -8 }}
-                transition={{ duration: 0.2 }}
-              >
-                <Card className="bg-[#1877F2]/5 border-[#1877F2]/20 rounded-lg">
+            {targetType === 'share' && (
+              <motion.div key="share-info" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }}>
+                <Card className="bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800 rounded-lg">
                   <CardContent className="p-3 flex items-start gap-2">
-                    <ShoppingBag className="size-4 text-[#1877F2] mt-0.5 shrink-0" />
+                    <Zap className="size-4 text-emerald-600 dark:text-emerald-400 mt-0.5 shrink-0" />
                     <div>
-                      <p className="text-xs font-medium">Facebook Marketplace</p>
-                      <p className="text-[10px] text-muted-foreground mt-0.5">
-                        Your ad will be copied to clipboard and Facebook Marketplace will open.
-                        Paste it into the listing description.
+                      <p className="text-xs font-medium text-emerald-800 dark:text-emerald-300">Direct share — no copy & paste!</p>
+                      <p className="text-[10px] text-emerald-700 dark:text-emerald-400 mt-0.5">
+                        Opens your phone&apos;s share sheet. Pick Facebook, WhatsApp, or any app.
+                        Your ad text goes directly into the app.
                       </p>
                     </div>
                   </CardContent>
@@ -701,21 +472,14 @@ export function FacebookPostDialog({
             )}
 
             {targetType === 'fb_share' && (
-              <motion.div
-                key="fb-share-info"
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -8 }}
-                transition={{ duration: 0.2 }}
-              >
+              <motion.div key="fb-share-info" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }}>
                 <Card className="bg-[#1877F2]/5 border-[#1877F2]/20 rounded-lg">
                   <CardContent className="p-3 flex items-start gap-2">
                     <MessageSquare className="size-4 text-[#1877F2] mt-0.5 shrink-0" />
                     <div>
-                      <p className="text-xs font-medium">Post on Facebook</p>
+                      <p className="text-xs font-medium">Pre-filled Facebook post</p>
                       <p className="text-[10px] text-muted-foreground mt-0.5">
-                        Ad text will be copied to clipboard and Facebook will open.
-                        Create a new post and paste the text.
+                        Opens Facebook with your ad text already filled in. Just tap &quot;Post&quot; — no typing needed.
                       </p>
                     </div>
                   </CardContent>
@@ -723,25 +487,52 @@ export function FacebookPostDialog({
               </motion.div>
             )}
 
-            {targetType === 'share' && (
-              <motion.div
-                key="share-info"
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -8 }}
-                transition={{ duration: 0.2 }}
-              >
-                <Card className="bg-[#1877F2]/5 border-[#1877F2]/20 rounded-lg">
+            {targetType === 'marketplace' && (
+              <motion.div key="marketplace-info" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }}>
+                <Card className="bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800 rounded-lg">
                   <CardContent className="p-3 flex items-start gap-2">
-                    <Share2 className="size-4 text-[#1877F2] mt-0.5 shrink-0" />
+                    <AlertCircle className="size-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
                     <div>
-                      <p className="text-xs font-medium">Share via any app</p>
-                      <p className="text-[10px] text-muted-foreground mt-0.5">
-                        Opens the device share sheet. Choose Facebook, WhatsApp, or any other app to share your ad.
+                      <p className="text-xs font-medium text-amber-800 dark:text-amber-300">Marketplace needs manual paste</p>
+                      <p className="text-[10px] text-amber-700 dark:text-amber-400 mt-0.5">
+                        Your ad will be copied to clipboard. Open Marketplace → tap &quot;Sell&quot; → paste into the description.
+                        Facebook doesn&apos;t allow pre-filling Marketplace listings.
                       </p>
                     </div>
                   </CardContent>
                 </Card>
+              </motion.div>
+            )}
+
+            {targetType === 'page' && (
+              <motion.div key="page-selector" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }} className="space-y-2">
+                <p className="text-xs font-medium text-muted-foreground">Select Page</p>
+                {loadingTargets ? <Skeleton className="h-10 rounded-lg w-full" /> : pages.length === 0 ? (
+                  <p className="text-xs text-muted-foreground py-2">No pages found.</p>
+                ) : (
+                  <Select value={selectedPageId} onValueChange={setSelectedPageId}>
+                    <SelectTrigger className="rounded-lg"><SelectValue placeholder="Choose a page" /></SelectTrigger>
+                    <SelectContent>
+                      {pages.map((page) => (<SelectItem key={page.id} value={page.id}>{page.name}</SelectItem>))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </motion.div>
+            )}
+
+            {targetType === 'group' && (
+              <motion.div key="group-selector" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }} className="space-y-2">
+                <p className="text-xs font-medium text-muted-foreground">Select Group</p>
+                {loadingTargets ? <Skeleton className="h-10 rounded-lg w-full" /> : groups.length === 0 ? (
+                  <p className="text-xs text-muted-foreground py-2">No groups found.</p>
+                ) : (
+                  <Select value={selectedGroupId} onValueChange={setSelectedGroupId}>
+                    <SelectTrigger className="rounded-lg"><SelectValue placeholder="Choose a group" /></SelectTrigger>
+                    <SelectContent>
+                      {groups.map((group) => (<SelectItem key={group.id} value={group.id}>{group.name}</SelectItem>))}
+                    </SelectContent>
+                  </Select>
+                )}
               </motion.div>
             )}
           </AnimatePresence>
@@ -750,34 +541,18 @@ export function FacebookPostDialog({
 
           {/* Ad Preview */}
           <div className="space-y-2">
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-              Preview
-            </p>
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Preview</p>
             <Card className="rounded-lg overflow-hidden">
               <div className="bg-[#1877F2] px-3 py-2 flex items-center gap-2">
                 <Facebook className="size-3.5 text-white" />
                 <span className="text-white text-[11px] font-semibold">
-                  {targetType === 'share'
-                    ? 'Share'
-                    : targetType === 'fb_share'
-                    ? 'Facebook Post'
-                    : targetType === 'page' && selectedPage
-                    ? selectedPage.name
-                    : targetType === 'group' && selectedGroup
-                    ? selectedGroup.name
-                    : 'Marketplace'}
+                  {targetType === 'share' ? 'Share' : targetType === 'fb_share' ? 'Facebook Post' : targetType === 'page' && selectedPage ? selectedPage.name : targetType === 'group' && selectedGroup ? selectedGroup.name : 'Marketplace'}
                 </span>
               </div>
               <CardContent className="p-3">
                 <p className="text-sm font-semibold truncate">{adTitle}</p>
-                {adPrice && (
-                  <p className="text-sm font-bold text-emerald-600 dark:text-emerald-400 mt-0.5">
-                    {adPrice}
-                  </p>
-                )}
-                <p className="text-xs text-muted-foreground mt-1 line-clamp-3 leading-relaxed">
-                  {adBody}
-                </p>
+                {adPrice && <p className="text-sm font-bold text-emerald-600 dark:text-emerald-400 mt-0.5">{adPrice}</p>}
+                <p className="text-xs text-muted-foreground mt-1 line-clamp-3 leading-relaxed">{adBody}</p>
               </CardContent>
             </Card>
           </div>
@@ -785,37 +560,28 @@ export function FacebookPostDialog({
           {/* Action Button */}
           <Button
             onClick={handleAction}
-            disabled={posting || isActionPending || loadingTargets || (targetType === 'page' && !selectedPageId) || (targetType === 'group' && !selectedGroupId)}
+            disabled={posting || loadingTargets || (targetType === 'page' && !selectedPageId) || (targetType === 'group' && !selectedGroupId)}
             className={cn(
               'w-full h-11 rounded-xl text-white font-semibold gap-2 transition-all',
-              postingStatus === 'success'
-                ? 'bg-emerald-500 hover:bg-emerald-500'
-                : 'bg-[#1877F2] hover:bg-[#1565D8]'
+              targetType === 'share' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-[#1877F2] hover:bg-[#1565D8]'
             )}
           >
-            {getActionButtonIcon()}
-            {getActionButtonLabel()}
+            {getButtonIcon()}
+            {getButtonLabel()}
           </Button>
 
-          {/* Quick copy fallback */}
-          {postingStatus === 'idle' && !posting && (
-            <Button
-              variant="outline"
-              onClick={async () => {
-                const shareText = adPrice
-                  ? `${adTitle}\n${adPrice}\n\n${adBody}`
-                  : `${adTitle}\n\n${adBody}`;
-                const copied = await copyToClipboard(shareText);
-                if (copied) {
-                  toast.success('Ad copied to clipboard!');
-                }
-              }}
-              className="w-full h-9 rounded-lg text-xs gap-1.5"
-            >
-              <ClipboardCopy className="size-3.5" />
-              Copy ad text only
-            </Button>
-          )}
+          {/* Copy fallback */}
+          <Button
+            variant="outline"
+            onClick={async () => {
+              const copied = await copyToClipboard(shareText);
+              if (copied) toast.success('Ad copied to clipboard!');
+            }}
+            className="w-full h-9 rounded-lg text-xs gap-1.5"
+          >
+            <ClipboardCopy className="size-3.5" />
+            Copy ad text only
+          </Button>
         </div>
       </DialogContent>
     </Dialog>
