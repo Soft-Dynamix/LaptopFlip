@@ -270,6 +270,18 @@ function PlatformPreview({ platform, ad }: { platform: Platform; ad: AdPreview }
   }
 }
 
+function parsePhotos(photos: string): string[] {
+  if (Array.isArray(photos)) return photos;
+  if (!photos) return [];
+  try {
+    const parsed = JSON.parse(photos);
+    if (Array.isArray(parsed)) return parsed;
+  } catch {
+    // ignore
+  }
+  return [];
+}
+
 export function AdPreviewSheet() {
   const isPreviewOpen = useAppStore((s) => s.isPreviewOpen);
   const setIsPreviewOpen = useAppStore((s) => s.setIsPreviewOpen);
@@ -277,9 +289,15 @@ export function AdPreviewSheet() {
   const previewPlatform = useAppStore((s) => s.previewPlatform);
   const setPreviewAd = useAppStore((s) => s.setPreviewAd);
   const setPreviewPlatform = useAppStore((s) => s.setPreviewPlatform);
+  const adCreatorLaptopId = useAppStore((s) => s.adCreatorLaptopId);
+  const laptops = useAppStore((s) => s.laptops);
 
   const [copied, setCopied] = useState(false);
   const [isPostDialogOpen, setIsPostDialogOpen] = useState(false);
+
+  // Get photos for the current laptop being advertised
+  const adLaptop = laptops.find((l) => l.id === adCreatorLaptopId);
+  const adPhotos = adLaptop ? parsePhotos(adLaptop.photos) : [];
 
   const platformInfo = PLATFORMS.find((p) => p.id === previewPlatform);
   const platformName = platformInfo?.name || previewPlatform || "Ad";
@@ -401,6 +419,8 @@ export function AdPreviewSheet() {
           adTitle={previewAd?.title || ''}
           adBody={previewAd?.body || ''}
           adPrice={previewAd?.price ? formatPrice(previewAd.price) : undefined}
+          photos={adPhotos}
+          laptopId={adCreatorLaptopId || undefined}
         />
       </SheetContent>
     </Sheet>
