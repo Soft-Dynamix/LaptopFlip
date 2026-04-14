@@ -1,4 +1,52 @@
 ---
+Task ID: apk-build-v130
+Agent: Main
+Task: Fix Facebook Connect button, build and push APK v1.3.0
+
+Work Log:
+- Diagnosed Facebook Connect issue via dev server logs:
+  - API endpoint WAS being called (POST /api/facebook/connect 401)
+  - Facebook returned "Invalid OAuth access token - Cannot parse access token"
+  - Root cause: Error was shown via toast only (not visible to user)
+  - In APK: isLocalMode() may not trigger properly, causing silent failure
+- Rewrote FacebookIntegration.tsx with major improvements:
+  - Added inline error/success feedback (red/green banners) — not just toast notifications
+  - Added API call timeout (15s AbortController) to prevent infinite hanging
+  - Added pre-send token validation (spaces check, length check < 20 chars)
+  - Added offline mode banner for APK users (amber WifiOff icon)
+  - Added Enter key support for token input submission
+  - Added clear button (X) in token input field
+  - Button shows 4 visual states: idle (Connect), connecting (spinner), success (checkmark), error (Retry)
+  - Better error messages: 401 → "Invalid or expired token", timeout → "Connection timed out", network error
+  - Removed unused useSession import (was causing TypeError in console)
+  - Separated "or" divider between OAuth and manual token entry
+- Built APK v1.3.0:
+  - Switched next.config.ts to output: "export" (already set from previous build)
+  - API routes already moved to /tmp/api-routes-backup/api/
+  - npx next build → static export successful (route: /, compiled in 5.4s)
+  - npx cap sync android → web assets copied in 36ms
+  - ./gradlew assembleDebug → BUILD SUCCESSFUL (213 tasks, 2s)
+  - APK: 16MB at download/LaptopFlip-v1.3.0-debug.apk
+- Restored dev environment:
+  - next.config.ts back to output: "standalone"
+  - API routes restored to src/app/api/
+  - Dev server restarted (HTTP 200)
+- GitHub push and release:
+  - Committed: "fix: Facebook Connect button - inline errors, timeout, APK local mode"
+  - Pushed to main branch (cff21fb..837eb90)
+  - Created GitHub release v1.3.0-debug with APK attached
+  - Release: https://github.com/Soft-Dynamix/LaptopFlip/releases/tag/v1.3.0-debug
+- Created cron job (job_id: 88463) for webDevReview every 15 minutes
+
+Stage Summary:
+- Facebook Connect button now shows inline error/success feedback (not just toast)
+- API timeout prevents infinite hanging on network issues
+- Token validation catches obvious errors before sending
+- APK offline mode has clear banner and local token storage
+- ESLint clean (0 errors), dev server running (HTTP 200)
+- APK v1.3.0-debug (16MB) available at GitHub Releases
+- Cron job active for continuous development review
+---
 Task ID: fix-facebook-connect
 Agent: Main
 Task: Fix Facebook Connect button and manual token entry not working
