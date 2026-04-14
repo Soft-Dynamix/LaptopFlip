@@ -293,7 +293,15 @@ function getDaysListed(dateString: string): number {
 
 function handleWhatsAppShare(laptop: LaptopType) {
   const text = `*${laptop.brand} ${laptop.model}*\n${laptop.cpu ? laptop.cpu + " · " : ""}${laptop.ram} · ${laptop.storage}\nCondition: ${laptop.condition}\nPrice: R${laptop.askingPrice.toLocaleString()}\n\nReply if interested!`;
-  window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+  const waUrl = `https://wa.me/?text=${encodeURIComponent(text)}`;
+  // In Capacitor, use _system target to open in system browser (launches WhatsApp app)
+  const win = window as Record<string, unknown>;
+  if (win.Capacitor) {
+    // @ts-expect-error — Capacitor _system target opens system browser / app
+    window.open(waUrl, '_system');
+  } else {
+    window.open(waUrl, '_blank', 'noopener,noreferrer');
+  }
 }
 
 // ─── Status Summary Bar ─────────────────────────────────────

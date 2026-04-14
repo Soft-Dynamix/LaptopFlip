@@ -400,6 +400,7 @@ export function AdPreviewSheet() {
           onClose={() => setIsPostDialogOpen(false)}
           adTitle={previewAd?.title || ''}
           adBody={previewAd?.body || ''}
+          adPrice={previewAd?.price ? formatPrice(previewAd.price) : undefined}
         />
       </SheetContent>
     </Sheet>
