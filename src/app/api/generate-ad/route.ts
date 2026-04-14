@@ -3,8 +3,6 @@ import { db } from '@/lib/db';
 import ZAI from 'z-ai-web-dev-sdk';
 import type { CreateChatCompletionBody } from 'z-ai-web-dev-sdk';
 
-export const dynamic = "force-static";
-
 // ─── Platform-specific formatting instructions ───────────
 
 const PLATFORM_INSTRUCTIONS: Record<string, string> = {

@@ -2,8 +2,6 @@ import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { disconnectFacebook } from '@/lib/facebook-api';
 
-export const dynamic = "force-static";
-
 /**
  * POST /api/facebook/disconnect
  *

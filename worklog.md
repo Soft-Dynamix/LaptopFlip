@@ -1,4 +1,33 @@
 ---
+Task ID: fix-facebook-connect
+Agent: Main
+Task: Fix Facebook Connect button and manual token entry not working
+
+Work Log:
+- Root cause 1: All 16 API routes had `export const dynamic = "force-static"` from APK build prep.
+  This caused POST requests to be treated as static responses in dev/standalone mode —
+  the actual handler code never executed. User clicks Connect → silent failure.
+- Root cause 2: Frontend `FacebookConnectionStatus` interface expected `status.user`
+  but the `/api/facebook/status` endpoint returned `status.connection` with different
+  field names (facebookUserId vs id, facebookName vs name, etc.)
+- Fix 1: Removed `force-static` and `generateStaticParams` from all 16 API route files
+- Fix 2: Updated `fetchStatus()` in FacebookIntegration.tsx to properly map
+  API response fields to the component's expected interface
+- Fix 3: Made `/api/facebook/connect` resilient — if token exchange fails
+  (no FACEBOOK_APP_SECRET configured), still saves the short-lived token (~2 hours)
+  instead of returning 500 error
+- Fix 4: Improved error feedback — connect toasts now show:
+  - Success: "Connected as [Name]" with long/short-lived token info
+  - Error: Clear message + link to Graph Explorer for new token
+- Verified: curl tests confirm API routes respond properly now
+
+Stage Summary:
+- Both Facebook Connect methods now work:
+  1. Manual token entry: validates token → saves to DB (works even without App Secret)
+  2. Sign in with Facebook: requires NEXT_PUBLIC_FACEBOOK_APP_ID configured in .env
+- Error feedback is clear and actionable
+- ESLint clean (0 errors), dev server running (HTTP 200)
+---
 Task ID: apk-build-v120
 Agent: Main
 Task: Build new APK (v1.2.0) with local-api fix

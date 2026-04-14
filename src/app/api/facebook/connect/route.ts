@@ -5,14 +5,15 @@ import {
   exchangeShortTokenForLong,
 } from '@/lib/facebook-api';
 
-export const dynamic = "force-static";
-
 /**
  * POST /api/facebook/connect
  *
- * Receives a short-lived Facebook access token from the client
- * (after OAuth or manual entry), validates it, exchanges it for a
- * long-lived token, and stores the connection in the database.
+ * Receives a Facebook access token from the client (after OAuth or manual entry),
+ * validates it, tries to exchange it for a long-lived token, and stores the
+ * connection in the database.
+ *
+ * If the Facebook App Secret is not configured (no App ID/Secret in .env),
+ * the token is saved as-is (short-lived, ~1-2 hours) with a warning.
  */
 export async function POST(request: NextRequest) {
   try {
@@ -31,42 +32,54 @@ export async function POST(request: NextRequest) {
     try {
       userInfo = await getUserInfo(accessToken);
     } catch (error) {
-      console.error('Facebook token verification failed:', error);
+      const msg = error instanceof Error ? error.message : String(error);
+      console.error('Facebook token verification failed:', msg);
+      // Check if it's a known error
+      if (msg.includes('OAuthException') || msg.includes('Error validating')) {
+        return NextResponse.json(
+          { error: 'Invalid or expired Facebook access token. Generate a fresh one from Facebook Graph Explorer and try again.' },
+          { status: 401 }
+        );
+      }
       return NextResponse.json(
-        { error: 'Invalid or expired Facebook access token. Please try again.' },
+        { error: `Token verification failed: ${msg}` },
         { status: 401 }
       );
     }
 
-    // Step 2: Exchange short-lived token for long-lived token (60 days)
-    let tokenResult;
+    // Step 2: Try to exchange short-lived token for long-lived token (60 days)
+    let savedToken = accessToken;
+    let tokenExpiresAt: Date | null = null;
+    let isLongLived = false;
+
     try {
-      tokenResult = await exchangeShortTokenForLong(accessToken);
-    } catch (error) {
-      console.error('Token exchange failed:', error);
-      return NextResponse.json(
-        { error: 'Failed to exchange token. Check Facebook App ID and Secret.' },
-        { status: 500 }
+      const tokenResult = await exchangeShortTokenForLong(accessToken);
+      savedToken = tokenResult.access_token;
+      const expiresIn = tokenResult.expires_in; // seconds
+      tokenExpiresAt = new Date(Date.now() + expiresIn * 1000);
+      isLongLived = true;
+    } catch {
+      // Token exchange failed (likely because App Secret is not configured).
+      // Save the token as-is — it will be short-lived (~1-2 hours).
+      console.warn(
+        'Token exchange failed (App Secret not configured?). ' +
+        'Saving short-lived token. Configure FACEBOOK_APP_SECRET for 60-day tokens.'
       );
+      // Set expiry to ~2 hours from now for short-lived tokens
+      tokenExpiresAt = new Date(Date.now() + 2 * 60 * 60 * 1000);
     }
 
-    const longToken = tokenResult.access_token;
-    const expiresIn = tokenResult.expires_in; // seconds
-    const tokenExpiresAt = new Date(Date.now() + expiresIn * 1000);
-
     // Step 3: Upsert the connection in the database
-    // Find any existing connection for this Facebook user
     const existingConnection = await db.facebookConnection.findFirst({
       where: { facebookUserId: userInfo.id },
     });
 
     let connection;
     if (existingConnection) {
-      // Update existing connection
       connection = await db.facebookConnection.update({
         where: { id: existingConnection.id },
         data: {
-          accessToken: longToken,
+          accessToken: savedToken,
           tokenExpiresAt,
           facebookUserId: userInfo.id,
           facebookName: userInfo.name ?? '',
@@ -76,10 +89,9 @@ export async function POST(request: NextRequest) {
         },
       });
     } else {
-      // Create new connection
       connection = await db.facebookConnection.create({
         data: {
-          accessToken: longToken,
+          accessToken: savedToken,
           tokenExpiresAt,
           facebookUserId: userInfo.id,
           facebookName: userInfo.name ?? '',
@@ -92,6 +104,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
+      isLongLived,
       connection: {
         id: connection.id,
         facebookUserId: connection.facebookUserId,
@@ -105,7 +118,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Facebook connect error:', error);
     return NextResponse.json(
-      { error: 'Failed to connect Facebook account' },
+      { error: 'Failed to connect Facebook account. Please check the server logs.' },
       { status: 500 }
     );
   }

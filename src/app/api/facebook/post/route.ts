@@ -2,8 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { postToPage, postToGroup, postToMarketplace } from '@/lib/facebook-api';
 
-export const dynamic = "force-static";
-
 /**
  * POST /api/facebook/post
  *

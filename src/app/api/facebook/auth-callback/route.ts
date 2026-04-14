@@ -4,8 +4,6 @@ import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { exchangeShortTokenForLong, getUserInfo } from "@/lib/facebook-api";
 
-export const dynamic = "force-static";
-
 /**
  * POST /api/facebook/auth-callback
  *

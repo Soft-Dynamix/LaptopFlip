@@ -59,6 +59,21 @@ interface FacebookConnectionStatus {
     pictureUrl?: string;
     connectedAt: string;
   };
+  connection?: {
+    id: string;
+    facebookUserId: string;
+    facebookName: string;
+    facebookEmail: string;
+    profilePicUrl: string;
+    tokenExpiresAt: string;
+    connectedAt: string;
+    isTokenValid: boolean;
+    stats?: {
+      uniquePages: number;
+      uniqueGroups: number;
+      totalPosts: number;
+    };
+  };
 }
 
 interface FacebookPage {
@@ -152,12 +167,27 @@ export function FacebookIntegration({ onConnectedChange }: { onConnectedChange?:
   const hasAppId = typeof window !== 'undefined' && !!process.env.NEXT_PUBLIC_FACEBOOK_APP_ID;
 
   // Fetch connection status
+  // The API returns { connected, connection: { facebookUserId, facebookName, ... } }
+  // but the component expects { connected, user: { id, name, pictureUrl, connectedAt } }
   const fetchStatus = useCallback(async () => {
     try {
       const res = await fetch('/api/facebook/status');
       if (res.ok) {
         const data = await res.json();
-        setStatus(data);
+        // Map API response to component interface
+        if (data.connected && data.connection) {
+          setStatus({
+            connected: true,
+            user: {
+              id: data.connection.facebookUserId || data.connection.id || '',
+              name: data.connection.facebookName || 'Facebook User',
+              pictureUrl: data.connection.profilePicUrl || '',
+              connectedAt: data.connection.connectedAt || data.connection.createdAt || '',
+            },
+          });
+        } else {
+          setStatus({ connected: false });
+        }
       } else {
         setStatus({ connected: false });
       }
@@ -279,15 +309,29 @@ export function FacebookIntegration({ onConnectedChange }: { onConnectedChange?:
         body: JSON.stringify({ accessToken: tokenInput.trim() }),
       });
       if (res.ok) {
-        toast.success('Facebook account connected!');
+        const data = await res.json();
+        if (data.isLongLived) {
+          toast.success('Facebook connected! Token valid for 60 days.', {
+            description: `Connected as ${data.connection?.facebookName || 'Facebook User'}`,
+            duration: 5000,
+          });
+        } else {
+          toast.success('Facebook connected!', {
+            description: 'Short-lived token saved (~2 hours). Add FACEBOOK_APP_SECRET to .env for 60-day tokens.',
+            duration: 7000,
+          });
+        }
         setTokenInput('');
         await fetchStatus();
       } else {
         const data = await res.json().catch(() => ({}));
-        toast.error(data.error || 'Failed to connect');
+        toast.error(data.error || 'Failed to connect', {
+          description: 'Make sure your token is valid. Generate a new one from developers.facebook.com/tools/explorer/',
+          duration: 6000,
+        });
       }
     } catch {
-      toast.error('Connection failed. Check your token and try again.');
+      toast.error('Connection failed. Check your network and try again.');
     } finally {
       setConnecting(false);
     }
@@ -331,7 +375,12 @@ export function FacebookIntegration({ onConnectedChange }: { onConnectedChange?:
         body: JSON.stringify({ accessToken: token }),
       });
       if (res.ok) {
-        toast.success('Facebook account connected!');
+        const data = await res.json();
+        if (data.isLongLived) {
+          toast.success('Facebook connected! Token valid for 60 days.');
+        } else {
+          toast.success('Facebook connected! (Short-lived token, ~2 hours)');
+        }
         await fetchStatus();
       } else {
         const data = await res.json().catch(() => ({}));
