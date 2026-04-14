@@ -363,7 +363,7 @@ export function AdPreviewSheet() {
               onClick={() => setIsPostDialogOpen(true)}
             >
               <Facebook className="size-3.5" />
-              Post to Facebook
+              Share to Facebook
             </Button>
             <div className="grid grid-cols-2 gap-2">
               <Button

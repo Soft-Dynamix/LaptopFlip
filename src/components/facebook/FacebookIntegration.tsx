@@ -254,7 +254,18 @@ export function FacebookIntegration({ onConnectedChange }: { onConnectedChange?:
       const res = await fetch('/api/facebook/pages');
       if (res.ok) {
         const data = await res.json();
-        setPages(Array.isArray(data) ? data : []);
+        // API returns { success: true, pages: [{ id, name, category, picture, access_token }] }
+        const pagesArr = Array.isArray(data?.pages)
+          ? data.pages.map((p: Record<string, unknown>) => ({
+              id: String(p.id),
+              name: String(p.name || ''),
+              category: String(p.category || ''),
+              pictureUrl: String(p.picture || ''),
+            }))
+          : Array.isArray(data)
+          ? data
+          : [];
+        setPages(pagesArr);
       }
     } catch {
       toast.error('Failed to fetch Facebook Pages');
@@ -271,7 +282,17 @@ export function FacebookIntegration({ onConnectedChange }: { onConnectedChange?:
       const res = await fetch('/api/facebook/groups');
       if (res.ok) {
         const data = await res.json();
-        setGroups(Array.isArray(data) ? data : []);
+        // API may return array directly or { data: [...] }
+        const groupsArr = Array.isArray(data)
+          ? data.map((g: Record<string, unknown>) => ({
+              id: String(g.id),
+              name: String(g.name || ''),
+              privacy: String(g.privacy || ''),
+              memberCount: Number(g.member_count || g.memberCount || 0),
+              pictureUrl: String(g.pictureUrl || ''),
+            }))
+          : [];
+        setGroups(groupsArr);
       }
     } catch {
       toast.error('Failed to fetch Facebook Groups');
