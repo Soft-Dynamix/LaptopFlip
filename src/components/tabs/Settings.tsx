@@ -19,6 +19,7 @@ import {
   Upload,
   Lightbulb,
   Facebook,
+  Sparkles,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { toast } from "sonner";
@@ -253,7 +254,7 @@ export function Settings() {
           </div>
           <div className="mt-3 flex items-center gap-2">
             <Badge className="bg-white/15 text-white border-0 text-[10px]">
-              v1.4.0
+              v1.6.0
             </Badge>
             <Badge className="bg-emerald-500/20 text-emerald-300 border-0 text-[10px]">
               {laptops.length} laptops
@@ -306,6 +307,44 @@ export function Settings() {
             </div>
           </CardContent>
           <div className="h-0.5 bg-gradient-to-r from-amber-300 via-amber-400 to-amber-300 dark:from-amber-600 dark:via-amber-500 dark:to-amber-600 opacity-50" />
+        </Card>
+      </motion.div>
+
+      {/* What's New */}
+      <motion.div variants={item} className="space-y-3">
+        <h2 className="text-base font-semibold flex items-center gap-2">
+          <Sparkles className="size-4 text-emerald-500" />
+          What&apos;s New
+        </h2>
+        <Card className="rounded-xl border shadow-sm overflow-hidden">
+          <div className="h-1 bg-gradient-to-r from-emerald-400 via-teal-400 to-emerald-500 opacity-60" />
+          <CardContent className="p-4 space-y-3">
+            <div className="flex items-start gap-3">
+              <div className="size-8 rounded-lg bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center shrink-0">
+                <span className="text-sm">🚀</span>
+              </div>
+              <div>
+                <p className="text-sm font-semibold">v1.6.0 — Performance &amp; Polish</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Enhanced notifications, CSV export, health scores &amp; more</p>
+              </div>
+            </div>
+            <div className="space-y-2">
+              {[
+                { icon: "🔔", text: "Smart notifications with animated badge & dropdown panel" },
+                { icon: "📊", text: "CSV export with full inventory data from Stock tab" },
+                { icon: "💚", text: "Listing Health Score with detailed breakdown tooltip" },
+                { icon: "🔄", text: "Quick Compare — compare 2 laptops side-by-side" },
+                { icon: "📱", text: "Facebook sharing via native Android share sheet" },
+                { icon: "📋", text: "Sales Pipeline Tracker with drag-to-stage" },
+                { icon: "🎨", text: "Enhanced animations, glassmorphism & gradient accents" },
+              ].map((item, i) => (
+                <div key={i} className="flex items-center gap-2 text-xs">
+                  <span className="text-sm shrink-0">{item.icon}</span>
+                  <span className="text-muted-foreground">{item.text}</span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
         </Card>
       </motion.div>
 
@@ -665,7 +704,7 @@ export function Settings() {
                 iconBg="bg-emerald-100 dark:bg-emerald-900/40"
                 iconColor="text-emerald-600 dark:text-emerald-400"
                 label="Version"
-                value="1.4.0"
+                value="1.6.0"
               />
               <SettingRow
                 icon={Shield}

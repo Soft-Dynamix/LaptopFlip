@@ -24,6 +24,7 @@ import {
   ArrowUpDown,
   Trash2,
   CircleDot,
+  BarChart3,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
@@ -743,6 +744,50 @@ export function Dashboard() {
             </div>
           </CardContent>
           <div className="h-0.5 bg-gradient-to-r from-emerald-400 via-teal-400 to-emerald-500 dark:from-emerald-600 dark:via-teal-600 dark:to-emerald-700 opacity-60" />
+        </Card>
+      </motion.div>
+
+      {/* This Week Summary */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: 0.27 }}
+        className="space-y-3"
+      >
+        <h2 className="text-base font-semibold flex items-center gap-2">
+          <BarChart3 className="size-4 text-violet-500" />
+          This Week
+          <span className="ml-1.5 text-transparent bg-gradient-to-r from-violet-400 to-purple-400 dark:from-violet-500 dark:to-purple-500 bg-clip-text">—</span>
+        </h2>
+        <Card className="rounded-xl border shadow-sm overflow-hidden relative">
+          <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-violet-400 via-purple-500 to-violet-600 dark:from-violet-600 dark:via-purple-700 dark:to-violet-800 rounded-l-xl" />
+          <CardContent className="p-4 pl-5 space-y-3">
+            <div className="grid grid-cols-3 gap-3">
+              {[
+                { label: "Listed", value: safeLaptops.filter((l: LaptopType) => {
+                  const d = new Date(l.createdAt).getTime();
+                  const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+                  return d > weekAgo;
+                }).length, color: "text-violet-600 dark:text-violet-400" },
+                { label: "Sold", value: soldLaptops.filter((l: LaptopType) => {
+                  const d = new Date(l.createdAt).getTime();
+                  const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+                  return d > weekAgo;
+                }).length, color: "text-emerald-600 dark:text-emerald-400" },
+                { label: "Revenue", value: formatPrice(soldLaptops.filter((l: LaptopType) => {
+                  const d = new Date(l.createdAt).getTime();
+                  const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+                  return d > weekAgo;
+                }).reduce((sum: number, l: LaptopType) => sum + l.askingPrice, 0)), color: "text-amber-600 dark:text-amber-400" },
+              ].map((stat) => (
+                <div key={stat.label} className="text-center">
+                  <p className={`text-lg font-bold ${stat.color}`}>{stat.value}</p>
+                  <p className="text-[10px] text-muted-foreground">{stat.label}</p>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+          <div className="h-0.5 bg-gradient-to-r from-violet-400 via-purple-400 to-violet-500 dark:from-violet-600 dark:via-purple-600 dark:to-violet-700 opacity-40" />
         </Card>
       </motion.div>
 

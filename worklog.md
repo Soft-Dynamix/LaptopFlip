@@ -1,4 +1,41 @@
 ---
+Task ID: 1
+Agent: Main
+Task: Version 1.6.0 improvements — version bump, changelog, weekly widget, scrollbar styling
+
+Work Log:
+- Updated Settings.tsx version badge from `v1.4.0` to `v1.6.0` (line 257)
+- Updated Settings.tsx Version setting row from `1.4.0` to `1.6.0` (line 669)
+- Added `Sparkles` icon import to Settings.tsx from lucide-react
+- Added "What's New in v1.6.0" changelog section in Settings.tsx after App Tips:
+  - Emerald gradient header bar on Card
+  - Rocket emoji header with "v1.6.0 — Performance & Polish" title
+  - 7 changelog items with emoji icons (🔔 notifications, 📊 CSV export, 💚 health score, 🔄 compare, 📱 sharing, 📋 pipeline, 🎨 animations)
+  - Uses motion.div variants for stagger animation
+  - Placed before the Marketplace Settings section separator
+- Added `BarChart3` icon import to Dashboard.tsx from lucide-react
+- Added "This Week" summary widget to Dashboard.tsx between Profit Insights and Sales Pipeline Tracker:
+  - Violet/purple gradient left border accent
+  - 3-column grid showing: Listed (count), Sold (count), Revenue (formatted price)
+  - Filters by laptops created within last 7 days
+  - Animated entrance with delay: 0.27
+  - Bottom gradient bar in violet/purple tones
+- Enhanced globals.css with custom scrollbar styling:
+  - `.scrollbar-hide` utility class (cross-browser hidden scrollbar)
+  - Thin global scrollbar (4px width) with emerald-tinted thumb
+  - Transparent track, rounded thumb with hover state
+  - Uses CSS `scrollbar-width: thin` for Firefox and `::-webkit-scrollbar` for Chrome/Safari
+- ESLint: 0 errors, 0 warnings
+- Dev server compiled successfully (✓ Compiled in 357ms)
+
+Stage Summary:
+- Settings page now shows v1.6.0 in both badge and version row
+- New "What's New" changelog card highlights 7 key features added since v1.4.0
+- Dashboard has new "This Week" widget showing weekly listed/sold/revenue stats
+- Custom thin emerald scrollbar styling applied globally across the app
+- All changes lint-clean, dev server running normally (HTTP 200)
+
+---
 Task ID: fix-facebook-connect-ux
 Agent: Main
 Task: Fix Facebook account connection - simplify UX and remove broken OAuth flow
