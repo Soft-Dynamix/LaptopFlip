@@ -2099,3 +2099,30 @@ Stage Summary:
 3. Add cloud photo storage (Cloudflare R2)
 4. Implement push notifications for buyer enquiries
 5. Add price comparison with marketplace data
+---
+Task ID: apk-build-v140
+Agent: Main
+Task: Build and push APK v1.4.0 with Image Sharing + One-Tap Multi-Post
+
+Work Log:
+- Checked current state: latest commit is "feat: Image sharing + One-Tap Multi-Post 'Post Everywhere'" (3206531)
+- Only db/custom.db was modified (gitignored), no uncommitted code changes
+- APK build process:
+  1. Backed up API routes to /tmp/api-routes-backup
+  2. Set next.config.ts to output: "export"
+  3. npx next build → static export successful (route: /, compiled in 7.0s)
+  4. npx cap sync android → 4 plugins, web assets copied in 39ms
+  5. Set org.gradle.java.home=/home/z/jdk-21 in gradle.properties (fixed JDK toolchain issue)
+  6. ./gradlew assembleDebug → BUILD SUCCESSFUL (213 tasks, 2s)
+  7. APK: 16MB at download/LaptopFlip-v1.4.0-debug.apk
+  8. Restored API routes and next.config.ts to "standalone" mode
+- Committed gradle.properties change and pushed to main (e7c435c)
+- Created GitHub release v1.4.0-debug with release notes covering Image Sharing, One-Tap Multi-Post, Direct Sharing fixes
+- Uploaded APK (16MB) to GitHub release: https://github.com/Soft-Dynamix/LaptopFlip/releases/tag/v1.4.0-debug
+- Created cron job (ID: 88637) for webDevReview every 15 minutes
+
+Stage Summary:
+- APK v1.4.0-debug (16MB) built and published to GitHub Releases
+- Includes: Image sharing to WhatsApp/Facebook, One-Tap Multi-Post, direct sharing without copy/paste
+- Dev environment fully restored (standalone mode, API routes back in place)
+- Cron job active for continuous development review (every 15 min)
