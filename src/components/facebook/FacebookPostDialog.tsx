@@ -232,8 +232,10 @@ export function FacebookPostDialog({
 
     const fetchData = async () => {
       setLoadingTargets(true);
+      let apiSucceeded = false;
+
       try {
-        // Always try the API first (works in both web and APK with local server)
+        // Always try the API first (works in web; in APK static export, these return 404)
         const [statusRes, pagesRes, groupsRes] = await Promise.all([
           fetch(withToken('/api/facebook/status')).catch(() => null),
           fetch(withToken('/api/facebook/pages')).catch(() => null),
@@ -243,6 +245,7 @@ export function FacebookPostDialog({
         if (statusRes?.ok) {
           const data = await statusRes.json();
           setIsConnected(data.connected);
+          apiSucceeded = true;
         }
 
         if (pagesRes?.ok) {
@@ -278,14 +281,23 @@ export function FacebookPostDialog({
           }
         }
       } catch {
-        // Fallback: check localStorage
+        // Network error — fall through to localStorage
+      }
+
+      // ALWAYS check localStorage as fallback (APK static export has no API server)
+      if (!apiSucceeded) {
         try {
           const saved = localStorage.getItem('laptopflip_fb_connection');
-          if (saved) setIsConnected(!!JSON.parse(saved)?.accessToken);
+          if (saved) {
+            const parsed = JSON.parse(saved);
+            if (parsed?.accessToken) {
+              setIsConnected(true);
+            }
+          }
         } catch { /* ignore */ }
-      } finally {
-        setLoadingTargets(false);
       }
+
+      setLoadingTargets(false);
     };
 
     fetchData();
