@@ -1,4 +1,36 @@
 ---
+---
+Task ID: fix-facebook-sharing-marketplace
+Agent: Main
+Task: Fix Facebook sharing in APK + add Marketplace sharing capability
+
+Work Log:
+- Diagnosed sharing bugs:
+  1. `window.open()` blocked in Capacitor WebView — shares never opened
+  2. Marketplace posting used restricted Graph API `/me/marketplace_listings` requiring `marketplace_add_listing` permission (needs Facebook App Review — impossible for small apps)
+  3. WhatsApp share in Inventory used `window.open()` without Capacitor `_system` target
+- Rewrote FacebookPostDialog.tsx with 3 always-available share methods:
+  1. **Share via...** — Uses native `navigator.share()` API (Android share sheet with Facebook, WhatsApp, etc.)
+  2. **Facebook** — Copies ad to clipboard + opens Facebook in system browser/app via `window.open(url, '_system')` for Capacitor
+  3. **Marketplace** — Copies ad (with price) to clipboard + opens facebook.com/marketplace/create/
+- All 3 methods work without API routes (perfect for APK offline mode)
+- Added `openSystemUrl()` helper: detects Capacitor → uses `_system` target → opens system browser
+- Added `copyToClipboard()` helper: tries `navigator.clipboard.writeText()` → falls back to `document.execCommand('copy')`
+- Added ad price to share text for better Marketplace listings
+- Added "Copy ad text only" fallback button in share dialog
+- Grid layout changed from 2-col to 3-col for 5 target options (Share, Facebook, Marketplace, Page, Group)
+- Page/Group API posting still available when connected to server mode
+- Fixed WhatsApp share in Inventory.tsx: added Capacitor `_system` target detection
+- Updated AdPreviewSheet.tsx: passes `adPrice` prop to FacebookPostDialog
+- Built APK v1.3.1 (16MB) with all fixes
+- Pushed to GitHub + created release v1.3.1-debug with APK attached
+
+Stage Summary:
+- Facebook sharing now works in APK: 3 share methods (native share, Facebook direct, Marketplace)
+- Marketplace sharing: copies ad to clipboard + opens Marketplace create page (no API permissions needed)
+- WhatsApp share fixed: uses `_system` target to properly launch WhatsApp from APK
+- ESLint clean (0 errors), dev server running (HTTP 200)
+- APK v1.3.1-debug (16MB) at GitHub Releases: https://github.com/Soft-Dynamix/LaptopFlip/releases/tag/v1.3.1-debug
 Task ID: apk-build-v130
 Agent: Main
 Task: Fix Facebook Connect button, build and push APK v1.3.0
