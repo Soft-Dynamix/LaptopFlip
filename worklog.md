@@ -1,4 +1,32 @@
 ---
+Task ID: fix-post-everywhere-stale-closure
+Agent: Main
+Task: Fix "Post Everywhere" dialog opening then immediately closing (doing nothing)
+
+Work Log:
+- User reported: Post Everywhere screen opens and closes immediately, doing nothing
+- Diagnosed root cause: **React stale closure** bug in `FacebookPostDialog.tsx`
+  - `startMultiPost()` calls `setPostSteps(steps)` + `setIsMultiPost(true)` in same tick
+  - useEffect fires when `isMultiPost` changes → calls `executeNextStep()` after 800ms
+  - BUT `executeNextStep` has **stale closure** — `postSteps` is still `[]` (initial state)
+  - Inside: `currentStep(0) >= postSteps.length(0)` → true → immediately calls `onClose()` → dialog vanishes!
+- Fix: Added refs (`postStepsRef`, `currentStepRef`, `isMultiPostRef`) that sync with state via useEffect
+  - `executeNextStep()` now reads from `postStepsRef.current` and `currentStepRef.current` instead of closure variables
+  - useEffect also reads from refs for the pending check
+  - This ensures async callbacks always see the latest state values
+- Removed `currentStep` and `postSteps` from `useCallback` deps (no longer needed — reads from refs)
+- ESLint clean (0 errors), dev server compiles successfully
+
+Stage Summary:
+- "Post Everywhere" multi-post flow now works correctly:
+  1. Steps are created and state is set
+  2. Refs sync on next render cycle
+  3. useEffect reads fresh refs → finds pending step → executes correctly
+  4. Steps advance: pending → active → done/skipped
+- No more stale closure issues — all async logic uses refs for current state
+- Users can still cancel multi-post by closing dialog mid-flow
+
+---
 Task ID: fix-post-everywhere-stuck
 Agent: Main
 Task: Fix "Post Everywhere" multi-post dialog getting stuck (steps never execute)

@@ -211,6 +211,16 @@ export function FacebookPostDialog({
   const [postSteps, setPostSteps] = useState<PostStep[]>([]);
   const [currentStep, setCurrentStep] = useState(0);
 
+  // Refs to avoid stale closures in async callbacks
+  const postStepsRef = useRef<PostStep[]>([]);
+  const currentStepRef = useRef(0);
+  const isMultiPostRef = useRef(false);
+
+  // Keep refs in sync with state
+  useEffect(() => { postStepsRef.current = postSteps; }, [postSteps]);
+  useEffect(() => { currentStepRef.current = currentStep; }, [currentStep]);
+  useEffect(() => { isMultiPostRef.current = isMultiPost; }, [isMultiPost]);
+
   const offline = typeof window !== 'undefined' && isLocalMode();
 
   const shareText = adPrice
@@ -423,7 +433,10 @@ export function FacebookPostDialog({
   }, [isConnected, pages, groups, hasImages, imageFiles.length]);
 
   const executeNextStep = useCallback(async () => {
-    if (currentStep >= postSteps.length) {
+    const steps = postStepsRef.current;
+    const stepIdx = currentStepRef.current;
+
+    if (stepIdx >= steps.length) {
       // All done!
       isExecutingRef.current = false;
       toast.success('All done! Ad posted everywhere 🎉', { duration: 5000 });
@@ -436,16 +449,15 @@ export function FacebookPostDialog({
     if (isExecutingRef.current) return;
     isExecutingRef.current = true;
 
-    const step = postSteps[currentStep];
-    setPostSteps(prev => prev.map((s, i) => i === currentStep ? { ...s, status: 'active' } : s));
+    const step = steps[stepIdx];
+    setPostSteps(prev => prev.map((s, i) => i === stepIdx ? { ...s, status: 'active' } : s));
 
     switch (step.id) {
       case 'share': {
         const shared = await shareWithImages(adTitle, shareText, imageFiles);
-        setPostSteps(prev => prev.map((s, i) => i === currentStep ? { ...s, status: shared ? 'done' : 'skipped' } : s));
+        setPostSteps(prev => prev.map((s, i) => i === stepIdx ? { ...s, status: shared ? 'done' : 'skipped' } : s));
         if (!shared) {
-          // If share was cancelled, don't continue
-          setPostSteps(prev => prev.map((s, i) => i > currentStep ? { ...s, status: 'skipped' } : s));
+          setPostSteps(prev => prev.map((s, i) => i > stepIdx ? { ...s, status: 'skipped' } : s));
           isExecutingRef.current = false;
           setTimeout(() => {
             toast.info('Multi-post stopped. You can retry individual posts.');
@@ -454,23 +466,22 @@ export function FacebookPostDialog({
           return;
         }
         isExecutingRef.current = false;
-        setCurrentStep(currentStep + 1);
+        setCurrentStep(stepIdx + 1);
         break;
       }
 
       case 'marketplace': {
         if (supportsFileShare) {
           const shared = await shareWithImages(adTitle, shareText, imageFiles);
-          setPostSteps(prev => prev.map((s, i) => i === currentStep ? { ...s, status: shared ? 'done' : 'skipped' } : s));
+          setPostSteps(prev => prev.map((s, i) => i === stepIdx ? { ...s, status: shared ? 'done' : 'skipped' } : s));
         } else {
           const copied = await copyToClipboard(shareText);
           openSystemUrl('https://www.facebook.com/marketplace/create/');
-          setPostSteps(prev => prev.map((s, i) => i === currentStep ? { ...s, status: copied ? 'done' : 'skipped' } : s));
-          // Wait a moment for user to process
+          setPostSteps(prev => prev.map((s, i) => i === stepIdx ? { ...s, status: copied ? 'done' : 'skipped' } : s));
           await new Promise(r => setTimeout(r, 3000));
         }
         isExecutingRef.current = false;
-        setCurrentStep(currentStep + 1);
+        setCurrentStep(stepIdx + 1);
         break;
       }
 
@@ -485,12 +496,12 @@ export function FacebookPostDialog({
             }),
           });
           const ok = res.ok;
-          setPostSteps(prev => prev.map((s, i) => i === currentStep ? { ...s, status: ok ? 'done' : 'skipped' } : s));
+          setPostSteps(prev => prev.map((s, i) => i === stepIdx ? { ...s, status: ok ? 'done' : 'skipped' } : s));
         } catch {
-          setPostSteps(prev => prev.map((s, i) => i === currentStep ? { ...s, status: 'skipped' } : s));
+          setPostSteps(prev => prev.map((s, i) => i === stepIdx ? { ...s, status: 'skipped' } : s));
         }
         isExecutingRef.current = false;
-        setCurrentStep(currentStep + 1);
+        setCurrentStep(stepIdx + 1);
         break;
       }
 
@@ -505,31 +516,30 @@ export function FacebookPostDialog({
             }),
           });
           const ok = res.ok;
-          setPostSteps(prev => prev.map((s, i) => i === currentStep ? { ...s, status: ok ? 'done' : 'skipped' } : s));
+          setPostSteps(prev => prev.map((s, i) => i === stepIdx ? { ...s, status: ok ? 'done' : 'skipped' } : s));
         } catch {
-          setPostSteps(prev => prev.map((s, i) => i === currentStep ? { ...s, status: 'skipped' } : s));
+          setPostSteps(prev => prev.map((s, i) => i === stepIdx ? { ...s, status: 'skipped' } : s));
         }
         isExecutingRef.current = false;
-        setCurrentStep(currentStep + 1);
+        setCurrentStep(stepIdx + 1);
         break;
       }
     }
-  }, [currentStep, postSteps, adTitle, shareText, imageFiles, supportsFileShare, adBody, laptopId, listingId, pages, groups]);
+  }, [adTitle, shareText, imageFiles, supportsFileShare, adBody, laptopId, listingId, pages, groups, onClose]);
 
   // Guard to prevent duplicate step execution
   const isExecutingRef = useRef(false);
 
-  // Auto-advance multi-post steps
+  // Auto-advance multi-post steps — uses refs to avoid stale closure
   useEffect(() => {
     if (!isMultiPost) return;
     if (isExecutingRef.current) return;
-    if (currentStep < postSteps.length) {
-      const step = postSteps[currentStep];
-      if (step.status === 'pending') {
-        // Small delay for UI to update, then start executing
-        const timer = setTimeout(() => executeNextStep(), 800);
-        return () => clearTimeout(timer);
-      }
+    const steps = postStepsRef.current;
+    const stepIdx = currentStepRef.current;
+    if (stepIdx < steps.length && steps[stepIdx].status === 'pending') {
+      // Small delay for UI to update, then start executing
+      const timer = setTimeout(() => executeNextStep(), 800);
+      return () => clearTimeout(timer);
     }
   }, [isMultiPost, currentStep, postSteps, executeNextStep]);
 
