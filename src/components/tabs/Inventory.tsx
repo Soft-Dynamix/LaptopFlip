@@ -291,14 +291,25 @@ function getDaysListed(dateString: string): number {
   return Math.max(0, Math.floor((now.getTime() - created.getTime()) / (1000 * 60 * 60 * 24)));
 }
 
-function handleWhatsAppShare(laptop: LaptopType) {
+async function handleWhatsAppShare(laptop: LaptopType) {
   const text = `*${laptop.brand} ${laptop.model}*\n${laptop.cpu ? laptop.cpu + " · " : ""}${laptop.ram} · ${laptop.storage}\nCondition: ${laptop.condition}\nPrice: R${laptop.askingPrice.toLocaleString()}\n\nReply if interested!`;
   const waUrl = `https://wa.me/?text=${encodeURIComponent(text)}`;
-  // In Capacitor, use _system target to open in system browser (launches WhatsApp app)
+  // In Capacitor, use @capacitor/share which triggers the native Android share sheet
+  // window.open(url, '_system') does NOT work in Capacitor WebView without @capacitor/browser
   const win = window as Record<string, unknown>;
   if (win.Capacitor) {
-    // @ts-expect-error — Capacitor _system target opens system browser / app
-    window.open(waUrl, '_system');
+    try {
+      const { Share } = await import('@capacitor/share');
+      await Share.share({
+        title: `${laptop.brand} ${laptop.model}`,
+        text,
+        url: waUrl,
+        dialogTitle: 'Share via WhatsApp',
+      });
+    } catch {
+      // Fallback: try opening the URL normally
+      window.open(waUrl, '_blank', 'noopener,noreferrer');
+    }
   } else {
     window.open(waUrl, '_blank', 'noopener,noreferrer');
   }

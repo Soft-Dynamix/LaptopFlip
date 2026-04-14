@@ -84,32 +84,57 @@ interface PostResult {
 
 // ─── Helpers ──────────────────────────────────────
 
-function openSystemUrl(url: string) {
-  const win = window as Record<string, unknown>;
-  if (win.Capacitor) {
-    window.open(url, '_system');
-  } else {
-    window.open(url, '_blank', 'noopener,noreferrer');
-  }
-}
-
 /** Check if running inside Capacitor native app */
 function isCapacitor(): boolean {
   return !!(window as Record<string, unknown>).Capacitor;
 }
 
-/** Open Facebook app with pre-filled post (works in APK) */
-function openFacebookAppWithDraft(text: string, url?: string): boolean {
+/**
+ * NATIVE SHARE — the CORRECT way to share from Capacitor Android.
+ *
+ * WHY this exists:
+ * - navigator.share() does NOT work in Android WebView (Chromium limitation)
+ * - window.open(url, '_system') does NOT work in Capacitor without @capacitor/browser
+ * - @capacitor/share wraps the native Android ACTION_SEND intent → shows native share sheet
+ *
+ * Uses dynamic import so the module is only loaded when needed (avoids SSR issues).
+ */
+async function nativeShare(title: string, text: string, url?: string): Promise<boolean> {
   try {
-    // Use FB intent URI to open Facebook app directly with a composer
-    const fbUrl = url
-      ? `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}&quote=${encodeURIComponent(text)}`
-      : `https://www.facebook.com/sharer/sharer.php?quote=${encodeURIComponent(text)}`;
-    openSystemUrl(fbUrl);
+    const { Share } = await import('@capacitor/share');
+    await Share.share({
+      title,
+      text: url ? `${text}\n${url}` : text,
+      ...(url ? { url } : {}),
+      dialogTitle: 'Share to Facebook',
+    });
     return true;
-  } catch {
+  } catch (err) {
+    // User cancelled share sheet — not an error
+    if (err && typeof err === 'object' && 'message' in err && (err as Error).message?.includes('Abort')) {
+      return true;
+    }
+    console.warn('nativeShare() failed:', err);
     return false;
   }
+}
+
+/** Web Share API — works in browsers but NOT in Android WebView */
+async function webShareApi(title: string, text: string, files?: File[]): Promise<boolean> {
+  if (!navigator.share) return false;
+  try {
+    if (files && files.length > 0 && typeof navigator.canShare === 'function') {
+      if (navigator.canShare({ files })) {
+        await navigator.share({ title, text, files });
+        return true;
+      }
+    }
+    await navigator.share({ title, text });
+    return true;
+  } catch (err) {
+    if ((err as DOMException).name === 'AbortError') return true;
+    return false;
+   }
 }
 
 async function copyToClipboard(text: string): Promise<boolean> {
@@ -134,53 +159,29 @@ async function copyToClipboard(text: string): Promise<boolean> {
   }
 }
 
-function base64ToFiles(photos: string[]): File[] {
-  return photos
-    .map((b64, idx) => {
-      try {
-        const matches = b64.match(/^data:(image\/\w+);base64,(.+)$/);
-        if (!matches) return null;
-        const mime = matches[1];
-        const data = atob(matches[2]);
-        const bytes = new Uint8Array(data.length);
-        for (let i = 0; i < data.length; i++) bytes[i] = data.charCodeAt(i);
-        return new File([bytes], `laptop-${idx + 1}.jpg`, { type: mime });
-      } catch {
-        return null;
-      }
-    })
-    .filter((f): f is File => f !== null);
-}
-
-function canShareFiles(): boolean {
-  return !!(navigator.share && typeof navigator.canShare === 'function');
-}
-
+/**
+ * Smart share — tries multiple strategies in order:
+ *
+ * 1. @capacitor/share → native Android share sheet (WORKS in APK!)
+ * 2. navigator.share() → Web Share API (works in browser only, NOT in WebView)
+ * 3. Clipboard copy → last resort fallback
+ */
 async function shareWithImages(
   title: string,
   text: string,
-  files: File[]
+  _files: File[]
 ): Promise<boolean> {
-  // In Capacitor APK, navigator.share() is unreliable — use Facebook intent directly
+  // Layer 1: @capacitor/share (native — works on Android APK AND web)
   if (isCapacitor()) {
-    return openFacebookAppWithDraft(text);
+    return nativeShare(title, text);
   }
 
-  // On web, use the native share sheet
-  if (!navigator.share) return false;
-  try {
-    if (files.length > 0 && canShareFiles()) {
-      if (navigator.canShare({ files })) {
-        await navigator.share({ title, text, files });
-        return true;
-      }
-    }
-    await navigator.share({ title, text });
-    return true;
-  } catch (err) {
-    if ((err as DOMException).name === 'AbortError') return true;
-    return false;
-  }
+  // Layer 2: Web Share API (browser only — NOT available in Android WebView)
+  const webShared = await webShareApi(title, text, _files);
+  if (webShared) return true;
+
+  // Layer 3: Clipboard fallback
+  return false;
 }
 
 /** Get the stored Facebook access token from localStorage (fallback for APK) */
@@ -260,7 +261,6 @@ export function FacebookPostDialog({
 
   const imageFiles = photos.length > 0 ? base64ToFiles(photos) : [];
   const hasImages = imageFiles.length > 0;
-  const supportsFileShare = canShareFiles() && hasImages;
 
   // Reset state when dialog opens
   useEffect(() => {
@@ -366,42 +366,55 @@ export function FacebookPostDialog({
   // ─── Share Methods ───────────────────────────────
 
   const handleNativeShare = useCallback(async () => {
+    // Try native share first (works in APK)
     const shared = await shareWithImages(adTitle, shareText, imageFiles);
     if (shared) {
-      toast.success('Opening Facebook...');
+      toast.success('Shared! Check your app.', { duration: 3000 });
     } else {
-      // Web fallback: copy + open FB
+      // Web fallback: copy to clipboard
       const copied = await copyToClipboard(shareText);
-      openFacebookAppWithDraft(shareText);
-      toast.info(copied ? 'Text copied & Facebook opened!' : 'Facebook opened!');
+      toast.info(copied
+        ? 'Text copied to clipboard! Paste it wherever you want.'
+        : 'Share cancelled.',
+        { duration: 5000 },
+      );
     }
     onClose();
   }, [adTitle, shareText, imageFiles, onClose]);
 
   const handleMarketplace = useCallback(async () => {
-    // In APK, go directly to Marketplace listing page
+    // In APK, use native share to open Marketplace (user picks from share sheet)
     if (isCapacitor()) {
-      openSystemUrl('https://www.facebook.com/marketplace/create/');
-      toast.success('Marketplace opened!', { duration: 3000 });
+      const shared = await nativeShare(adTitle, shareText, 'https://www.facebook.com/marketplace/create/');
+      if (shared) {
+        toast.success('Pick Facebook Marketplace from the share sheet!', { duration: 4000 });
+      } else {
+        // Fallback: copy text so user can paste it
+        const copied = await copyToClipboard(shareText);
+        toast.info(copied
+          ? 'Text copied! Open Marketplace and paste it.'
+          : 'Share cancelled.',
+          { duration: 5000 },
+        );
+      }
       onClose();
       return;
     }
-    if (supportsFileShare) {
-      const shared = await shareWithImages(adTitle, shareText, imageFiles);
-      if (shared) {
-        toast.success('Shared!');
-        onClose();
-        return;
-      }
+    // Web: try share sheet
+    const webShared = await webShareApi(adTitle, shareText, imageFiles);
+    if (webShared) {
+      toast.success('Shared!');
+      onClose();
+      return;
     }
     const copied = await copyToClipboard(shareText);
-    openSystemUrl('https://www.facebook.com/marketplace/create/');
+    window.open('https://www.facebook.com/marketplace/create/', '_blank', 'noopener,noreferrer');
     toast.success(copied ? 'Copied & Marketplace opened!' : 'Marketplace opened!', {
       description: copied ? 'Paste the ad text into the description.' : 'Copy your ad text and paste it.',
       duration: 6000,
     });
     onClose();
-  }, [shareText, imageFiles, supportsFileShare, adTitle, onClose]);
+  }, [shareText, imageFiles, adTitle, onClose]);
 
   // API post for single page/group
   const handlePost = async () => {
