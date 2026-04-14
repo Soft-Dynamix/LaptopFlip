@@ -3,40 +3,52 @@ import { db } from '@/lib/db';
 import { getUserPages, validateToken } from '@/lib/facebook-api';
 
 /**
- * GET /api/facebook/pages
+ * GET /api/facebook/pages?token=xxx
  *
  * Gets the user's Facebook Pages using the stored access token.
- * Returns list of pages with their access tokens and info.
+ * Accepts optional `token` query param from client (localStorage fallback).
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url);
+    const clientToken = searchParams.get('token');
+
+    // Get DB connection
     const connection = await db.facebookConnection.findFirst({
       orderBy: { createdAt: 'desc' },
     });
 
-    if (!connection || !connection.accessToken) {
+    // Use DB token or client token
+    const token = connection?.accessToken || (clientToken?.length > 20 ? clientToken : null);
+
+    if (!token) {
       return NextResponse.json(
         { error: 'No Facebook connection found. Please connect your Facebook account first.' },
         { status: 401 }
       );
     }
 
-    // Check token validity
-    const isValid = await validateToken(connection.accessToken);
-    if (!isValid) {
-      // Mark as invalid
-      await db.facebookConnection.update({
-        where: { id: connection.id },
-        data: { isTokenValid: false },
-      });
-
-      return NextResponse.json(
-        { error: 'Facebook token is invalid or expired. Please reconnect.' },
-        { status: 401 }
-      );
+    // If no DB connection but we have a client token, create a DB entry
+    if (!connection && clientToken) {
+      try {
+        const isValid = await validateToken(clientToken);
+        if (isValid) {
+          await db.facebookConnection.create({
+            data: {
+              accessToken: clientToken,
+              facebookUserId: 'local',
+              facebookName: 'Facebook User',
+              facebookEmail: '',
+              profilePicUrl: '',
+              tokenExpiresAt: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000),
+              isTokenValid: true,
+            },
+          });
+        }
+      } catch { /* DB create failed, still try to fetch pages */ }
     }
 
-    const pages = await getUserPages(connection.accessToken);
+    const pages = await getUserPages(token);
 
     return NextResponse.json({
       success: true,
@@ -45,7 +57,6 @@ export async function GET() {
         name: page.name,
         category: page.category,
         picture: page.picture?.data?.url ?? null,
-        // Note: access_token is included so the client can use it for posting
         access_token: page.access_token,
       })),
     });
@@ -60,10 +71,6 @@ export async function GET() {
 
 /**
  * POST /api/facebook/pages
- *
- * Saves the selected page preference. The client sends the page info
- * they want to use for posting. This is informational — the actual
- * posting uses the page access token.
  */
 export async function POST(request: NextRequest) {
   try {
@@ -77,7 +84,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate the page token
     const isValid = await validateToken(pageAccessToken);
     if (!isValid) {
       return NextResponse.json(
@@ -86,7 +92,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Return the page info for the client to store
     return NextResponse.json({
       success: true,
       page: {

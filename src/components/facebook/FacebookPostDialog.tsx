@@ -170,6 +170,14 @@ function getStoredToken(): string {
   return '';
 }
 
+/** Append localStorage token to URL if available */
+function withToken(url: string): string {
+  const token = getStoredToken();
+  if (!token) return url;
+  const sep = url.includes('?') ? '&' : '?';
+  return `${url}${sep}token=${encodeURIComponent(token)}`;
+}
+
 // ─── Component ────────────────────────────────────
 
 export function FacebookPostDialog({
@@ -227,9 +235,9 @@ export function FacebookPostDialog({
       try {
         // Always try the API first (works in both web and APK with local server)
         const [statusRes, pagesRes, groupsRes] = await Promise.all([
-          fetch('/api/facebook/status').catch(() => null),
-          fetch('/api/facebook/pages').catch(() => null),
-          fetch('/api/facebook/groups').catch(() => null),
+          fetch(withToken('/api/facebook/status')).catch(() => null),
+          fetch(withToken('/api/facebook/pages')).catch(() => null),
+          fetch(withToken('/api/facebook/groups')).catch(() => null),
         ]);
 
         if (statusRes?.ok) {

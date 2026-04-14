@@ -24,6 +24,23 @@ import {
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
+/** Get stored Facebook token from localStorage */
+function getStoredToken(): string {
+  try {
+    const saved = localStorage.getItem('laptopflip_fb_connection');
+    if (saved) return JSON.parse(saved)?.accessToken || '';
+  } catch {}
+  return '';
+}
+
+/** Append localStorage token to URL */
+function withToken(url: string): string {
+  const token = getStoredToken();
+  if (!token) return url;
+  const sep = url.includes('?') ? '&' : '?';
+  return `${url}${sep}token=${encodeURIComponent(token)}`;
+}
+
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -163,7 +180,7 @@ export function FacebookIntegration({ onConnectedChange }: { onConnectedChange?:
     try {
       // Always try API first (works in both web and APK with local server)
       try {
-        const res = await fetch('/api/facebook/status');
+        const res = await fetch(withToken('/api/facebook/status'));
         if (res.ok) {
           const data = await res.json();
           if (data.connected && data.connection) {
@@ -230,7 +247,7 @@ export function FacebookIntegration({ onConnectedChange }: { onConnectedChange?:
   const fetchPages = useCallback(async () => {
     setPagesLoading(true);
     try {
-      const res = await fetch('/api/facebook/pages');
+      const res = await fetch(withToken('/api/facebook/pages'));
       if (res.ok) {
         const data = await res.json();
         // API returns { success: true, pages: [{ id, name, category, picture, access_token }] }
@@ -257,7 +274,7 @@ export function FacebookIntegration({ onConnectedChange }: { onConnectedChange?:
   const fetchGroups = useCallback(async () => {
     setGroupsLoading(true);
     try {
-      const res = await fetch('/api/facebook/groups');
+      const res = await fetch(withToken('/api/facebook/groups'));
       if (res.ok) {
         const data = await res.json();
         // API may return array directly or { data: [...] }
@@ -282,7 +299,7 @@ export function FacebookIntegration({ onConnectedChange }: { onConnectedChange?:
   // Fetch quick stats — always try API first
   const fetchStats = useCallback(async () => {
     try {
-      const res = await fetch('/api/facebook/insights');
+      const res = await fetch(withToken('/api/facebook/insights'));
       if (res.ok) {
         const data = await res.json();
         setQuickStats(data);
