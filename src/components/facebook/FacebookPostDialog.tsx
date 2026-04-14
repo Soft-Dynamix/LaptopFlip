@@ -178,6 +178,29 @@ function withToken(url: string): string {
   return `${url}${sep}token=${encodeURIComponent(token)}`;
 }
 
+/** Load pages/groups from localStorage cache (APK fallback when no API server) */
+function loadCachedPages(): FacebookPage[] {
+  try {
+    const raw = localStorage.getItem('laptopflip_fb_pages');
+    if (raw) {
+      const arr = JSON.parse(raw);
+      if (Array.isArray(arr)) return arr;
+    }
+  } catch {}
+  return [];
+}
+
+function loadCachedGroups(): FacebookGroup[] {
+  try {
+    const raw = localStorage.getItem('laptopflip_fb_groups');
+    if (raw) {
+      const arr = JSON.parse(raw);
+      if (Array.isArray(arr)) return arr;
+    }
+  } catch {}
+  return [];
+}
+
 // ─── Component ────────────────────────────────────
 
 export function FacebookPostDialog({
@@ -297,6 +320,12 @@ export function FacebookPostDialog({
         } catch { /* ignore */ }
       }
 
+      // Load pages/groups from localStorage cache if API didn't return any
+      const cachedPages = loadCachedPages();
+      const cachedGroups = loadCachedGroups();
+      if (cachedPages.length > 0) setPages((prev) => prev.length > 0 ? prev : cachedPages);
+      if (cachedGroups.length > 0) setGroups((prev) => prev.length > 0 ? prev : cachedGroups);
+
       setLoadingTargets(false);
     };
 
@@ -390,10 +419,22 @@ export function FacebookPostDialog({
     ];
 
     if (targets.length === 0) {
-      toast.error('Connect your Facebook account first to post automatically.', {
-        description: 'Go to Settings → Connect Facebook',
-        duration: 5000,
-      });
+      // If connected but no targets (APK mode), fall back to native share
+      if (isConnected || getStoredToken()) {
+        const shared = await shareWithImages(adTitle, shareText, imageFiles);
+        if (shared) {
+          toast.success('Shared!');
+        } else {
+          const copied = await copyToClipboard(shareText);
+          toast.info(copied ? 'Text copied! Share it on Facebook.' : 'Open Facebook and paste your ad text.');
+        }
+        onClose();
+      } else {
+        toast.error('Connect your Facebook account first.', {
+          description: 'Go to Settings → Connect Facebook',
+          duration: 5000,
+        });
+      }
       return;
     }
 
@@ -494,7 +535,13 @@ export function FacebookPostDialog({
       case 'marketplace': return hasImages ? 'Share to Marketplace' : 'Open Marketplace';
       case 'page': return 'Post to Page';
       case 'group': return 'Post to Group';
-      case 'everywhere': return isConnected && (pages.length > 0 || groups.length > 0) ? 'Post Everywhere' : 'Connect First';
+      case 'everywhere': {
+        if (isConnected || getStoredToken()) {
+          if (pages.length > 0 || groups.length > 0) return 'Post Everywhere';
+          return 'Share via Facebook';
+        }
+        return 'Connect First';
+      }
       default: return 'Share';
     }
   };
@@ -505,7 +552,13 @@ export function FacebookPostDialog({
       case 'share': return <Share2 className="size-4" />;
       case 'marketplace': return <ShoppingBag className="size-4" />;
       case 'page': case 'group': return <Facebook className="size-4" />;
-      case 'everywhere': return <Send className="size-4" />;
+      case 'everywhere': {
+        if (isConnected || getStoredToken()) {
+          if (pages.length > 0 || groups.length > 0) return <Send className="size-4" />;
+          return <Share2 className="size-4" />;
+        }
+        return <Facebook className="size-4" />;
+      }
       default: return <Share2 className="size-4" />;
     }
   };
@@ -843,6 +896,21 @@ export function FacebookPostDialog({
                                 <span>{g.name} (Group)</span>
                               </div>
                             ))}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ) : isConnected || getStoredToken() ? (
+                      /* Connected but no cached pages/groups (APK offline mode) */
+                      <Card className="bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800 rounded-lg">
+                        <CardContent className="p-3 flex items-start gap-2">
+                          <Share2 className="size-4 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" />
+                          <div>
+                            <p className="text-xs font-medium text-blue-800 dark:text-blue-300">
+                              Facebook connected — Share mode
+                            </p>
+                            <p className="text-[10px] text-blue-700 dark:text-blue-400 mt-0.5">
+                              Tap the button to share directly to Facebook, WhatsApp, or any app.
+                            </p>
                           </div>
                         </CardContent>
                       </Card>

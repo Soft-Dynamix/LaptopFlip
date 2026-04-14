@@ -257,11 +257,14 @@ export function FacebookIntegration({ onConnectedChange }: { onConnectedChange?:
               name: String(p.name || ''),
               category: String(p.category || ''),
               pictureUrl: String(p.picture || ''),
+              accessToken: String(p.access_token || ''),
             }))
           : Array.isArray(data)
           ? data
           : [];
         setPages(pagesArr);
+        // Cache to localStorage for APK (static export has no API server)
+        try { localStorage.setItem('laptopflip_fb_pages', JSON.stringify(pagesArr)); } catch {}
       }
     } catch {
       toast.error('Failed to fetch Facebook Pages');
@@ -288,6 +291,8 @@ export function FacebookIntegration({ onConnectedChange }: { onConnectedChange?:
             }))
           : [];
         setGroups(groupsArr);
+        // Cache to localStorage for APK (static export has no API server)
+        try { localStorage.setItem('laptopflip_fb_groups', JSON.stringify(groupsArr)); } catch {}
       }
     } catch {
       toast.error('Failed to fetch Facebook Groups');
@@ -492,6 +497,8 @@ export function FacebookIntegration({ onConnectedChange }: { onConnectedChange?:
     try {
       // Clear localStorage regardless
       try { localStorage.removeItem('laptopflip_fb_connection'); } catch {}
+      try { localStorage.removeItem('laptopflip_fb_pages'); } catch {}
+      try { localStorage.removeItem('laptopflip_fb_groups'); } catch {}
 
       // Try server disconnect
       try {
