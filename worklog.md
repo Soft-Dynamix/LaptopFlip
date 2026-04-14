@@ -2270,3 +2270,26 @@ Stage Summary:
 - Includes: Image sharing to WhatsApp/Facebook, One-Tap Multi-Post, direct sharing without copy/paste
 - Dev environment fully restored (standalone mode, API routes back in place)
 - Cron job active for continuous development review (every 15 min)
+
+---
+Task ID: 1
+Agent: Main Agent
+Task: Fix APK showing old UI - rebuild with latest code changes
+
+Work Log:
+- Investigated git status: code changes were committed but `out/` directory was stale (built at 11:00, code changes at 14:38)
+- Identified root cause: `next.config.ts` has `output: "standalone"` but Capacitor uses `webDir: "out"` which requires `output: "export"`
+- Temporarily switched to `output: "export"`, moved API routes out of `src/app/` to avoid export errors
+- Ran `next build` successfully — generated fresh `out/` directory (25MB, 13 JS files)
+- Restored API routes and `output: "standalone"` config
+- Ran `npx cap sync android` — copied fresh web assets to Android
+- Built APK with `./gradlew assembleDebug` — BUILD SUCCESSFUL
+- Copied APK to `download/LaptopFlip-v1.4.0-debug.apk` (16MB)
+- Pushed to GitHub: `2c4b74c..b1ef614 main -> main`
+- Created GitHub release: https://github.com/Soft-Dynamix/LaptopFlip/releases/tag/v1.4.0-202604141448
+
+Stage Summary:
+- APK v1.4.0 built from latest source code with all UI changes
+- All Facebook fixes included (Post Everywhere dialog, token bridging, withToken helper)
+- Key issue: Future APK builds must follow same process (switch to export mode, move API routes, build, restore, sync, build APK)
+- Dev server already running on port 3000
