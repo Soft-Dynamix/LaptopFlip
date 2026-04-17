@@ -101,7 +101,7 @@ BODY MUST INCLUDE ALL OF THESE SECTIONS:
 
 1. FOR SALE: opener with brand + model + condition + ONE attention-grabbing sentence that stops the reader. Try different styles:
    - "If you're reading this, you're in the right place — this is the deal everyone's been looking for."
-   - "Stop scrolling. This ${brand} ${model} in ${condition} condition is priced to MOVE and it won't hang around."
+   - "Stop scrolling. This [Brand] [Model] in [Condition] condition is priced to MOVE and it won't hang around."
    - "I know what you're thinking — another laptop ad. But trust me, this one's different."
 
 2. ABOUT THIS LAPTOP: Write 4-6 vivid lines describing the laptop in DETAIL. Don't just list facts — paint a picture:
