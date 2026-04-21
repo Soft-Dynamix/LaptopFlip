@@ -1156,10 +1156,10 @@ export function Dashboard() {
             <Card className="rounded-xl border shadow-sm overflow-hidden relative hover:shadow-md transition-shadow duration-200">
               <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-sky-400 via-emerald-500 to-amber-500 dark:from-sky-600 dark:via-emerald-700 dark:to-amber-700 rounded-l-xl" />
               <CardContent className="p-4 pl-5">
-                <p className="text-xs font-semibold mb-3 flex items-center gap-1.5">
-                  <div className="size-2 rounded-full bg-gradient-to-r from-emerald-400 to-teal-400" />
+                <div className="text-xs font-semibold mb-3 flex items-center gap-1.5">
+                  <span className="size-2 rounded-full bg-gradient-to-r from-emerald-400 to-teal-400 inline-block" />
                   Condition Breakdown
-                </p>
+                </div>
                 <div className="flex flex-wrap gap-2">
                   {conditionBreakdown.map((cond, index) => (
                     <motion.div
