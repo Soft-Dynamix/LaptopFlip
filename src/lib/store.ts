@@ -3,6 +3,11 @@ import type { Laptop, LaptopFormData, AdPreview, Platform, ActivityLogEntry, App
 import { defaultLaptopForm, PLATFORMS } from "./types";
 import type { ModelProgress } from "./on-device-llm";
 
+export interface QuickNote {
+  text: string;
+  timestamp: string;
+}
+
 // ─── Sales Pipeline Types ─────────────────────────
 export type SalesStage = 'draft' | 'listed' | 'contacted' | 'negotiating' | 'sold';
 
@@ -105,7 +110,7 @@ interface AppState {
   isWatched: (laptopId: string) => boolean;
 
   // Quick Notes
-  quickNotes: string[];
+  quickNotes: QuickNote[];
   addQuickNote: (note: string) => void;
   deleteQuickNote: (index: number) => void;
 
@@ -132,6 +137,10 @@ interface AppState {
   setContactsSheetOpen: (open: boolean) => void;
   contactsSheetLaptopId: string | null;
   setContactsSheetLaptopId: (id: string | null) => void;
+
+  // Share card
+  isShareCardOpen: boolean;
+  setIsShareCardOpen: (open: boolean) => void;
 }
 
 const defaultChecklist: Record<string, boolean> = {
@@ -215,13 +224,21 @@ function persistWatchlist(watchlist: string[]) {
 }
 
 /** Load persisted quick notes from localStorage */
-function loadQuickNotes(): string[] {
+function loadQuickNotes(): QuickNote[] {
   if (typeof window === "undefined") return [];
   try {
     const raw = localStorage.getItem("laptopflip_quicknotes");
     if (raw) {
       const parsed = JSON.parse(raw);
-      return Array.isArray(parsed) ? parsed.slice(0, 10) : [];
+      if (!Array.isArray(parsed)) return [];
+      // Migrate legacy string[] to QuickNote[]
+      const migrated = parsed.slice(0, 10).map((item: string | QuickNote) => {
+        if (typeof item === 'string') {
+          return { text: item, timestamp: new Date().toISOString() };
+        }
+        return item as QuickNote;
+      });
+      return migrated;
     }
   } catch {
     // ignore
@@ -230,7 +247,7 @@ function loadQuickNotes(): string[] {
 }
 
 /** Persist quick notes to localStorage */
-function persistQuickNotes(notes: string[]) {
+function persistQuickNotes(notes: QuickNote[]) {
   if (typeof window === "undefined") return;
   try { localStorage.setItem("laptopflip_quicknotes", JSON.stringify(notes.slice(0, 10))); } catch { /* ignore */ }
 }
@@ -391,7 +408,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   // Quick Notes
   quickNotes: loadQuickNotes(),
   addQuickNote: (note) => {
-    const updated = [note, ...get().quickNotes].slice(0, 10);
+    const newNote: QuickNote = { text: note, timestamp: new Date().toISOString() };
+    const updated = [newNote, ...get().quickNotes].slice(0, 10);
     set({ quickNotes: updated });
     persistQuickNotes(updated);
   },
@@ -482,4 +500,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   setContactsSheetOpen: (open) => set({ isContactsSheetOpen: open }),
   contactsSheetLaptopId: null,
   setContactsSheetLaptopId: (id) => set({ contactsSheetLaptopId: id }),
+
+  // Share card
+  isShareCardOpen: false,
+  setIsShareCardOpen: (open) => set({ isShareCardOpen: open }),
 }));

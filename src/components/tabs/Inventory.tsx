@@ -23,6 +23,14 @@ import {
   Heart,
   GitCompareArrows,
   Columns2,
+  CheckSquare,
+  Square,
+  LayoutGrid,
+  LayoutList,
+  Wallet,
+  Clock,
+  DollarSign,
+  ArrowRight,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
@@ -30,6 +38,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -50,6 +59,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useAppStore } from "@/lib/store";
 import {
   apiFetchLaptops,
@@ -61,6 +77,7 @@ import { formatPrice } from "@/lib/types";
 import type { Laptop as LaptopType } from "@/lib/types";
 
 type SortOption = "newest" | "oldest" | "price-high" | "price-low" | "brand" | "condition";
+type ViewMode = "list" | "grid";
 
 const CONDITION_ORDER: Record<string, number> = {
   Mint: 0,
@@ -75,7 +92,7 @@ const sortOptions: { value: SortOption; label: string }[] = [
   { value: "oldest", label: "Oldest first" },
   { value: "price-high", label: "Price: High to Low" },
   { value: "price-low", label: "Price: Low to High" },
-  { value: "brand", label: "Brand (A–Z)" },
+  { value: "brand", label: "Brand (A\u2013Z)" },
   { value: "condition", label: "Condition (Best first)" },
 ];
 
@@ -247,7 +264,6 @@ function HealthScoreBadge({ laptop }: { laptop: LaptopType }) {
           {displayScore}
         </span>
       </motion.div>
-      {/* Tooltip */}
       <div className="hidden group-hover/hscore:flex absolute top-full right-0 mt-1.5 z-50 w-52 rounded-xl bg-popover border shadow-xl p-3 flex-col">
         <p className="text-xs font-bold mb-2">{colorInfo.label} · <span className={colorInfo.text}>{score}</span></p>
         <div className="space-y-1">
@@ -292,26 +308,23 @@ function getDaysListed(dateString: string): number {
 }
 
 async function handleWhatsAppShare(laptop: LaptopType) {
-  const text = `*${laptop.brand} ${laptop.model}*\n${laptop.cpu ? laptop.cpu + " · " : ""}${laptop.ram} · ${laptop.storage}\nCondition: ${laptop.condition}\nPrice: R${laptop.askingPrice.toLocaleString()}\n\nReply if interested!`;
+  const text = `*${laptop.brand} ${laptop.model}*\n${laptop.cpu ? laptop.cpu + " \u00b7 " : ""}${laptop.ram} \u00b7 ${laptop.storage}\nCondition: ${laptop.condition}\nPrice: R${laptop.askingPrice.toLocaleString()}\n\nReply if interested!`;
   const waUrl = `https://wa.me/?text=${encodeURIComponent(text)}`;
-  // In Capacitor, use @capacitor/share which triggers the native Android share sheet
-  // window.open(url, '_system') does NOT work in Capacitor WebView without @capacitor/browser
   const win = window as Record<string, unknown>;
   if (win.Capacitor) {
     try {
-      const { Share } = await import('@capacitor/share');
+      const { Share } = await import("@capacitor/share");
       await Share.share({
         title: `${laptop.brand} ${laptop.model}`,
         text,
         url: waUrl,
-        dialogTitle: 'Share via WhatsApp',
+        dialogTitle: "Share via WhatsApp",
       });
     } catch {
-      // Fallback: try opening the URL normally
-      window.open(waUrl, '_blank', 'noopener,noreferrer');
+      window.open(waUrl, "_blank", "noopener,noreferrer");
     }
   } else {
-    window.open(waUrl, '_blank', 'noopener,noreferrer');
+    window.open(waUrl, "_blank", "noopener,noreferrer");
   }
 }
 
@@ -356,6 +369,49 @@ function StatusSummaryBar({ laptops }: { laptops: LaptopType[] }) {
           </div>
         );
       })}
+    </div>
+  );
+}
+
+// ─── Quick Stats Row ───────────────────────────────────────
+
+function QuickStatsRow({ laptops }: { laptops: LaptopType[] }) {
+  const safeLaptops = Array.isArray(laptops) ? laptops : [];
+  const priced = safeLaptops.filter((l) => l.askingPrice > 0);
+  const totalValue = priced.reduce((sum, l) => sum + l.askingPrice, 0);
+  const avgPrice = priced.length > 0 ? Math.round(totalValue / priced.length) : 0;
+  let oldestDays = 0;
+  for (const l of safeLaptops) {
+    const d = getDaysListed(l.createdAt);
+    if (d > oldestDays) oldestDays = d;
+  }
+  const stats = { totalValue, avgPrice, oldestDays, count: safeLaptops.length };
+
+  return (
+    <div className="grid grid-cols-3 gap-2">
+      <div className="rounded-xl bg-gradient-to-br from-emerald-50 to-emerald-100/60 dark:from-emerald-900/30 dark:to-emerald-900/10 p-2.5 space-y-1">
+        <div className="flex items-center gap-1.5">
+          <Wallet className="size-3.5 text-emerald-600 dark:text-emerald-400" />
+          <span className="text-[10px] text-muted-foreground font-medium">Total Value</span>
+        </div>
+        <p className="text-sm font-bold text-emerald-700 dark:text-emerald-300">{formatPrice(stats.totalValue)}</p>
+      </div>
+      <div className="rounded-xl bg-gradient-to-br from-teal-50 to-teal-100/60 dark:from-teal-900/30 dark:to-teal-900/10 p-2.5 space-y-1">
+        <div className="flex items-center gap-1.5">
+          <DollarSign className="size-3.5 text-teal-600 dark:text-teal-400" />
+          <span className="text-[10px] text-muted-foreground font-medium">Avg Price</span>
+        </div>
+        <p className="text-sm font-bold text-teal-700 dark:text-teal-300">{formatPrice(stats.avgPrice)}</p>
+      </div>
+      <div className="rounded-xl bg-gradient-to-br from-amber-50 to-amber-100/60 dark:from-amber-900/30 dark:to-amber-900/10 p-2.5 space-y-1">
+        <div className="flex items-center gap-1.5">
+          <Clock className="size-3.5 text-amber-600 dark:text-amber-400" />
+          <span className="text-[10px] text-muted-foreground font-medium">Oldest Listing</span>
+        </div>
+        <p className="text-sm font-bold text-amber-700 dark:text-amber-300">
+          {stats.count === 0 ? "—" : stats.oldestDays === 0 ? "Today" : `${stats.oldestDays}d`}
+        </p>
+      </div>
     </div>
   );
 }
@@ -437,6 +493,14 @@ export function Inventory() {
   const [duplicating, setDuplicating] = useState(false);
   const [searchFocused, setSearchFocused] = useState(false);
   const deletedLaptopRef = useRef<LaptopType | null>(null);
+
+  // Select mode
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [batchStatus, setBatchStatus] = useState<string>("");
+
+  // View mode
+  const [viewMode, setViewMode] = useState<ViewMode>("list");
 
   // Debounce search query
   useEffect(() => {
@@ -581,6 +645,10 @@ export function Inventory() {
   };
 
   const handleViewDetail = (laptop: LaptopType) => {
+    if (selectMode) {
+      toggleSelect(laptop.id);
+      return;
+    }
     setSelectedLaptop(laptop);
     setIsDetailOpen(true);
   };
@@ -628,7 +696,6 @@ export function Inventory() {
           detail: `Duplicated from ${laptop.brand} ${laptop.model}`,
         });
         toast.success(`Duplicated ${laptop.brand} ${laptop.model}`);
-        // Open edit form for the duplicated laptop
         setIsDetailOpen(false);
         setSelectedLaptop(null);
         setEditingLaptopId(duplicated.id);
@@ -703,6 +770,68 @@ export function Inventory() {
     }
   };
 
+  // ─── Select Mode ───────────────────────────────────────
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const selectAll = () => {
+    if (selectedIds.size === filteredLaptops.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filteredLaptops.map((l) => l.id)));
+    }
+  };
+
+  const exitSelectMode = () => {
+    setSelectMode(false);
+    setSelectedIds(new Set());
+    setBatchStatus("");
+  };
+
+  const handleBatchStatusChange = async () => {
+    if (!batchStatus || selectedIds.size === 0) return;
+    try {
+      let updatedCount = 0;
+      for (const id of selectedIds) {
+        const updated = await apiUpdateLaptop(id, { status: batchStatus });
+        if (updated) updatedCount++;
+      }
+      if (updatedCount > 0) {
+        setLaptops((prev) =>
+          prev.map((l) => (selectedIds.has(l.id) ? { ...l, status: batchStatus } : l))
+        );
+        toast.success(`${updatedCount} laptops updated to ${statusLabels[batchStatus] || batchStatus}`);
+        exitSelectMode();
+      }
+    } catch {
+      toast.error("Failed to update status");
+    }
+  };
+
+  const handleBatchDelete = async () => {
+    if (selectedIds.size === 0) return;
+    try {
+      let deletedCount = 0;
+      for (const id of selectedIds) {
+        const success = await apiDeleteLaptop(id);
+        if (success) deletedCount++;
+      }
+      if (deletedCount > 0) {
+        setLaptops((prev) => prev.filter((l) => !selectedIds.has(l.id)));
+        toast.success(`${deletedCount} laptops deleted`);
+        exitSelectMode();
+      }
+    } catch {
+      toast.error("Failed to delete laptops");
+    }
+  };
+
   if (loading) {
     return <InventorySkeleton />;
   }
@@ -729,6 +858,33 @@ export function Inventory() {
             </p>
           </div>
           <div className="flex items-center gap-1">
+            {/* View Toggle */}
+            <div className="flex items-center rounded-lg border bg-muted/50 p-0.5">
+              <button
+                onClick={() => setViewMode("list")}
+                className={`size-8 rounded-md flex items-center justify-center transition-colors ${viewMode === "list" ? "bg-background shadow-sm text-emerald-600 dark:text-emerald-400" : "text-muted-foreground hover:text-foreground"}`}
+                aria-label="List view"
+              >
+                <LayoutList className="size-4" />
+              </button>
+              <button
+                onClick={() => setViewMode("grid")}
+                className={`size-8 rounded-md flex items-center justify-center transition-colors ${viewMode === "grid" ? "bg-background shadow-sm text-emerald-600 dark:text-emerald-400" : "text-muted-foreground hover:text-foreground"}`}
+                aria-label="Grid view"
+              >
+                <LayoutGrid className="size-4" />
+              </button>
+            </div>
+            {/* Select Mode Toggle */}
+            <Button
+              variant={selectMode ? "default" : "ghost"}
+              size="icon"
+              className={selectMode ? "bg-emerald-600 hover:bg-emerald-700 text-white" : "text-muted-foreground hover:text-foreground"}
+              onClick={() => selectMode ? exitSelectMode() : setSelectMode(true)}
+              aria-label="Toggle select mode"
+            >
+              {selectMode ? <CheckSquare className="size-5" /> : <Square className="size-5" />}
+            </Button>
             <Button
               variant="ghost"
               size="icon"
@@ -753,8 +909,18 @@ export function Inventory() {
         </div>
       </motion.div>
 
-      {/* Divider */}
       <div className="h-px bg-gradient-to-r from-transparent via-emerald-300/40 dark:via-emerald-700/30 to-transparent -my-3" />
+
+      {/* Quick Stats Row */}
+      {laptops.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.03 }}
+        >
+          <QuickStatsRow laptops={laptops} />
+        </motion.div>
+      )}
 
       {/* Search */}
       <motion.div
@@ -770,7 +936,7 @@ export function Inventory() {
         >
           <Search className={`size-4 transition-colors duration-200 ${searchFocused ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground"}`} />
         </motion.div>
-        <div className={`relative rounded-xl transition-all duration-300 ${searchFocused ? 'ring-2 ring-emerald-500/30 shadow-lg shadow-emerald-500/10' : 'ring-1 ring-border'}`}>
+        <div className={`relative rounded-xl transition-all duration-300 ${searchFocused ? "ring-2 ring-emerald-500/30 shadow-lg shadow-emerald-500/10" : "ring-1 ring-border"}`}>
           <motion.div
             className="absolute -inset-[1px] rounded-xl bg-gradient-to-r from-emerald-500/20 via-teal-500/20 to-emerald-500/20 pointer-events-none"
             animate={{ opacity: searchFocused ? 1 : 0 }}
@@ -813,8 +979,75 @@ export function Inventory() {
         </div>
       </motion.div>
 
-      {/* Divider */}
       <div className="h-px bg-gradient-to-r from-transparent via-emerald-300/40 dark:via-emerald-700/30 to-transparent -my-3" />
+
+      {/* Batch Operations Bar */}
+      <AnimatePresence>
+        {selectMode && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            className="overflow-hidden"
+          >
+            <div className="rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 p-3 space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    checked={selectedIds.size === filteredLaptops.length && filteredLaptops.length > 0}
+                    onCheckedChange={selectAll}
+                  />
+                  <span className="text-xs font-medium text-emerald-700 dark:text-emerald-300">
+                    {selectedIds.size} of {filteredLaptops.length} selected
+                  </span>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={exitSelectMode}
+                  className="text-xs text-muted-foreground h-7"
+                >
+                  Cancel
+                </Button>
+              </div>
+              {selectedIds.size > 0 && (
+                <div className="flex items-center gap-2">
+                  <Select value={batchStatus} onValueChange={setBatchStatus}>
+                    <SelectTrigger className="h-8 text-xs w-[140px]">
+                      <SelectValue placeholder="Change status..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="draft">Draft</SelectItem>
+                      <SelectItem value="active">Active</SelectItem>
+                      <SelectItem value="sold">Sold</SelectItem>
+                      <SelectItem value="archived">Archived</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleBatchStatusChange}
+                    disabled={!batchStatus}
+                    className="h-8 text-xs"
+                  >
+                    Apply
+                  </Button>
+                  <div className="flex-1" />
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={handleBatchDelete}
+                    className="h-8 text-xs gap-1"
+                  >
+                    <Trash2 className="size-3" />
+                    Delete ({selectedIds.size})
+                  </Button>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Status Summary Bar */}
       {laptops.length > 0 && (
@@ -828,7 +1061,6 @@ export function Inventory() {
         </motion.div>
       )}
 
-      {/* Divider */}
       <div className="h-px bg-gradient-to-r from-transparent via-emerald-300/40 dark:via-emerald-700/30 to-transparent -my-3" />
 
       {/* Filter Chips */}
@@ -876,74 +1108,99 @@ export function Inventory() {
                 )}
               </AnimatePresence>
               {chip.label}
-              {filterStatus === chip.value && (
-                <motion.div
-                  className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-400"
-                  animate={{ scale: [1, 1.5, 1], opacity: [1, 0.5, 1] }}
-                  transition={{ duration: 1.5, repeat: Infinity }}
-                />
-              )}
             </Button>
           </motion.div>
         ))}
       </motion.div>
 
-      {/* Divider */}
       <div className="h-px bg-gradient-to-r from-transparent via-emerald-300/40 dark:via-emerald-700/30 to-transparent -my-3" />
 
-      {/* Laptop List */}
-      <div className="space-y-3">
+      {/* Laptop List / Grid */}
+      <div className={viewMode === "grid" ? "grid grid-cols-2 gap-3" : "space-y-3"}>
         <AnimatePresence mode="popLayout">
-          {filteredLaptops.length === 0 && (
+          {filteredLaptops.length === 0 && !selectMode && (
             <motion.div
               key="empty"
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
               transition={{ duration: 0.2 }}
+              className={viewMode === "grid" ? "col-span-2" : ""}
             >
-              <Card className="rounded-xl border-dashed border-2 border-muted py-12">
-                <CardContent className="flex flex-col items-center gap-3 text-center p-6">
-                  {searchQuery || filterStatus !== "all" ? (
-                    <>
-                      <div className="relative rounded-full bg-amber-50 dark:bg-amber-900/20 p-5">
-                        <motion.div
-                          animate={{ y: [0, -5, 0] }}
-                          transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
-                        >
-                          <Search className="size-8 text-amber-500 dark:text-amber-400" />
-                        </motion.div>
-                        <div className="absolute -bottom-1 -right-1 rounded-full bg-white dark:bg-gray-900 p-1.5 shadow-sm">
-                          <PackageSearch className="size-4 text-amber-600 dark:text-amber-300" />
-                        </div>
+              {searchQuery || filterStatus !== "all" ? (
+                <Card className="rounded-xl border-dashed border-2 border-muted py-12">
+                  <CardContent className="flex flex-col items-center gap-3 text-center p-6">
+                    <div className="relative rounded-full bg-amber-50 dark:bg-amber-900/20 p-5">
+                      <motion.div
+                        animate={{ y: [0, -5, 0] }}
+                        transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                      >
+                        <Search className="size-8 text-amber-500 dark:text-amber-400" />
+                      </motion.div>
+                      <div className="absolute -bottom-1 -right-1 rounded-full bg-white dark:bg-gray-900 p-1.5 shadow-sm">
+                        <PackageSearch className="size-4 text-amber-600 dark:text-amber-300" />
                       </div>
-                      <div className="space-y-1">
-                        <p className="font-medium text-sm">No laptops match your search</p>
-                        <p className="text-xs text-muted-foreground">
-                          {searchQuery && filterStatus !== "all"
-                            ? `No results for "${searchQuery}" in ${filterStatus} items`
-                            : searchQuery
-                              ? `No results for "${searchQuery}"`
-                              : `No ${filterStatus} laptops found`}
-                        </p>
-                        <p className="text-[10px] text-muted-foreground mt-2">
-                          Try different keywords or clear filters
-                        </p>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <div className="rounded-full bg-muted p-4">
-                        <Laptop className="size-8 text-muted-foreground" />
-                      </div>
-                      <div className="space-y-1">
-                        <p className="font-medium text-sm">No laptops found</p>
-                        <p className="text-xs text-muted-foreground">
-                          Add your first laptop to get started
-                        </p>
-                      </div>
-                    </>
-                  )}
+                    </div>
+                    <div className="space-y-1">
+                      <p className="font-medium text-sm">No laptops match your search</p>
+                      <p className="text-xs text-muted-foreground">
+                        {searchQuery && filterStatus !== "all"
+                          ? `No results for "${searchQuery}" in ${filterStatus} items`
+                          : searchQuery
+                            ? `No results for "${searchQuery}"`
+                            : `No ${filterStatus} laptops found`}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground mt-2">
+                        Try different keywords or clear filters
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="rounded-2xl bg-gradient-to-br from-emerald-500 via-emerald-600 to-teal-600 p-6 text-white shadow-xl shadow-emerald-600/20 relative overflow-hidden">
+                  {/* Decorative circles */}
+                  <div className="absolute -top-8 -right-8 size-32 rounded-full bg-white/10" />
+                  <div className="absolute -bottom-6 -left-6 size-24 rounded-full bg-white/5" />
+                  <div className="relative flex flex-col items-center text-center space-y-4">
+                    <motion.div
+                      animate={{ y: [0, -8, 0] }}
+                      transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                      className="size-16 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center"
+                    >
+                      <Laptop className="size-8" />
+                    </motion.div>
+                    <div className="space-y-1">
+                      <h3 className="text-lg font-bold">No laptops yet</h3>
+                      <p className="text-sm text-emerald-100">
+                        Add your first laptop to start building your inventory
+                      </p>
+                    </div>
+                    <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                      <Button
+                        onClick={() => { setEditingLaptopId(null); setIsFormOpen(true); }}
+                        className="bg-white text-emerald-700 hover:bg-emerald-50 rounded-xl h-11 px-6 text-sm font-bold gap-2 shadow-lg"
+                      >
+                        Add Your First Laptop
+                        <ArrowRight className="size-4" />
+                      </Button>
+                    </motion.div>
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          )}
+
+          {filteredLaptops.length === 0 && selectMode && (
+            <motion.div
+              key="empty-select"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className={viewMode === "grid" ? "col-span-2" : ""}
+            >
+              <Card className="rounded-xl border-dashed border-2 border-muted py-8">
+                <CardContent className="flex flex-col items-center gap-2 text-center p-6">
+                  <Square className="size-6 text-muted-foreground" />
+                  <p className="text-sm text-muted-foreground">No laptops to select</p>
                 </CardContent>
               </Card>
             </motion.div>
@@ -956,7 +1213,86 @@ export function Inventory() {
                 ? (() => { try { return JSON.parse(laptop.photos); } catch { return []; } })()
                 : [];
             const thumbnail = photos[0] || null;
+            const isSelected = selectedIds.has(laptop.id);
 
+            // ─── GRID CARD ─────────────────────────────────
+            if (viewMode === "grid") {
+              return (
+                <motion.div
+                  key={laptop.id}
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.15 } }}
+                  transition={{
+                    type: "spring",
+                    stiffness: 400,
+                    damping: 30,
+                    delay: index * 0.04,
+                  }}
+                  layout
+                >
+                  <Card
+                    className={`rounded-xl shadow-sm overflow-hidden cursor-pointer hover:shadow-lg hover:shadow-emerald-500/10 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 ${isSelected ? "ring-2 ring-emerald-500" : ""}`}
+                    onClick={() => handleViewDetail(laptop)}
+                  >
+                    {/* Thumbnail area */}
+                    <div className="relative aspect-[4/3] bg-muted">
+                      {thumbnail ? (
+                        <img
+                          src={thumbnail}
+                          alt={`${laptop.brand} ${laptop.model}`}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).style.display = "none";
+                            (e.target as HTMLImageElement).nextElementSibling?.classList.remove("hidden");
+                          }}
+                        />
+                      ) : null}
+                      <div className={`absolute inset-0 flex items-center justify-center ${thumbnail ? "hidden" : ""}`}>
+                        <span className="text-4xl">{getBrandIcon(laptop.brand)}</span>
+                      </div>
+                      {/* Price badge */}
+                      <div className="absolute top-2 right-2">
+                        <Badge className="bg-emerald-600 text-white border-0 text-xs font-bold shadow-md">
+                          {formatPrice(laptop.askingPrice)}
+                        </Badge>
+                      </div>
+                      {/* Condition badge */}
+                      <div className="absolute top-2 left-2">
+                        <Badge className={`text-[10px] px-1.5 py-0 border shadow-sm ${getConditionColor(laptop.condition)}`}>
+                          {laptop.condition}
+                        </Badge>
+                      </div>
+                      {/* Select checkbox */}
+                      {selectMode && (
+                        <div className="absolute bottom-2 left-2" onClick={(e) => e.stopPropagation()}>
+                          <Checkbox
+                            checked={isSelected}
+                            onCheckedChange={() => toggleSelect(laptop.id)}
+                            className="bg-background/90 backdrop-blur-sm border-2"
+                          />
+                        </div>
+                      )}
+                      {/* Bottom gradient */}
+                      <div className={`absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t ${getConditionGradient(laptop.condition)} opacity-30`} />
+                    </div>
+                    <CardContent className="p-2.5 space-y-1">
+                      <p className="text-xs font-semibold truncate">
+                        {laptop.brand} {laptop.model}
+                      </p>
+                      <div className="flex items-center justify-between">
+                        <Badge className={`text-[9px] px-1 py-0 border ${getStatusColor(laptop.status)}`}>
+                          {laptop.status}
+                        </Badge>
+                        <span className="text-[10px] text-muted-foreground">{formatDaysAgo(laptop.createdAt)}</span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              );
+            }
+
+            // ─── LIST CARD ─────────────────────────────────
             return (
               <motion.div
                 key={laptop.id}
@@ -972,13 +1308,23 @@ export function Inventory() {
                 layout
               >
                 <Card
-                  className={`rounded-xl py-0 shadow-sm overflow-hidden cursor-pointer border-l-[3px] ${getConditionBorderColor(laptop.condition)} hover:shadow-xl hover:shadow-emerald-500/10 hover:scale-[1.01] active:scale-[0.99] transition-all duration-300 ease-out hover:-translate-y-0.5 hover:border-emerald-300/60 dark:hover:border-emerald-700/60 hover:bg-white/80 dark:hover:bg-gray-800/80 hover:ring-1 hover:ring-emerald-200/40 dark:hover:ring-emerald-800/40`}
+                  className={`rounded-xl py-0 shadow-sm overflow-hidden cursor-pointer border-l-[3px] ${getConditionBorderColor(laptop.condition)} hover:shadow-xl hover:shadow-emerald-500/10 hover:scale-[1.01] active:scale-[0.99] transition-all duration-300 ease-out hover:-translate-y-0.5 hover:border-emerald-300/60 dark:hover:border-emerald-700/60 hover:bg-white/80 dark:hover:bg-gray-800/80 hover:ring-1 hover:ring-emerald-200/40 dark:hover:ring-emerald-800/40 ${isSelected ? "ring-2 ring-emerald-500" : ""}`}
                   onClick={() => handleViewDetail(laptop)}
                 >
                   <CardContent className="p-0">
                     <div className="flex gap-3 p-3">
+                      {/* Select Checkbox */}
+                      {selectMode && (
+                        <div className="flex items-center shrink-0" onClick={(e) => e.stopPropagation()}>
+                          <Checkbox
+                            checked={isSelected}
+                            onCheckedChange={() => toggleSelect(laptop.id)}
+                          />
+                        </div>
+                      )}
+
                       {/* Thumbnail */}
-                      <div className="w-20 h-20 rounded-lg bg-muted flex items-center justify-center shrink-0 overflow-hidden border">
+                      <div className="w-20 h-20 rounded-lg bg-muted flex items-center justify-center shrink-0 overflow-hidden border relative">
                         {thumbnail ? (
                           <img
                             src={thumbnail}
@@ -993,6 +1339,12 @@ export function Inventory() {
                         <span className={`text-2xl ${thumbnail ? "hidden" : ""}`}>
                           {getBrandIcon(laptop.brand)}
                         </span>
+                        {/* Price badge in corner */}
+                        <div className="absolute -top-1.5 -right-1.5">
+                          <Badge className="bg-emerald-600 text-white border-0 text-[9px] font-bold shadow-sm px-1 py-0">
+                            {laptop.askingPrice > 0 ? formatPrice(laptop.askingPrice) : "—"}
+                          </Badge>
+                        </div>
                       </div>
 
                       {/* Info */}
@@ -1011,9 +1363,9 @@ export function Inventory() {
                           </div>
                           <p className="text-xs text-muted-foreground mt-0.5 truncate">
                             {abbreviateCpu(laptop.cpu)}
-                            {laptop.cpu && laptop.ram ? " · " : ""}
+                            {laptop.cpu && laptop.ram ? " \u00b7 " : ""}
                             {laptop.ram}
-                            {laptop.ram && laptop.storage ? " · " : ""}
+                            {laptop.ram && laptop.storage ? " \u00b7 " : ""}
                             {laptop.storage}
                           </p>
                         </div>

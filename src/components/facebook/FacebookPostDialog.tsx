@@ -19,6 +19,7 @@ import {
   ImageIcon,
   ImageOff,
   X,
+  Info,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -90,14 +91,36 @@ function isCapacitor(): boolean {
 }
 
 /**
+ * Format ad text specifically for Facebook Marketplace.
+ * Keeps it concise with clear structure for FB's character limits.
+ */
+function formatMarketplaceText(title: string, body: string, price?: string): string {
+  const lines: string[] = [];
+  lines.push(title);
+  if (price) {
+    lines.push(`💰 ${price}`);
+  }
+  lines.push('');
+  lines.push(body);
+  return lines.join('\n');
+}
+
+/** Convert base64 photo strings to File objects */
+function base64ToFiles(photos: string[]): File[] {
+  return photos
+    .filter((p) => p && p.startsWith('data:'))
+    .map((p, i) => {
+      const [header, data] = p.split(',');
+      const mime = header.match(/:(.*?);/)?.[1] || 'image/jpeg';
+      const binary = atob(data);
+      const bytes = new Uint8Array(binary.length);
+      for (let j = 0; j < binary.length; j++) bytes[j] = binary.charCodeAt(j);
+      return new File([bytes], `photo-${i + 1}.${mime.split('/')[1] || 'jpg'}`, { type: mime });
+    });
+}
+
+/**
  * NATIVE SHARE — the CORRECT way to share from Capacitor Android.
- *
- * WHY this exists:
- * - navigator.share() does NOT work in Android WebView (Chromium limitation)
- * - window.open(url, '_system') does NOT work in Capacitor without @capacitor/browser
- * - @capacitor/share wraps the native Android ACTION_SEND intent → shows native share sheet
- *
- * Uses dynamic import so the module is only loaded when needed (avoids SSR issues).
  */
 async function nativeShare(title: string, text: string, url?: string): Promise<boolean> {
   try {
@@ -110,7 +133,6 @@ async function nativeShare(title: string, text: string, url?: string): Promise<b
     });
     return true;
   } catch (err) {
-    // User cancelled share sheet — not an error
     if (err && typeof err === 'object' && 'message' in err && (err as Error).message?.includes('Abort')) {
       return true;
     }
@@ -159,28 +181,16 @@ async function copyToClipboard(text: string): Promise<boolean> {
   }
 }
 
-/**
- * Smart share — tries multiple strategies in order:
- *
- * 1. @capacitor/share → native Android share sheet (WORKS in APK!)
- * 2. navigator.share() → Web Share API (works in browser only, NOT in WebView)
- * 3. Clipboard copy → last resort fallback
- */
 async function shareWithImages(
   title: string,
   text: string,
   _files: File[]
 ): Promise<boolean> {
-  // Layer 1: @capacitor/share (native — works on Android APK AND web)
   if (isCapacitor()) {
     return nativeShare(title, text);
   }
-
-  // Layer 2: Web Share API (browser only — NOT available in Android WebView)
   const webShared = await webShareApi(title, text, _files);
   if (webShared) return true;
-
-  // Layer 3: Clipboard fallback
   return false;
 }
 
@@ -240,7 +250,7 @@ export function FacebookPostDialog({
   listingId,
   defaultTarget,
 }: FacebookPostDialogProps) {
-  const [targetType, setTargetType] = useState<TargetType>(defaultTarget || 'share');
+  const [targetType, setTargetType] = useState<TargetType>(defaultTarget || 'marketplace');
   const [selectedPageId, setSelectedPageId] = useState<string>('');
   const [selectedGroupId, setSelectedGroupId] = useState<string>('');
   const [posting, setPosting] = useState(false);
@@ -248,6 +258,7 @@ export function FacebookPostDialog({
   const [groups, setGroups] = useState<FacebookGroup[]>([]);
   const [loadingTargets, setLoadingTargets] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
+  const [marketplaceCopied, setMarketplaceCopied] = useState(false);
 
   // Multi-post state (Post Everywhere)
   const [multiPosting, setMultiPosting] = useState(false);
@@ -259,6 +270,7 @@ export function FacebookPostDialog({
     ? `${adTitle}\n${adPrice}\n\n${adBody}`
     : `${adTitle}\n\n${adBody}`;
 
+  const marketplaceText = formatMarketplaceText(adTitle, adBody, adPrice);
   const imageFiles = photos.length > 0 ? base64ToFiles(photos) : [];
   const hasImages = imageFiles.length > 0;
 
@@ -270,7 +282,8 @@ export function FacebookPostDialog({
       setMultiResults([]);
       setPosting(false);
       abortRef.current = false;
-      setTargetType(defaultTarget || 'share');
+      setMarketplaceCopied(false);
+      setTargetType(defaultTarget || 'marketplace');
     }
   }, [open, defaultTarget]);
 
@@ -283,7 +296,6 @@ export function FacebookPostDialog({
       let apiSucceeded = false;
 
       try {
-        // Always try the API first (works in web; in APK static export, these return 404)
         const [statusRes, pagesRes, groupsRes] = await Promise.all([
           fetch(withToken('/api/facebook/status')).catch(() => null),
           fetch(withToken('/api/facebook/pages')).catch(() => null),
@@ -332,7 +344,6 @@ export function FacebookPostDialog({
         // Network error — fall through to localStorage
       }
 
-      // ALWAYS check localStorage as fallback (APK static export has no API server)
       if (!apiSucceeded) {
         try {
           const saved = localStorage.getItem('laptopflip_fb_connection');
@@ -345,7 +356,6 @@ export function FacebookPostDialog({
         } catch { /* ignore */ }
       }
 
-      // Load pages/groups from localStorage cache if API didn't return any
       const cachedPages = loadCachedPages();
       const cachedGroups = loadCachedGroups();
       if (cachedPages.length > 0) setPages((prev) => prev.length > 0 ? prev : cachedPages);
@@ -357,7 +367,7 @@ export function FacebookPostDialog({
     fetchData();
   }, [open]);
 
-  // ─── Close handler — ALWAYS closes immediately ───
+  // ─── Close handler ───
   const handleClose = useCallback(() => {
     abortRef.current = true;
     onClose();
@@ -366,12 +376,10 @@ export function FacebookPostDialog({
   // ─── Share Methods ───────────────────────────────
 
   const handleNativeShare = useCallback(async () => {
-    // Try native share first (works in APK)
     const shared = await shareWithImages(adTitle, shareText, imageFiles);
     if (shared) {
       toast.success('Shared! Check your app.', { duration: 3000 });
     } else {
-      // Web fallback: copy to clipboard
       const copied = await copyToClipboard(shareText);
       toast.info(copied
         ? 'Text copied to clipboard! Paste it wherever you want.'
@@ -383,38 +391,30 @@ export function FacebookPostDialog({
   }, [adTitle, shareText, imageFiles, onClose]);
 
   const handleMarketplace = useCallback(async () => {
-    // In APK, use native share to open Marketplace (user picks from share sheet)
+    // Step 1: ALWAYS copy text to clipboard first
+    const copied = await copyToClipboard(marketplaceText);
+
+    if (copied) {
+      setMarketplaceCopied(true);
+      toast.success('Ad text copied! Paste it into the Marketplace description.', {
+        duration: 5000,
+      });
+    }
+
+    // Step 2: Open Marketplace page
     if (isCapacitor()) {
-      const shared = await nativeShare(adTitle, shareText, 'https://www.facebook.com/marketplace/create/');
-      if (shared) {
-        toast.success('Pick Facebook Marketplace from the share sheet!', { duration: 4000 });
-      } else {
-        // Fallback: copy text so user can paste it
-        const copied = await copyToClipboard(shareText);
-        toast.info(copied
-          ? 'Text copied! Open Marketplace and paste it.'
-          : 'Share cancelled.',
-          { duration: 5000 },
-        );
+      // Mobile: use native share pointing to the new listing page
+      const shared = await nativeShare(adTitle, marketplaceText, 'https://www.facebook.com/marketplace/item/new/');
+      if (!shared) {
+        toast.info('Open Facebook Marketplace and paste your ad text.', { duration: 4000 });
       }
-      onClose();
-      return;
+    } else {
+      // Web: open Marketplace create page
+      window.open('https://www.facebook.com/marketplace/item/new/', '_blank', 'noopener,noreferrer');
     }
-    // Web: try share sheet
-    const webShared = await webShareApi(adTitle, shareText, imageFiles);
-    if (webShared) {
-      toast.success('Shared!');
-      onClose();
-      return;
-    }
-    const copied = await copyToClipboard(shareText);
-    window.open('https://www.facebook.com/marketplace/create/', '_blank', 'noopener,noreferrer');
-    toast.success(copied ? 'Copied & Marketplace opened!' : 'Marketplace opened!', {
-      description: copied ? 'Paste the ad text into the description.' : 'Copy your ad text and paste it.',
-      duration: 6000,
-    });
+
     onClose();
-  }, [shareText, imageFiles, adTitle, onClose]);
+  }, [marketplaceText, adTitle, onClose]);
 
   // API post for single page/group
   const handlePost = async () => {
@@ -455,7 +455,7 @@ export function FacebookPostDialog({
     }
   };
 
-  // ─── Post Everywhere — API only, NO share sheets ───
+  // ─── Post Everywhere ───
 
   const startPostEverywhere = async () => {
     const targets: { id: string; type: 'page' | 'group'; label: string; accessToken?: string }[] = [
@@ -464,7 +464,6 @@ export function FacebookPostDialog({
     ];
 
     if (targets.length === 0) {
-      // If connected but no targets (APK mode), fall back to native share
       if (isConnected || getStoredToken()) {
         const shared = await shareWithImages(adTitle, shareText, imageFiles);
         if (shared) {
@@ -497,12 +496,10 @@ export function FacebookPostDialog({
 
     const userToken = getStoredToken();
 
-    // Post to ALL targets in parallel — fast, non-blocking
     const results = await Promise.allSettled(
       targets.map(async (target, idx) => {
         if (abortRef.current) return false;
 
-        // Mark as posting
         setMultiResults((prev) =>
           prev.map((r, i) => (i === idx ? { ...r, status: 'posting' as const } : r))
         );
@@ -577,7 +574,7 @@ export function FacebookPostDialog({
     if (multiPosting) return 'Posting...';
     switch (targetType) {
       case 'share': return hasImages ? 'Share with Photos' : 'Share...';
-      case 'marketplace': return hasImages ? 'Share to Marketplace' : 'Open Marketplace';
+      case 'marketplace': return 'Copy & Open Marketplace';
       case 'page': return 'Post to Page';
       case 'group': return 'Post to Group';
       case 'everywhere': {
@@ -608,6 +605,7 @@ export function FacebookPostDialog({
     }
   };
 
+  // Marketplace is FIRST with "Best" badge
   const targetOptions: {
     type: TargetType;
     label: string;
@@ -616,9 +614,9 @@ export function FacebookPostDialog({
     available: boolean;
     badge?: string;
   }[] = [
+    { type: 'marketplace', label: 'Marketplace', icon: ShoppingBag, desc: 'List on FB', available: true, badge: 'Best' },
     { type: 'everywhere', label: 'Everywhere', icon: Send, desc: 'Auto-post to all', available: true, badge: 'Auto' },
-    { type: 'share', label: 'Share', icon: Share2, desc: 'Direct to any app', available: true, badge: 'Best' },
-    { type: 'marketplace', label: 'Marketplace', icon: ShoppingBag, desc: 'List on FB', available: true },
+    { type: 'share', label: 'Share', icon: Share2, desc: 'Direct to any app', available: true },
     { type: 'page', label: 'My Page', icon: Store, desc: 'Auto-post', available: isConnected && pages.length > 0 },
     { type: 'group', label: 'Group', icon: Users, desc: 'Auto-post', available: isConnected && groups.length > 0 },
   ];
@@ -794,14 +792,15 @@ export function FacebookPostDialog({
                     const Icon = opt.icon;
                     const isSelected = targetType === opt.type;
                     return (
-                      <motion.button
+                      <button
                         key={opt.type}
-                        whileTap={{ scale: 0.97 }}
-                        onClick={() => setTargetType(opt.type)}
+                        onClick={() => { setTargetType(opt.type); setMarketplaceCopied(false); }}
                         className={cn(
                           'relative flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition-all duration-200',
                           isSelected
                             ? opt.type === 'everywhere'
+                              ? 'border-emerald-500 bg-emerald-500/5 shadow-sm'
+                              : opt.type === 'marketplace'
                               ? 'border-emerald-500 bg-emerald-500/5 shadow-sm'
                               : 'border-[#1877F2] bg-[#1877F2]/5 shadow-sm'
                             : 'border-transparent bg-muted/50 hover:bg-muted'
@@ -811,7 +810,7 @@ export function FacebookPostDialog({
                           className={cn(
                             'size-4 transition-colors',
                             isSelected
-                              ? opt.type === 'everywhere'
+                              ? (opt.type === 'everywhere' || opt.type === 'marketplace')
                                 ? 'text-emerald-600 dark:text-emerald-400'
                                 : 'text-[#1877F2]'
                               : 'text-muted-foreground'
@@ -821,7 +820,7 @@ export function FacebookPostDialog({
                           className={cn(
                             'text-[11px] font-medium text-center leading-tight transition-colors',
                             isSelected
-                              ? opt.type === 'everywhere'
+                              ? (opt.type === 'everywhere' || opt.type === 'marketplace')
                                 ? 'text-emerald-600 dark:text-emerald-400'
                                 : 'text-[#1877F2]'
                               : 'text-muted-foreground'
@@ -840,20 +839,16 @@ export function FacebookPostDialog({
                           </span>
                         )}
                         {isSelected && (
-                          <motion.div
-                            layoutId="postTargetCheck"
+                          <div
                             className={cn(
                               'absolute -top-1 -right-1 size-4 rounded-full flex items-center justify-center',
-                              opt.type === 'everywhere' ? 'bg-emerald-500' : 'bg-[#1877F2]'
+                              (opt.type === 'everywhere' || opt.type === 'marketplace') ? 'bg-emerald-500' : 'bg-[#1877F2]'
                             )}
-                            initial={{ scale: 0 }}
-                            animate={{ scale: 1 }}
-                            transition={{ type: 'spring', stiffness: 400, damping: 25 }}
                           >
                             <Check className="size-2.5 text-white" />
-                          </motion.div>
+                          </div>
                         )}
-                      </motion.button>
+                      </button>
                     );
                   })}
                 </div>
@@ -945,7 +940,6 @@ export function FacebookPostDialog({
                         </CardContent>
                       </Card>
                     ) : isConnected || getStoredToken() ? (
-                      /* Connected but no cached pages/groups (APK offline mode) */
                       <Card className="bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800 rounded-lg">
                         <CardContent className="p-3 flex items-start gap-2">
                           <Share2 className="size-4 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" />
@@ -985,39 +979,59 @@ export function FacebookPostDialog({
                     exit={{ opacity: 0, y: -8 }}
                     transition={{ duration: 0.2 }}
                   >
-                    <Card
-                      className={cn(
-                        'rounded-lg',
-                        hasImages
-                          ? 'bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800'
-                          : 'bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800'
-                      )}
-                    >
-                      <CardContent className="p-3 flex items-start gap-2">
-                        <ShoppingBag
-                          className={cn(
-                            'size-4 mt-0.5 shrink-0',
-                            hasImages ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'
-                          )}
-                        />
-                        <div>
-                          <p
-                            className={cn(
-                              'text-xs font-medium',
-                              hasImages ? 'text-emerald-800 dark:text-emerald-300' : 'text-amber-800 dark:text-amber-300'
-                            )}
-                          >
-                            {hasImages ? 'Photos attached — share directly!' : 'Marketplace needs manual paste'}
-                          </p>
-                          <p
-                            className={cn(
-                              'text-[10px] mt-0.5',
-                              hasImages ? 'text-emerald-700 dark:text-emerald-400' : 'text-amber-700 dark:text-amber-400'
-                            )}
-                          >
-                            {hasImages
-                              ? `${imageFiles.length} photo(s) will be sent. Select Marketplace in the share sheet.`
-                              : 'Your ad will be copied to clipboard. Paste it into the Marketplace description.'}
+                    <Card className="rounded-lg bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800">
+                      <CardContent className="p-3 space-y-3">
+                        <div className="flex items-start gap-2">
+                          <ShoppingBag className="size-4 text-emerald-600 dark:text-emerald-400 mt-0.5 shrink-0" />
+                          <div className="min-w-0">
+                            <p className="text-xs font-medium text-emerald-800 dark:text-emerald-300">
+                              List on Facebook Marketplace
+                            </p>
+                            <p className="text-[10px] text-emerald-700 dark:text-emerald-400 mt-0.5">
+                              We&apos;ll copy your ad text and open Marketplace so you can paste it.
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Clear 3-step instructions */}
+                        <div className="space-y-2 ml-6">
+                          <div className="flex items-start gap-2">
+                            <div className={cn(
+                              'size-5 rounded-full flex items-center justify-center shrink-0 text-[10px] font-bold text-white mt-0.5',
+                              marketplaceCopied ? 'bg-emerald-500' : 'bg-emerald-200 dark:bg-emerald-800 text-emerald-700 dark:text-emerald-300'
+                            )}>
+                              {marketplaceCopied ? <Check className="size-3" /> : '1'}
+                            </div>
+                            <p className={cn(
+                              'text-[11px] leading-relaxed pt-0.5',
+                              marketplaceCopied ? 'text-emerald-700 dark:text-emerald-300 font-medium' : 'text-muted-foreground'
+                            )}>
+                              Ad text copied to clipboard automatically
+                            </p>
+                          </div>
+                          <div className="flex items-start gap-2">
+                            <div className="size-5 rounded-full bg-emerald-200 dark:bg-emerald-800 text-emerald-700 dark:text-emerald-300 flex items-center justify-center shrink-0 text-[10px] font-bold mt-0.5">
+                              2
+                            </div>
+                            <p className="text-[11px] text-muted-foreground leading-relaxed pt-0.5">
+                              Facebook Marketplace will open in a new tab
+                            </p>
+                          </div>
+                          <div className="flex items-start gap-2">
+                            <div className="size-5 rounded-full bg-emerald-200 dark:bg-emerald-800 text-emerald-700 dark:text-emerald-300 flex items-center justify-center shrink-0 text-[10px] font-bold mt-0.5">
+                              3
+                            </div>
+                            <p className="text-[11px] text-muted-foreground leading-relaxed pt-0.5">
+                              Paste into the description field (Ctrl+V / long-press)
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Permission note */}
+                        <div className="flex items-start gap-2 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg p-2.5">
+                          <Info className="size-3.5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                          <p className="text-[10px] text-amber-700 dark:text-amber-400 leading-relaxed">
+                            Facebook doesn&apos;t allow third-party apps to post directly to Marketplace. This smart copy+open approach is the recommended workaround.
                           </p>
                         </div>
                       </CardContent>
@@ -1099,7 +1113,7 @@ export function FacebookPostDialog({
                   <div
                     className={cn(
                       'px-3 py-2 flex items-center gap-2',
-                      targetType === 'everywhere' ? 'bg-emerald-600' : 'bg-[#1877F2]'
+                      (targetType === 'everywhere' || targetType === 'marketplace') ? 'bg-emerald-600' : 'bg-[#1877F2]'
                     )}
                   >
                     <Facebook className="size-3.5 text-white" />
@@ -1159,7 +1173,7 @@ export function FacebookPostDialog({
                 }
                 className={cn(
                   'w-full h-11 rounded-xl text-white font-semibold gap-2 transition-all',
-                  targetType === 'everywhere'
+                  (targetType === 'everywhere' || targetType === 'marketplace')
                     ? 'bg-emerald-600 hover:bg-emerald-700'
                     : targetType === 'share' && hasImages
                     ? 'bg-emerald-600 hover:bg-emerald-700'

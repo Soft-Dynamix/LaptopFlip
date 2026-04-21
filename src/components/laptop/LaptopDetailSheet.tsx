@@ -32,6 +32,7 @@ import {
   CheckCircle2,
   Send,
   RotateCcw,
+  Share2,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -393,6 +394,7 @@ export function LaptopDetailSheet() {
   const setContactsSheetLaptopId = useAppStore((s) => s.setContactsSheetLaptopId);
   const setLaptops = useAppStore((s) => s.setLaptops);
   const addActivityLog = useAppStore((s) => s.addActivityLog);
+  const setIsShareCardOpen = useAppStore((s) => s.setIsShareCardOpen);
 
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -1112,6 +1114,14 @@ export function LaptopDetailSheet() {
               >
                 <Users className="size-4" />
                 Buyers
+              </Button>
+              <Button
+                onClick={() => setIsShareCardOpen(true)}
+                variant="outline"
+                className="flex-1 rounded-xl h-11 gap-2"
+              >
+                <Share2 className="size-4" />
+                Share
               </Button>
             </div>
             <Button

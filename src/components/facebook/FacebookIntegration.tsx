@@ -111,21 +111,6 @@ interface FacebookQuickStats {
 
 type ConnectState = 'idle' | 'connecting' | 'success' | 'error';
 
-// ─── Animation variants ───────────────────────────
-
-const container = {
-  hidden: { opacity: 0 },
-  show: {
-    opacity: 1,
-    transition: { staggerChildren: 0.08 },
-  },
-};
-
-const item = {
-  hidden: { opacity: 0, y: 16 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.3 } },
-};
-
 // ─── Feature list for connect card ────────────────
 
 const FEATURES = [
@@ -542,9 +527,9 @@ export function FacebookIntegration({ onConnectedChange }: { onConnectedChange?:
     const isError = connectState === 'error';
 
     return (
-      <motion.div variants={container} initial="hidden" animate="show">
+      <div className="space-y-4">
         {/* Connect Card */}
-        <motion.div variants={item}>
+        <div>
           <Card className="rounded-xl border shadow-sm overflow-hidden">
             {/* Facebook gradient header */}
             <div className="bg-gradient-to-br from-[#1877F2] to-[#0C5DC7] px-5 py-6 text-white">
@@ -565,9 +550,8 @@ export function FacebookIntegration({ onConnectedChange }: { onConnectedChange?:
                 {FEATURES.map((feat) => {
                   const Icon = feat.icon;
                   return (
-                    <motion.div
+                    <div
                       key={feat.title}
-                      whileHover={{ scale: 1.02 }}
                       className="bg-white/10 backdrop-blur-sm rounded-xl p-3 flex items-start gap-2.5"
                     >
                       <Icon className="size-4 mt-0.5 text-blue-200 shrink-0" />
@@ -577,7 +561,7 @@ export function FacebookIntegration({ onConnectedChange }: { onConnectedChange?:
                           {feat.desc}
                         </p>
                       </div>
-                    </motion.div>
+                    </div>
                   );
                 })}
               </div>
@@ -651,20 +635,9 @@ export function FacebookIntegration({ onConnectedChange }: { onConnectedChange?:
                     )}
                   >
                     {isConnecting ? (
-                      <motion.div
-                        animate={{ rotate: 360 }}
-                        transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                      >
-                        <Loader2 className="size-4" />
-                      </motion.div>
+                      <Loader2 className="size-4 animate-spin" />
                     ) : isSuccess ? (
-                      <motion.div
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        transition={{ type: 'spring', stiffness: 400, damping: 20 }}
-                      >
-                        <Check className="size-5" />
-                      </motion.div>
+                      <Check className="size-5" />
                     ) : isError ? (
                       'Retry'
                     ) : (
@@ -770,8 +743,8 @@ export function FacebookIntegration({ onConnectedChange }: { onConnectedChange?:
               </div>
             </CardContent>
           </Card>
-        </motion.div>
-      </motion.div>
+        </div>
+      </div>
     );
   }
 
@@ -786,9 +759,9 @@ export function FacebookIntegration({ onConnectedChange }: { onConnectedChange?:
     : 'Unknown';
 
   return (
-    <motion.div variants={container} initial="hidden" animate="show" className="space-y-4">
+    <div className="space-y-4">
       {/* Connected Account Card */}
-      <motion.div variants={item}>
+      <div>
         <Card className="rounded-xl border shadow-sm overflow-hidden">
           <div className="h-1 bg-gradient-to-r from-[#1877F2] via-[#42A5F5] to-[#1877F2]" />
           <CardContent className="p-4">
@@ -846,11 +819,11 @@ export function FacebookIntegration({ onConnectedChange }: { onConnectedChange?:
             </div>
           </CardContent>
         </Card>
-      </motion.div>
+      </div>
 
       {/* Quick Stats */}
       {quickStats && (
-        <motion.div variants={item}>
+        <div>
           <div className="grid grid-cols-3 gap-2">
             <StatMiniCard
               icon={ImageIcon}
@@ -874,11 +847,11 @@ export function FacebookIntegration({ onConnectedChange }: { onConnectedChange?:
               bg="bg-violet-100 dark:bg-violet-900/30"
             />
           </div>
-        </motion.div>
+        </div>
       )}
 
       {/* Connected Pages */}
-      <motion.div variants={item}>
+      <div>
         <div className="flex items-center justify-between mb-2">
           <h3 className="text-sm font-semibold flex items-center gap-2">
             <Store className="size-4 text-[#1877F2]" />
@@ -949,10 +922,10 @@ export function FacebookIntegration({ onConnectedChange }: { onConnectedChange?:
             </AnimatePresence>
           </div>
         )}
-      </motion.div>
+      </div>
 
       {/* Connected Groups */}
-      <motion.div variants={item}>
+      <div>
         <div className="flex items-center justify-between mb-2">
           <h3 className="text-sm font-semibold flex items-center gap-2">
             <Users className="size-4 text-[#1877F2]" />
@@ -1028,8 +1001,8 @@ export function FacebookIntegration({ onConnectedChange }: { onConnectedChange?:
             </AnimatePresence>
           </div>
         )}
-      </motion.div>
-    </motion.div>
+      </div>
+    </div>
   );
 }
 

@@ -23,6 +23,7 @@ import { AdPreviewSheet } from "@/components/ad/AdPreviewSheet";
 import { LaptopDetailSheet } from "@/components/laptop/LaptopDetailSheet";
 import { CompareSheet } from "@/components/laptop/CompareSheet";
 import { ContactsSheet } from "@/components/contacts/ContactsSheet";
+import { ShareCardSheet } from "@/components/laptop/ShareCardSheet";
 import { cn } from "@/lib/utils";
 
 const tabs = [
@@ -170,12 +171,11 @@ export default function Home() {
                 <motion.button
                   key={tab.id}
                   whileTap={{ scale: 0.92 }}
-                  transition={{ type: "spring", stiffness: 400, damping: 17 }}
                   onClick={() => handleTabClick(tab.id)}
                   className={cn(
                     "relative flex flex-col items-center justify-center gap-0.5 py-1 px-3 rounded-xl transition-all duration-200 min-w-[3.5rem]",
                     isActive
-                      ? "text-emerald-600 dark:text-emerald-400"
+                      ? "bg-emerald-100/70 dark:bg-emerald-900/25 text-emerald-600 dark:text-emerald-400"
                       : "text-muted-foreground hover:text-foreground"
                   )}
                 >
@@ -187,41 +187,9 @@ export default function Home() {
                       {tab.label}
                     </span>
                   )}
-                  {/* Sliding pill behind active tab */}
-                  {isActive && (
-                    <motion.div
-                      layoutId="activeTabPillBg"
-                      className="absolute inset-0 bg-emerald-100/70 dark:bg-emerald-900/25 rounded-xl z-0"
-                      transition={{
-                        type: "spring",
-                        stiffness: 350,
-                        damping: 30,
-                      }}
-                    />
-                  )}
                   {/* Active indicator: small pill below the label */}
                   {isActive && (
-                    <motion.div
-                      layoutId="activeTabPill"
-                      className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-5 h-1 bg-emerald-600 dark:bg-emerald-400 rounded-full z-10"
-                      transition={{
-                        type: "spring",
-                        stiffness: 400,
-                        damping: 30,
-                      }}
-                    />
-                  )}
-                  {/* Active badge dot indicator */}
-                  {isActive && (
-                    <motion.div
-                      layoutId="activeTabDot"
-                      className="absolute top-0.5 right-1 w-1.5 h-1.5 bg-emerald-500 rounded-full z-10"
-                      transition={{
-                        type: "spring",
-                        stiffness: 400,
-                        damping: 30,
-                      }}
-                    />
+                    <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-5 h-1 bg-emerald-600 dark:bg-emerald-400 rounded-full z-10" />
                   )}
                 </motion.button>
               );
@@ -240,6 +208,7 @@ export default function Home() {
       <AdCreatorSheet />
       <AdPreviewSheet />
       <ContactsSheet />
+      <ShareCardSheet />
     </div>
   );
 }
