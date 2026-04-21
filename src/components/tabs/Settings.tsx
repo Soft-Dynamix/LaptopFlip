@@ -129,8 +129,18 @@ export function Settings() {
 
   // Quick Setup Wizard state
   const setupDone = typeof window !== "undefined" ? localStorage.getItem("laptopflip_setup_done") : null;
-  const [setupComplete, setSetupComplete] = useState(!!setupDone);
-  const [wizardStep, setWizardStep] = useState(0);
+  const [manualSetupDone, setManualSetupDone] = useState(!!setupDone);
+
+  // Track setup completion items
+  const setupItems = [
+    { key: "currency", label: "Currency", done: !!appSettings.currency },
+    { key: "region", label: "Region", done: appSettings.region !== "south-africa" },
+    { key: "whatsapp", label: "WhatsApp", done: !!appSettings.whatsappNumber.trim() },
+    { key: "location", label: "Location", done: !!appSettings.defaultLocation.trim() },
+  ];
+  const completedCount = setupItems.filter((item) => item.done).length;
+  const isAllComplete = completedCount === setupItems.length;
+  const isSetupComplete = manualSetupDone || isAllComplete;
 
   const handleClearData = async () => {
     setClearingData(true);
@@ -245,7 +255,7 @@ export function Settings() {
   ];
 
   const handleSetupComplete = () => {
-    setSetupComplete(true);
+    setManualSetupDone(true);
     localStorage.setItem("laptopflip_setup_done", "true");
     toast.success("Quick setup complete! 🎉");
   };
@@ -296,113 +306,176 @@ export function Settings() {
       </motion.div>
 
       {/* Quick Setup Wizard */}
-      {!setupComplete && (
-        <motion.div variants={item} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
-          <div className="rounded-2xl border-2 border-dashed border-emerald-300 dark:border-emerald-700 bg-gradient-to-br from-emerald-50 to-teal-50/50 dark:from-emerald-950/20 dark:to-teal-950/10 p-4 space-y-4">
+      {isSetupComplete && isAllComplete ? (
+        <motion.div variants={item}>
+          <div className="rounded-2xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50/50 dark:bg-emerald-950/10 p-3 space-y-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="size-7 rounded-lg bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center">
+                  <Rocket className="size-3.5 text-emerald-600 dark:text-emerald-400" />
+                </div>
+                <div>
+                  <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-300">Setup Complete ✓</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-1">
+                {setupItems.map((item) => (
+                  <div
+                    key={item.key}
+                    className="size-5 rounded-full bg-emerald-500 flex items-center justify-center"
+                    title={item.label}
+                  >
+                    <svg className="size-3 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      ) : (
+      <motion.div variants={item} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
+        <div className="rounded-2xl border-2 border-dashed border-emerald-300 dark:border-emerald-700 bg-gradient-to-br from-emerald-50 to-teal-50/50 dark:from-emerald-950/20 dark:to-teal-950/10 p-4 space-y-4">
+          <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <div className="size-8 rounded-lg bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center">
                 <Rocket className="size-4 text-emerald-600 dark:text-emerald-400" />
               </div>
               <div>
                 <h2 className="text-sm font-bold text-emerald-700 dark:text-emerald-300">Quick Setup</h2>
-                <p className="text-[10px] text-muted-foreground">Get started in 3 steps</p>
+                <p className="text-[10px] text-muted-foreground">Complete your profile</p>
               </div>
             </div>
-
-            {/* Steps */}
-            <div className="space-y-3">
-              {/* Step 1: Currency */}
-              <motion.div
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.1 }}
-                className={`flex items-center gap-3 p-3 rounded-xl border transition-colors ${wizardStep >= 0 ? "bg-white dark:bg-gray-800/50 border-emerald-200 dark:border-emerald-800" : "bg-muted/30 border-transparent"}`}
-              >
-                <div className={`size-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${wizardStep >= 0 ? "bg-emerald-500 text-white" : "bg-muted text-muted-foreground"}`}>
-                  1
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium">Default Currency</p>
-                </div>
-                <Select
-                  value={appSettings.currency}
-                  onValueChange={(val) => { setAppSettings({ currency: val }); if (wizardStep === 0) setWizardStep(1); }}
-                >
-                  <SelectTrigger className="w-auto rounded-lg text-xs min-w-[90px] h-8">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {CURRENCY_OPTIONS.map((c) => (
-                      <SelectItem key={c.code} value={c.code}>{c.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </motion.div>
-
-              {/* Step 2: Region */}
-              <motion.div
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.15 }}
-                className={`flex items-center gap-3 p-3 rounded-xl border transition-colors ${wizardStep >= 1 ? "bg-white dark:bg-gray-800/50 border-emerald-200 dark:border-emerald-800" : "bg-muted/30 border-transparent"}`}
-              >
-                <div className={`size-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${wizardStep >= 1 ? "bg-emerald-500 text-white" : "bg-muted text-muted-foreground"}`}>
-                  2
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium">Marketplace Region</p>
-                </div>
-                <Select
-                  value={appSettings.region}
-                  onValueChange={(val) => { setAppSettings({ region: val }); if (wizardStep === 1) setWizardStep(2); }}
-                >
-                  <SelectTrigger className="w-auto rounded-lg text-xs min-w-[120px] h-8">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {REGION_OPTIONS.map((r) => (
-                      <SelectItem key={r.id} value={r.id}>{r.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </motion.div>
-
-              {/* Step 3: WhatsApp */}
-              <motion.div
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.2 }}
-                className={`flex items-center gap-3 p-3 rounded-xl border transition-colors ${wizardStep >= 2 ? "bg-white dark:bg-gray-800/50 border-emerald-200 dark:border-emerald-800" : "bg-muted/30 border-transparent"}`}
-              >
-                <div className={`size-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${wizardStep >= 2 ? "bg-emerald-500 text-white" : "bg-muted text-muted-foreground"}`}>
-                  3
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium">WhatsApp Number</p>
-                </div>
-                <Input
-                  placeholder="076 748 8988"
-                  className="w-auto max-w-[140px] rounded-lg text-xs h-8"
-                  value={appSettings.whatsappNumber}
-                  onChange={(e) => {
-                    setAppSettings({ whatsappNumber: e.target.value });
-                    if (wizardStep === 2) setWizardStep(3);
-                  }}
+            <div className="flex items-center gap-2">
+              <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
+                <motion.div
+                  className="h-full rounded-full bg-emerald-500"
+                  initial={{ width: 0 }}
+                  animate={{ width: `${(completedCount / 4) * 100}%` }}
+                  transition={{ duration: 0.5, ease: "easeOut" }}
                 />
-              </motion.div>
+              </div>
+              <span className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-400 shrink-0">
+                {completedCount}/4
+              </span>
             </div>
+          </div>
 
-            <motion.div whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.98 }}>
-              <Button
-                onClick={handleSetupComplete}
-                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl h-10 text-sm font-semibold gap-2 shadow-md"
+          {/* Setup Checklist */}
+          <div className="space-y-2">
+            {/* Currency */}
+            <motion.div
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.1 }}
+              className={`flex items-center gap-3 p-3 rounded-xl border transition-colors ${setupItems[0].done ? "bg-white dark:bg-gray-800/50 border-emerald-200 dark:border-emerald-800" : "bg-muted/30 border-transparent"}`}
+            >
+              <div className={`size-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${setupItems[0].done ? "bg-emerald-500 text-white" : "bg-muted text-muted-foreground"}`}>
+                {setupItems[0].done ? "✓" : "1"}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-medium">Default Currency</p>
+              </div>
+              <Select
+                value={appSettings.currency}
+                onValueChange={(val) => { setAppSettings({ currency: val }); }}
               >
-                <CheckCircle2 className="size-4" />
-                Complete Setup
-              </Button>
+                <SelectTrigger className="w-auto rounded-lg text-xs min-w-[90px] h-8">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {CURRENCY_OPTIONS.map((c) => (
+                    <SelectItem key={c.code} value={c.code}>{c.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </motion.div>
+
+            {/* Region */}
+            <motion.div
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.15 }}
+              className={`flex items-center gap-3 p-3 rounded-xl border transition-colors ${setupItems[1].done ? "bg-white dark:bg-gray-800/50 border-emerald-200 dark:border-emerald-800" : "bg-muted/30 border-transparent"}`}
+            >
+              <div className={`size-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${setupItems[1].done ? "bg-emerald-500 text-white" : "bg-muted text-muted-foreground"}`}>
+                {setupItems[1].done ? "✓" : "2"}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-medium">Marketplace Region</p>
+              </div>
+              <Select
+                value={appSettings.region}
+                onValueChange={(val) => { setAppSettings({ region: val }); }}
+              >
+                <SelectTrigger className="w-auto rounded-lg text-xs min-w-[120px] h-8">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {REGION_OPTIONS.map((r) => (
+                    <SelectItem key={r.id} value={r.id}>{r.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </motion.div>
+
+            {/* WhatsApp */}
+            <motion.div
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.2 }}
+              className={`flex items-center gap-3 p-3 rounded-xl border transition-colors ${setupItems[2].done ? "bg-white dark:bg-gray-800/50 border-emerald-200 dark:border-emerald-800" : "bg-muted/30 border-transparent"}`}
+            >
+              <div className={`size-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${setupItems[2].done ? "bg-emerald-500 text-white" : "bg-muted text-muted-foreground"}`}>
+                {setupItems[2].done ? "✓" : "3"}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-medium">WhatsApp Number</p>
+              </div>
+              <Input
+                placeholder="076 748 8988"
+                className="w-auto max-w-[140px] rounded-lg text-xs h-8"
+                value={appSettings.whatsappNumber}
+                onChange={(e) => {
+                  setAppSettings({ whatsappNumber: e.target.value });
+                }}
+              />
+            </motion.div>
+
+            {/* Default Location */}
+            <motion.div
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.25 }}
+              className={`flex items-center gap-3 p-3 rounded-xl border transition-colors ${setupItems[3].done ? "bg-white dark:bg-gray-800/50 border-emerald-200 dark:border-emerald-800" : "bg-muted/30 border-transparent"}`}
+            >
+              <div className={`size-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${setupItems[3].done ? "bg-emerald-500 text-white" : "bg-muted text-muted-foreground"}`}>
+                {setupItems[3].done ? "✓" : "4"}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-medium">Default Location</p>
+              </div>
+              <Input
+                placeholder="e.g. Potchefstroom"
+                className="w-auto max-w-[140px] rounded-lg text-xs h-8"
+                value={appSettings.defaultLocation}
+                onChange={(e) => {
+                  setAppSettings({ defaultLocation: e.target.value });
+                }}
+              />
             </motion.div>
           </div>
-        </motion.div>
+
+          <Button
+            onClick={handleSetupComplete}
+            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl h-10 text-sm font-semibold gap-2 shadow-md"
+          >
+            <CheckCircle2 className="size-4" />
+            Complete Setup
+          </Button>
+        </div>
+      </motion.div>
       )}
 
       {/* Productivity Tips */}
@@ -611,11 +684,10 @@ export function Settings() {
                 const Icon = opt.icon;
                 const isActive = mounted && theme === opt.value;
                 return (
-                  <motion.button
+                  <button
                     key={opt.value}
-                    whileTap={{ scale: 0.95 }}
                     onClick={() => setTheme(opt.value)}
-                    className={`relative flex flex-col items-center justify-center gap-1.5 p-3 rounded-xl border-2 transition-all duration-200 ${
+                    className={`relative flex flex-col items-center justify-center gap-1.5 p-3 rounded-xl border-2 transition-all duration-200 active:scale-95 ${
                       isActive
                         ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-950/30 shadow-sm shadow-emerald-500/20"
                         : "border-transparent bg-muted/50 hover:bg-muted hover:border-muted-foreground/20"
@@ -629,19 +701,15 @@ export function Settings() {
                       {opt.desc}
                     </span>
                     {isActive && (
-                      <motion.div
-                        layoutId="themeCheck"
+                      <div
                         className="absolute -top-1.5 -right-1.5 size-4 rounded-full bg-emerald-500 flex items-center justify-center"
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        transition={{ type: "spring", stiffness: 400, damping: 25 }}
                       >
                         <svg className="size-2.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                           <polyline points="20 6 9 17 4 12" />
                         </svg>
-                      </motion.div>
+                      </div>
                     )}
-                  </motion.button>
+                  </button>
                 );
               })}
             </div>
@@ -776,7 +844,7 @@ export function Settings() {
           <CardContent className="p-3">
             <div className="space-y-2">
               {KEYBOARD_SHORTCUTS.map((shortcut, i) => (
-                <div key={i} className="flex items-center justify-between">
+                <div key={i} className={`flex items-center justify-between px-2 py-1.5 rounded-md ${i % 2 === 0 ? "bg-muted/30" : ""}`}>
                   <span className="text-xs text-muted-foreground">{shortcut.action}</span>
                   <kbd className="text-[10px] font-mono bg-muted px-2 py-0.5 rounded border border-border text-foreground">
                     {shortcut.key}
@@ -799,26 +867,19 @@ export function Settings() {
         <Card className="rounded-xl border shadow-sm hover:shadow-md transition-shadow duration-200">
           <CardContent className="p-4 space-y-3">
             <div className="flex items-center gap-3">
-              <motion.div
-                animate={{ rotate: [0, 5, -5, 0] }}
-                transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+              <div
                 className="size-12 rounded-xl bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center text-2xl"
               >
                 💻
-              </motion.div>
+              </div>
               <div>
                 <h3 className="font-bold">LaptopFlip</h3>
                 <p className="text-xs text-muted-foreground">Sell Laptops Faster with AI</p>
               </div>
               <div className="ml-auto">
-                <motion.div
-                  animate={{ scale: [1, 1.05, 1] }}
-                  transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-                >
-                  <Badge className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white border-0 font-bold">
-                    v1.6.1
-                  </Badge>
-                </motion.div>
+                <Badge className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white border-0 font-bold">
+                  v1.6.1
+                </Badge>
               </div>
             </div>
 

@@ -11,6 +11,7 @@ import {
   CheckCircle2,
   Smartphone,
   Lightbulb,
+  Timer,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -101,6 +102,10 @@ export function PhotoGuide() {
       >
         <h1 className="text-2xl font-bold text-emerald-700 dark:text-emerald-400 tracking-tight">
           📸 Photo Guide
+          <Badge variant="secondary" className="ml-2 text-[10px] font-medium">
+            <Timer className="size-3 mr-1" />
+            ~10-15 min
+          </Badge>
         </h1>
         <p className="text-sm text-muted-foreground">
           Learn how to take the best listing photos to sell laptops faster
@@ -125,16 +130,14 @@ export function PhotoGuide() {
               </p>
             </div>
           </div>
-          <motion.div whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.98 }}>
-            <Button
-              onClick={handleStartAdding}
-              className="w-full bg-white text-emerald-700 hover:bg-emerald-50 rounded-xl h-12 text-base font-bold gap-2 shadow-md hover:shadow-lg transition-shadow duration-200"
-            >
-              <Camera className="size-5" />
-              Start Adding Laptop
-              <ArrowRight className="size-4" />
-            </Button>
-          </motion.div>
+          <Button
+            onClick={handleStartAdding}
+            className="w-full bg-white text-emerald-700 hover:bg-emerald-50 rounded-xl h-12 text-base font-bold gap-2 shadow-md hover:shadow-lg transition-shadow duration-200"
+          >
+            <Camera className="size-5" />
+            Start Adding Laptop
+            <ArrowRight className="size-4" />
+          </Button>
         </div>
       </motion.div>
 
@@ -302,13 +305,10 @@ export function PhotoGuide() {
         </h2>
         <div className="space-y-3">
           {proTips.map((section, index) => (
-            <motion.div
+            <div
               key={section.category}
-              initial={{ opacity: 0, y: 5 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.35 + index * 0.05 }}
             >
-              <Card className="rounded-xl bg-gradient-to-br from-amber-50 to-transparent dark:from-amber-950/20 dark:to-transparent border-l-2 border-l-emerald-500">
+              <Card className="rounded-xl bg-gradient-to-br from-emerald-50/60 to-transparent dark:from-emerald-950/15 dark:to-transparent border-l-2 border-l-emerald-500 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
                 <CardContent className="p-3 space-y-2">
                   <div className="flex items-center gap-2">
                     <span className="text-base">{section.icon}</span>
@@ -324,7 +324,7 @@ export function PhotoGuide() {
                   ))}
                 </CardContent>
               </Card>
-            </motion.div>
+            </div>
           ))}
         </div>
       </motion.div>
@@ -339,7 +339,7 @@ export function PhotoGuide() {
           <CheckCircle2 className="size-4 text-emerald-600 dark:text-emerald-400" />
           Do&apos;s &amp; Don&apos;ts
         </h2>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {/* Do's */}
           <Card className="rounded-xl border-emerald-200 dark:border-emerald-800 border-l-2 border-l-emerald-500">
             <CardContent className="p-3 space-y-2">
@@ -379,17 +379,15 @@ export function PhotoGuide() {
         transition={{ duration: 0.3, delay: 0.4 }}
         className="pt-2"
       >
-        <motion.div whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.98 }}>
-          <Button
-            onClick={handleStartAdding}
-            size="lg"
-            className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-xl h-14 text-base font-bold gap-2 shadow-lg shadow-emerald-600/30 hover:shadow-2xl hover:shadow-emerald-600/40 transition-all duration-200"
-          >
-            <Sparkles className="size-5" />
-            Start Adding a Laptop
-            <ArrowRight className="size-4" />
-          </Button>
-        </motion.div>
+        <Button
+          onClick={handleStartAdding}
+          size="lg"
+          className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-xl h-14 text-base font-bold gap-2 shadow-lg shadow-emerald-600/30 transition-shadow duration-200 hover:shadow-xl"
+        >
+          <Sparkles className="size-5" />
+          Start Adding a Laptop
+          <ArrowRight className="size-4" />
+        </Button>
       </motion.div>
     </div>
   );

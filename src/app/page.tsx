@@ -11,6 +11,7 @@ import {
   SettingsIcon,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useAppStore } from "@/lib/store";
 import { Dashboard } from "@/components/tabs/Dashboard";
@@ -24,8 +25,6 @@ import { LaptopDetailSheet } from "@/components/laptop/LaptopDetailSheet";
 import { CompareSheet } from "@/components/laptop/CompareSheet";
 import { ContactsSheet } from "@/components/contacts/ContactsSheet";
 import { ShareCardSheet } from "@/components/laptop/ShareCardSheet";
-import { cn } from "@/lib/utils";
-
 const tabs = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
   { id: "photos", label: "Photos", icon: Camera },
@@ -144,7 +143,7 @@ export default function Home() {
         {/* Subtle gradient overlay above nav for content fade */}
         <div className="absolute -top-8 left-0 right-0 h-8 bg-gradient-to-t from-background/90 to-transparent pointer-events-none" />
 
-        <div className="relative bg-background/95 backdrop-blur-2xl">
+        <div className="relative bg-background/95 backdrop-blur-2xl border-t border-border/40">
           <div className="max-w-lg mx-auto flex items-center justify-around h-16 px-2">
             {tabs.map((tab) => {
               const isActive = tab.id === activeTab;
@@ -153,30 +152,27 @@ export default function Home() {
 
               if (isAdd) {
                 return (
-                  <motion.button
+                  <button
                     key={tab.id}
-                    whileTap={{ scale: 0.9 }}
-                    transition={{ duration: 0.1 }}
                     onClick={() => handleTabClick(tab.id)}
-                    className="relative -mt-7"
+                    className="relative -mt-7 active:scale-90 transition-transform duration-100"
                   >
                     <div className="w-14 h-14 rounded-full bg-gradient-to-br from-emerald-500 to-emerald-700 hover:from-emerald-600 hover:to-emerald-800 flex items-center justify-center shadow-xl shadow-emerald-600/40 transition-all duration-200 btn-hover-shadow">
                       <Icon className="w-7 h-7 text-white" />
                     </div>
-                  </motion.button>
+                  </button>
                 );
               }
 
               return (
-                <motion.button
+                <button
                   key={tab.id}
-                  whileTap={{ scale: 0.92 }}
                   onClick={() => handleTabClick(tab.id)}
                   className={cn(
-                    "relative flex flex-col items-center justify-center gap-0.5 py-1 px-3 rounded-xl transition-all duration-200 min-w-[3.5rem]",
+                    "relative flex flex-col items-center justify-center gap-0.5 py-1 px-3 rounded-xl transition-all duration-200 min-w-[3.5rem] active:scale-92",
                     isActive
                       ? "bg-emerald-100/70 dark:bg-emerald-900/25 text-emerald-600 dark:text-emerald-400"
-                      : "text-muted-foreground hover:text-foreground"
+                      : "text-muted-foreground hover:bg-accent/10 hover:text-foreground"
                   )}
                 >
                   <Icon className={cn("w-5 h-5 transition-transform duration-200", isActive && "scale-110")} />
@@ -189,9 +185,9 @@ export default function Home() {
                   )}
                   {/* Active indicator: small pill below the label */}
                   {isActive && (
-                    <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-5 h-1 bg-emerald-600 dark:bg-emerald-400 rounded-full z-10" />
+                    <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-5 h-1 bg-emerald-600 rounded-full z-10" />
                   )}
-                </motion.button>
+                </button>
               );
             })}
           </div>

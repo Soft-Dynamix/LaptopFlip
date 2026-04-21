@@ -126,6 +126,7 @@ interface AppState {
   laptopStages: Record<string, SalesStage>;
   updateLaptopStage: (laptopId: string, stage: SalesStage) => void;
   getLaptopStage: (laptopId: string) => SalesStage;
+  clearAllStages: () => void;
 
   // Buyer contacts (CRM)
   contacts: BuyerContact[];
@@ -452,6 +453,10 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
   getLaptopStage: (laptopId) => {
     return get().laptopStages[laptopId] || 'draft';
+  },
+  clearAllStages: () => {
+    persistLaptopStages({});
+    set({ laptopStages: {} });
   },
 
   // Buyer contacts (CRM)

@@ -600,3 +600,87 @@ bun run cap:sync      # Sync Capacitor Android project
 - Current Marketplace flow uses copy-to-clipboard + open-page approach
 - On-device LLM requires ~350MB download
 - No drag-and-drop for Kanban pipeline stages
+
+---
+
+### Task 3, 7, 8: Comprehensive Styling Improvements & Polish (2025-06-XX)
+
+**Agent:** full-stack-developer  
+**Scope:** Frontend-only — `globals.css`, `page.tsx`, `Dashboard.tsx`, `Inventory.tsx`, `PhotoGuide.tsx`, `Settings.tsx`
+
+#### Changes Made
+
+**1. Global CSS (`globals.css`)**
+- Added emerald-tinted `::selection` for text highlighting (light: 25% emerald, dark: 30% emerald)
+- Added `:focus-visible` ring styles with emerald tint and 2px offset
+- Added `.card-hover-lift` utility class: shadow-lg + translateY(-2px) with dark mode variant
+- Existing thin scrollbar styling preserved (thin, emerald-tinted)
+
+**2. Bottom Navigation Bar (`page.tsx`)**
+- Added `border-t border-border/40` to nav bar for subtle top border
+- Added `hover:bg-accent/10 transition-colors` to inactive tab buttons
+- Changed active tab indicator to static `div` (bg-emerald-600 rounded-full, no framer-motion)
+- Replaced `motion.button` with plain `button` + CSS transitions for all tab buttons
+- Replaced `whileTap` on add button with CSS `active:scale-90 transition-transform`
+- Added `hover:text-foreground` for inactive tabs
+- Cleaned up duplicate `cn` import
+
+**3. Dashboard Stat Cards (`Dashboard.tsx`)**
+- Stat cards: `py-5 px-5` padding (increased from py-4 px-4)
+- Added `backdrop-blur-sm` to stat cards
+- Card hover: `hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200`
+- Icon: `transition-transform duration-200 hover:scale-110` on stat card icons
+- Removed `whileTap` from Quick Stats Strip items, replaced with CSS `active:scale-95 transition-transform`
+- Removed `whileHover` from Condition Breakdown badges, replaced with CSS hover
+- CTA button: added `transition-shadow duration-200 hover:shadow-xl` for smoother hover
+
+**4. Dashboard Onboarding**
+- Step cards: changed icon container from `rounded-xl` to `rounded-full` (circle background)
+- Step cards: upgraded hover from `hover:shadow-md` to `hover:shadow-lg`
+- CTA button: emerald gradient already present, added smoother shadow transition
+- Removed infinite whileHover/whileTap framer-motion props throughout
+
+**5. Inventory Cards (`Inventory.tsx`)**
+- Empty state: enlarged illustration (size-16 → size-20 icon container, p-6 → p-8 padding)
+- Filter chips: active state shadow upgraded from `shadow-sm` to `shadow-md`
+- Removed all `whileTap` framer-motion props, replaced with CSS `active:scale-90 transition-transform`
+- Replaced `whileHover`/`whileTap` wrappers with plain divs + CSS transitions
+- Watchlist heart button: `active:scale-80 transition-transform` instead of whileTap
+
+**6. Photo Guide (`PhotoGuide.tsx`)**
+- Photo step cards: added `hover:shadow-md hover:-translate-y-0.5 transition-all duration-200`
+- Pro Tips section: changed background from amber to emerald tint (`from-emerald-50/60 dark:from-emerald-950/15`)
+- Pro Tips cards: added hover lift effect with emerald border-l-2
+- Do's & Don'ts: changed to `grid-cols-1 sm:grid-cols-2` for responsive 2-column on larger screens
+- Time badge `~10-15 min` already present from previous agent
+- Bottom CTA: removed motion wrapper, added `hover:shadow-xl` CSS transition
+- Removed motion.div entry animations from prep tips, step cards, and pro tips
+
+**7. Settings (`Settings.tsx`)**
+- Appearance buttons: replaced `motion.button whileTap` with plain `button active:scale-95`
+- Appearance checkmark: replaced animated `motion.div layoutId` checkmark with static `div`
+- Keyboard Shortcuts: added alternating row backgrounds (`bg-muted/30` on even rows)
+- About section: removed infinite wobble animation on laptop icon
+- About section: removed infinite pulse animation on version badge
+- Fixed duplicate `manualSetupDone`/`isSetupComplete` variable declarations (compile error)
+- Removed `motion` wrapper from both About animations
+
+**8. Animation Cleanup (All Files)**
+- Systematically removed all remaining `whileTap`, `whileHover`, `whileFocus` framer-motion props
+- Replaced with CSS `active:scale-XX transition-transform duration-100`
+- Kept: simple fade-in on mount, animated counters (useCountUp), AnimatePresence for conditional content
+
+#### Files Modified
+| File | Description |
+|---|---|
+| `src/app/globals.css` | ::selection, :focus-visible, .card-hover-lift utility |
+| `src/app/page.tsx` | Nav bar border-t, CSS hover/active states, static active indicator |
+| `src/components/tabs/Dashboard.tsx` | Stat card polish, onboarding circle icons, CTA shadow, removed whileTap/whileHover |
+| `src/components/tabs/Inventory.tsx` | Empty state larger, filter chip shadow, removed whileTap/whileHover |
+| `src/components/tabs/PhotoGuide.tsx` | Photo card hover, emerald pro tips, 2-col grid, removed motion wrappers |
+| `src/components/tabs/Settings.tsx` | Static checkmark, alternating shortcut rows, removed infinite animations, fixed duplicate vars |
+
+#### Verification
+- `bun run lint`: 0 errors, 0 warnings
+- Dev server: Compiles successfully, API routes working
+- No runtime errors (pre-existing html2canvas warning in ShareCardSheet is unrelated)

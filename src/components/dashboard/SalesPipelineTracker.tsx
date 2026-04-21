@@ -1,14 +1,21 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
-import { GitBranch, ChevronRight } from "lucide-react";
+import { GitBranch, ChevronRight, RotateCcw } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { useAppStore, SALES_STAGES } from "@/lib/store";
 import type { SalesStage } from "@/lib/store";
 import type { Laptop as LaptopType } from "@/lib/types";
 import { formatPrice } from "@/lib/types";
+import { toast } from "sonner";
 
 function getStageIcon(stage: SalesStage) {
   switch (stage) {
@@ -32,10 +39,23 @@ function getStageBorderColor(stage: SalesStage): string {
   }
 }
 
+function getStageDotColor(stage: SalesStage): string {
+  switch (stage) {
+    case "draft": return "bg-gray-500 dark:bg-gray-400";
+    case "listed": return "bg-emerald-500 dark:bg-emerald-400";
+    case "contacted": return "bg-sky-500 dark:bg-sky-400";
+    case "negotiating": return "bg-amber-500 dark:bg-amber-400";
+    case "sold": return "bg-rose-500 dark:bg-rose-400";
+    default: return "bg-gray-400";
+  }
+}
+
 export function SalesPipelineTracker() {
   const laptops = useAppStore((s) => s.laptops);
   const laptopStages = useAppStore((s) => s.laptopStages);
   const updateLaptopStage = useAppStore((s) => s.updateLaptopStage);
+  const clearAllStages = useAppStore((s) => s.clearAllStages);
+  const [transitioningId, setTransitioningId] = useState<string | null>(null);
 
   const safeLaptops = Array.isArray(laptops) ? laptops : [];
 
@@ -46,7 +66,6 @@ export function SalesPipelineTracker() {
       if (laptopStages[l.id]) {
         map[l.id] = laptopStages[l.id];
       } else {
-        // Default stage based on status
         switch (l.status) {
           case "draft": map[l.id] = "draft"; break;
           case "active": map[l.id] = "listed"; break;
@@ -72,23 +91,22 @@ export function SalesPipelineTracker() {
   }, [safeLaptops, laptopStageMap]);
 
   const totalInPipeline = safeLaptops.length;
-  const nextStages: Record<SalesStage, SalesStage> = {
-    draft: "listed",
-    listed: "contacted",
-    contacted: "negotiating",
-    negotiating: "sold",
-    sold: "draft",
+  const hasStages = Object.keys(laptopStages).length > 0;
+
+  const handleStageChange = (laptopId: string, newStage: SalesStage) => {
+    setTransitioningId(laptopId);
+    updateLaptopStage(laptopId, newStage);
+    setTimeout(() => setTransitioningId(null), 300);
   };
 
-  const handleAdvanceStage = (laptop: LaptopType) => {
-    const currentStage = laptopStageMap[laptop.id] || "draft";
-    const nextStage = nextStages[currentStage];
-    updateLaptopStage(laptop.id, nextStage);
+  const handleClearAll = () => {
+    clearAllStages();
+    toast.success("Pipeline stages cleared");
   };
 
   // Get laptops for each stage (limit to 2 displayed)
   const getStageLaptops = (stage: SalesStage): LaptopType[] => {
-    return safeLaptops.filter((l) => (laptopStageMap[l.id] || "draft") === stage).slice(0, 2);
+    return safeLaptops.filter((l) => (laptopStageMap[l.id] || "draft") === stage).slice(0, 3);
   };
 
   return (
@@ -107,6 +125,17 @@ export function SalesPipelineTracker() {
               {totalInPipeline} laptop{totalInPipeline !== 1 ? "s" : ""} in pipeline
             </p>
           </div>
+          {hasStages && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 text-[10px] text-muted-foreground hover:text-red-500 gap-1"
+              onClick={handleClearAll}
+            >
+              <RotateCcw className="size-3" />
+              Clear
+            </Button>
+          )}
         </div>
 
         {/* Stage Progress Bar */}
@@ -163,18 +192,21 @@ export function SalesPipelineTracker() {
           </div>
         )}
 
-        {/* Stage items (show laptops in non-empty stages) */}
-        <div className="space-y-2 max-h-48 overflow-y-auto">
-          {SALES_STAGES.filter((s) => (stageCounts[s.id] || 0) > 0).map((stage, idx) => {
+        {/* Stage items (show ALL stages including empty ones) */}
+        <div className="space-y-2 max-h-64 overflow-y-auto">
+          {SALES_STAGES.map((stage, idx) => {
             const stageLaptops = getStageLaptops(stage.id);
-            const remaining = (stageCounts[stage.id] || 0) - stageLaptops.length;
+            const count = stageCounts[stage.id] || 0;
+            const remaining = count - stageLaptops.length;
+            const isEmpty = count === 0;
+
             return (
               <motion.div
                 key={stage.id}
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.2 + idx * 0.05 }}
-                className={`rounded-lg border-l-[3px] ${getStageBorderColor(stage.id)} ${stage.bgColor} ${stage.darkBgColor} p-2.5 space-y-1.5`}
+                className={`rounded-lg border-l-[3px] ${getStageBorderColor(stage.id)} ${isEmpty ? "border border-dashed border-muted-foreground/20 bg-muted/10 dark:bg-muted/5" : `${stage.bgColor} ${stage.darkBgColor} border border-transparent`} p-2.5 space-y-1.5`}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1.5">
@@ -184,33 +216,69 @@ export function SalesPipelineTracker() {
                     </span>
                   </div>
                   <Badge variant="secondary" className="text-[10px] h-5">
-                    {stageCounts[stage.id]}
+                    {count}
                   </Badge>
                 </div>
-                {stageLaptops.map((laptop) => (
-                  <motion.button
-                    key={laptop.id}
-                    whileTap={{ scale: 0.97 }}
-                    onClick={() => handleAdvanceStage(laptop)}
-                    className="w-full flex items-center justify-between rounded-md bg-background/60 dark:bg-background/30 px-2 py-1.5 hover:bg-background/90 dark:hover:bg-background/60 transition-colors group"
-                  >
-                    <div className="flex items-center gap-2 min-w-0">
-                      <span className="text-xs truncate font-medium">
-                        {laptop.brand} {laptop.model}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">
-                        {formatPrice(laptop.askingPrice)}
-                      </span>
-                      <ChevronRight className="size-3 text-muted-foreground/50 group-hover:text-emerald-500 transition-colors" />
-                    </div>
-                  </motion.button>
-                ))}
-                {remaining > 0 && (
-                  <p className="text-[10px] text-muted-foreground text-center">
-                    +{remaining} more
-                  </p>
+
+                {isEmpty ? (
+                  <div className="flex items-center justify-center py-2 opacity-50">
+                    <p className="text-[10px] text-muted-foreground italic">No laptops</p>
+                  </div>
+                ) : (
+                  <>
+                    {stageLaptops.map((laptop) => (
+                      <div
+                        key={laptop.id}
+                        className={`w-full flex items-center justify-between rounded-md bg-background/60 dark:bg-background/30 px-2 py-1.5 hover:bg-background/90 dark:hover:bg-background/60 transition-all duration-200 ${transitioningId === laptop.id ? "opacity-50 scale-[0.98]" : ""}`}
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <button
+                                className={`size-4 rounded-full ${getStageDotColor(laptopStageMap[laptop.id] || "draft")} shrink-0 ring-2 ring-background hover:ring-offset-1 hover:ring-offset-muted transition-all duration-200 cursor-pointer`}
+                                aria-label={`Change stage for ${laptop.brand} ${laptop.model}`}
+                              />
+                            </PopoverTrigger>
+                            <PopoverContent className="w-40 p-1.5" side="bottom" align="start">
+                              <div className="space-y-0.5">
+                                {SALES_STAGES.map((s) => (
+                                  <button
+                                    key={s.id}
+                                    onClick={() => handleStageChange(laptop.id, s.id)}
+                                    className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs transition-colors ${
+                                      (laptopStageMap[laptop.id] || "draft") === s.id
+                                        ? `${s.bgColor} ${s.darkBgColor} font-semibold`
+                                        : "hover:bg-muted"
+                                    }`}
+                                  >
+                                    <span className="text-sm">{getStageIcon(s.id)}</span>
+                                    <span>{s.label}</span>
+                                    {(laptopStageMap[laptop.id] || "draft") === s.id && (
+                                      <span className="ml-auto text-emerald-500">✓</span>
+                                    )}
+                                  </button>
+                                ))}
+                              </div>
+                            </PopoverContent>
+                          </Popover>
+                          <span className="text-xs truncate font-medium">
+                            {laptop.brand} {laptop.model}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">
+                            {formatPrice(laptop.askingPrice)}
+                          </span>
+                          <ChevronRight className="size-3 text-muted-foreground/50" />
+                        </div>
+                      </div>
+                    ))}
+                    {remaining > 0 && (
+                      <p className="text-[10px] text-muted-foreground text-center">
+                        +{remaining} more
+                      </p>
+                    )}
+                  </>
                 )}
               </motion.div>
             );

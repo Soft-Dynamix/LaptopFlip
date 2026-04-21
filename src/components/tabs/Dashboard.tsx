@@ -354,6 +354,117 @@ const quickActions = [
   },
 ];
 
+// ─── Quick Notes Input Component ─────────────────────────
+const NOTE_MAX_CHARS = 200;
+
+function QuickNotesInput({ addQuickNote }: { addQuickNote: (note: string) => void }) {
+  const [value, setValue] = useState("");
+
+  const handleAdd = () => {
+    const trimmed = value.trim();
+    if (trimmed && trimmed.length <= NOTE_MAX_CHARS) {
+      addQuickNote(trimmed);
+      setValue("");
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      handleAdd();
+    }
+  };
+
+  return (
+    <div className="space-y-1.5">
+      <div className="flex gap-2">
+        <Input
+          placeholder="Add a quick note..."
+          className="flex-1 h-9 text-sm rounded-lg"
+          value={value}
+          onChange={(e) => {
+            if (e.target.value.length <= NOTE_MAX_CHARS) {
+              setValue(e.target.value);
+            }
+          }}
+          onKeyDown={handleKeyDown}
+        />
+        <Button
+          size="sm"
+          className="h-9 w-9 p-0 rounded-lg bg-amber-500 hover:bg-amber-600 text-white shrink-0 disabled:opacity-40 disabled:cursor-not-allowed"
+          onClick={handleAdd}
+          disabled={!value.trim() || value.trim().length > NOTE_MAX_CHARS}
+        >
+          <Plus className="size-4" />
+        </Button>
+      </div>
+      <div className="flex items-center justify-end">
+        <span className={`text-[10px] ${value.length > 180 ? (value.length >= NOTE_MAX_CHARS ? "text-red-500 font-semibold" : "text-amber-500") : "text-muted-foreground/50"}`}>
+          {value.length}/{NOTE_MAX_CHARS}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+// ─── Quick Note Item Component ─────────────────────────
+function QuickNoteItem({ note, index, colorIndex, deleteQuickNote }: {
+  note: { text: string; timestamp: string };
+  index: number;
+  colorIndex: number;
+  deleteQuickNote: (index: number) => void;
+}) {
+  const [pendingDelete, setPendingDelete] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, []);
+
+  const handleClick = () => {
+    if (pendingDelete) {
+      if (timerRef.current) clearTimeout(timerRef.current);
+      deleteQuickNote(index);
+      setPendingDelete(false);
+    } else {
+      setPendingDelete(true);
+      timerRef.current = setTimeout(() => {
+        setPendingDelete(false);
+      }, 3000);
+    }
+  };
+
+  return (
+    <motion.div
+      key={`${note.text}-${index}`}
+      initial={{ opacity: 0, x: -10 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ duration: 0.2, delay: index * 0.04 }}
+      className={`group flex items-start gap-2.5 p-2.5 rounded-lg border-l-[3px] ${NOTE_COLORS[colorIndex]} ${NOTE_BG_COLORS[colorIndex]} hover:shadow-sm transition-shadow ${pendingDelete ? "bg-red-50/60 dark:bg-red-950/20" : ""}`}
+    >
+      <div className="min-w-0 flex-1">
+        {pendingDelete ? (
+          <p className="text-xs text-red-500 dark:text-red-400 font-medium italic">Tap again to delete</p>
+        ) : (
+          <p className="text-xs text-foreground/90 leading-relaxed">{note.text}</p>
+        )}
+        <p className="text-[10px] text-muted-foreground/60 mt-1 flex items-center gap-1">
+          <Clock className="size-2.5" />
+          {note.timestamp ? formatRelativeTime(note.timestamp) : ""}
+        </p>
+      </div>
+      <button
+        onClick={handleClick}
+        className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-red-500 shrink-0 mt-0.5 p-0.5 rounded hover:bg-red-50 dark:hover:bg-red-950/30"
+        aria-label="Delete note"
+      >
+        <X className="size-3" />
+      </button>
+    </motion.div>
+  );
+}
+
 // ─── Gradient Section Divider ─────────────────────────
 function SectionDivider({ className }: { className?: string }) {
   return (
@@ -695,12 +806,12 @@ export function Dashboard() {
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ duration: 0.35, delay: 0.3 + index * 0.1, type: "spring", stiffness: 200 }}
                   >
-                    <div className="flex items-center gap-3.5 p-4 rounded-xl border border-border/60 bg-card shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 relative overflow-hidden group">
+                    <div className="flex items-center gap-3.5 p-4 rounded-xl border border-border/60 bg-card shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 relative overflow-hidden group">
                       {/* Subtle gradient background on hover */}
                       <div className={`absolute inset-0 ${step.bgLight} opacity-0 group-hover:opacity-100 transition-opacity duration-200`} />
                       {/* Step number badge */}
                       <div className="relative z-10 flex items-center gap-3 shrink-0">
-                        <div className={`size-10 rounded-xl bg-gradient-to-br ${step.gradient} flex items-center justify-center text-white shadow-md`}>
+                        <div className={`size-10 rounded-full bg-gradient-to-br ${step.gradient} flex items-center justify-center text-white shadow-md`}>
                           <StepIcon className="size-5" />
                         </div>
                         <span className="text-xs font-bold text-muted-foreground/60 w-4">0{step.step}</span>
@@ -732,7 +843,7 @@ export function Dashboard() {
                 setIsFormOpen(true);
               }}
               size="lg"
-              className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-xl px-6 py-6 shadow-lg shadow-emerald-600/30 font-semibold text-base"
+              className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-xl px-6 py-6 shadow-lg shadow-emerald-600/30 font-semibold text-base transition-shadow duration-200 hover:shadow-xl"
             >
               <Plus className="size-5 mr-2" />
               <span>Add Your First Laptop</span>
@@ -810,8 +921,7 @@ export function Dashboard() {
           ].map((stat) => (
             <motion.div
               key={stat.label}
-              whileTap={{ scale: 0.97 }}
-              className={`shrink-0 rounded-lg px-3 py-2 border border-border/50 ${stat.bg} flex flex-col items-center min-w-[70px]`}
+              className={`shrink-0 rounded-lg px-3 py-2 border border-border/50 ${stat.bg} flex flex-col items-center min-w-[70px] active:scale-95 transition-transform duration-100`}
             >
               <span className={`text-sm font-bold ${stat.color}`}>{stat.value}</span>
               <span className="text-[10px] text-muted-foreground">{stat.label}</span>
@@ -843,7 +953,7 @@ export function Dashboard() {
                 transition={{ duration: 0.3, delay: index * 0.05 }}
               >
                 <Card
-                  className={`gap-0 py-4 px-4 rounded-xl border border-l-4 ${stat.borderLeft} shadow-sm relative overflow-hidden hover:-translate-y-1 hover:ring-2 hover:ring-current/10 transition-all duration-200`}
+                  className={`gap-0 py-5 px-5 rounded-xl border border-l-4 ${stat.borderLeft} shadow-sm relative overflow-hidden backdrop-blur-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200`}
                 >
                   <div className="absolute inset-0 bg-gradient-to-br from-transparent to-muted/30 pointer-events-none" />
                   <CardContent className="p-0 relative z-10">
@@ -852,7 +962,7 @@ export function Dashboard() {
                         <p className="text-xs font-medium text-muted-foreground">{stat.label}</p>
                         <p className="text-2xl font-bold tracking-tight">{value}</p>
                       </div>
-                      <div className={`rounded-lg border p-2 ${stat.accent}`}>
+                      <div className={`rounded-lg border p-2 transition-transform duration-200 hover:scale-110 ${stat.accent}`}>
                         <Icon className={`size-4 ${stat.iconColor}`} />
                       </div>
                     </div>
@@ -1048,8 +1158,7 @@ export function Dashboard() {
                       initial={{ opacity: 0, scale: 0.8 }}
                       animate={{ opacity: 1, scale: 1 }}
                       transition={{ duration: 0.3, delay: 0.3 + index * 0.05, type: "spring", stiffness: 300 }}
-                      whileHover={{ scale: 1.05, y: -1 }}
-                      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border bg-card hover:shadow-sm transition-shadow cursor-default"
+                      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border bg-card hover:shadow-sm hover:-translate-y-0.5 transition-all duration-200 cursor-default"
                     >
                       <span className={`size-2 rounded-full ${getConditionDotColor(cond.condition)} shrink-0`} />
                       <span className="text-[11px] font-medium">{cond.condition}</span>
@@ -1102,12 +1211,11 @@ export function Dashboard() {
                     return (
                       <motion.button
                         key={id}
-                        whileTap={{ scale: 0.95 }}
                         onClick={() => {
                           setSelectedLaptop(watchedLaptop);
                           setIsDetailOpen(true);
                         }}
-                        className="shrink-0 rounded-xl border border-l-2 border-l-rose-400 dark:border-l-rose-600 bg-background/80 dark:bg-gray-900/80 p-3 min-w-[150px] max-w-[180px] text-left hover:shadow-md hover:border-rose-300 dark:hover:border-rose-700 transition-all duration-200"
+                        className="shrink-0 rounded-xl border border-l-2 border-l-rose-400 dark:border-l-rose-600 bg-background/80 dark:bg-gray-900/80 p-3 min-w-[150px] max-w-[180px] text-left hover:shadow-md hover:border-rose-300 dark:hover:border-rose-700 active:scale-[0.98] transition-all duration-200"
                       >
                         <div className="flex items-center gap-2 mb-1.5">
                           <span className="text-sm">
@@ -1212,6 +1320,84 @@ export function Dashboard() {
           </Card>
         </motion.div>
 
+        {/* Profit Calculator — Portfolio-level tracking */}
+        <SectionDivider />
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: 0.32 }} className="space-y-3">
+          <h2 className="text-base font-semibold flex items-center gap-2">
+            <Wallet className="size-4 text-emerald-600 dark:text-emerald-400" />
+            Profit Calculator<span className="ml-1.5 text-transparent bg-gradient-to-r from-emerald-400 to-teal-400 dark:from-emerald-500 dark:to-teal-500 bg-clip-text">—</span>
+          </h2>
+          <Card className="rounded-xl border shadow-sm overflow-hidden relative hover:shadow-md transition-shadow duration-200">
+            <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-emerald-400 via-teal-500 to-emerald-600 dark:from-emerald-600 dark:via-teal-700 dark:to-emerald-800 rounded-l-xl" />
+            <CardContent className="p-4 pl-5 space-y-3">
+              {(() => {
+                const totalPurchase = safeLaptops.reduce((s: number, l: LaptopType) => s + (l.purchasePrice || 0), 0);
+                const totalAsking = safeLaptops.reduce((s: number, l: LaptopType) => s + l.askingPrice, 0);
+                const potentialProfit = totalAsking - totalPurchase;
+                const marginPct = totalPurchase > 0 ? Math.round((potentialProfit / totalPurchase) * 100) : 0;
+                const hasCostData = totalPurchase > 0;
+                const maxVal = Math.max(totalPurchase, totalAsking, 1);
+                return (
+                  <>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <p className="text-[10px] text-muted-foreground font-medium">Total Invested</p>
+                        <p className="text-base font-bold text-rose-600 dark:text-rose-400">{formatPrice(totalPurchase)}</p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-[10px] text-muted-foreground font-medium">Potential Revenue</p>
+                        <p className="text-base font-bold text-emerald-600 dark:text-emerald-400">{formatPrice(totalAsking)}</p>
+                      </div>
+                    </div>
+                    {/* Mini Bar Chart */}
+                    {hasCostData && (
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                          <span>Invested vs Revenue</span>
+                          <span className={potentialProfit >= 0 ? "text-emerald-600 dark:text-emerald-400 font-semibold" : "text-red-600 dark:text-red-400 font-semibold"}>
+                            {potentialProfit >= 0 ? "+" : ""}{formatPrice(potentialProfit)} ({marginPct}%)</span>
+                        </div>
+                        <div className="space-y-1.5">
+                          {/* Invested bar */}
+                          <div className="flex items-center gap-2">
+                            <span className="text-[9px] text-muted-foreground w-12 shrink-0">Invested</span>
+                            <div className="flex-1 h-3 rounded-full bg-muted overflow-hidden">
+                              <motion.div
+                                className="h-full rounded-full bg-rose-400 dark:bg-rose-500"
+                                initial={{ width: 0 }}
+                                animate={{ width: `${Math.max((totalPurchase / maxVal) * 100, 2)}%` }}
+                                transition={{ duration: 0.8, ease: "easeOut" }}
+                              />
+                            </div>
+                          </div>
+                          {/* Revenue bar */}
+                          <div className="flex items-center gap-2">
+                            <span className="text-[9px] text-muted-foreground w-12 shrink-0">Revenue</span>
+                            <div className="flex-1 h-3 rounded-full bg-muted overflow-hidden">
+                              <motion.div
+                                className={`h-full rounded-full ${potentialProfit >= 0 ? "bg-emerald-400 dark:bg-emerald-500" : "bg-red-400 dark:bg-red-500"}`}
+                                initial={{ width: 0 }}
+                                animate={{ width: `${Math.max((totalAsking / maxVal) * 100, 2)}%` }}
+                                transition={{ duration: 0.8, ease: "easeOut", delay: 0.1 }}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    {!hasCostData && (
+                      <p className="text-[11px] text-muted-foreground text-center py-1">
+                        Set purchase prices on laptops to see profit data
+                      </p>
+                    )}
+                  </>
+                );
+              })()}
+            </CardContent>
+            <div className="h-0.5 bg-gradient-to-r from-emerald-400 via-teal-400 to-emerald-500 dark:from-emerald-600 dark:via-teal-600 dark:to-emerald-700 opacity-60" />
+          </Card>
+        </motion.div>
+
         {/* Quick Notes — Colorful Note Cards */}
         <SectionDivider />
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: 0.33 }} className="space-y-3">
@@ -1225,31 +1411,7 @@ export function Dashboard() {
           <Card className="rounded-xl border shadow-sm overflow-hidden hover:shadow-md transition-shadow duration-200">
             <div className="h-0.5 bg-gradient-to-r from-amber-300 via-yellow-400 to-amber-300 dark:from-amber-600 dark:via-yellow-600 dark:to-amber-600 opacity-50" />
             <CardContent className="p-4 space-y-3">
-              <div className="flex gap-2">
-                <Input
-                  placeholder="Add a quick note..."
-                  className="flex-1 h-9 text-sm rounded-lg"
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && (e.target as HTMLInputElement).value.trim()) {
-                      addQuickNote((e.target as HTMLInputElement).value.trim());
-                      (e.target as HTMLInputElement).value = '';
-                    }
-                  }}
-                />
-                <Button
-                  size="sm"
-                  className="h-9 w-9 p-0 rounded-lg bg-amber-500 hover:bg-amber-600 text-white shrink-0"
-                  onClick={() => {
-                    const input = document.querySelector<HTMLInputElement>('input[placeholder="Add a quick note..."]');
-                    if (input && input.value.trim()) {
-                      addQuickNote(input.value.trim());
-                      input.value = '';
-                    }
-                  }}
-                >
-                  <Plus className="size-4" />
-                </Button>
-              </div>
+              <QuickNotesInput addQuickNote={addQuickNote} />
               {quickNotes.length === 0 ? (
                 <motion.div
                   initial={{ opacity: 0 }}
@@ -1267,27 +1429,13 @@ export function Dashboard() {
               ) : (
                 <div className="space-y-2 max-h-52 overflow-y-auto">
                   {quickNotes.slice(0, 5).map((note, i) => (
-                    <motion.div
+                    <QuickNoteItem
                       key={`${note.text}-${i}`}
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ duration: 0.2, delay: i * 0.04 }}
-                      className={`group flex items-start gap-2.5 p-2.5 rounded-lg border-l-[3px] ${NOTE_COLORS[i % NOTE_COLORS.length]} ${NOTE_BG_COLORS[i % NOTE_BG_COLORS.length]} hover:shadow-sm transition-shadow`}
-                    >
-                      <div className="min-w-0 flex-1">
-                        <p className="text-xs text-foreground/90 leading-relaxed">{note.text}</p>
-                        <p className="text-[10px] text-muted-foreground/60 mt-1 flex items-center gap-1">
-                          <Clock className="size-2.5" />
-                          {note.timestamp ? formatRelativeTime(note.timestamp) : ""}
-                        </p>
-                      </div>
-                      <button
-                        onClick={() => deleteQuickNote(i)}
-                        className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-red-500 shrink-0 mt-0.5 p-0.5 rounded hover:bg-red-50 dark:hover:bg-red-950/30"
-                      >
-                        <X className="size-3" />
-                      </button>
-                    </motion.div>
+                      note={note}
+                      index={i}
+                      colorIndex={i % NOTE_COLORS.length}
+                      deleteQuickNote={deleteQuickNote}
+                    />
                   ))}
                 </div>
               )}

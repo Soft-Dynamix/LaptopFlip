@@ -1073,7 +1073,6 @@ export function Inventory() {
         {filterChips.map((chip) => (
           <motion.div
             key={chip.value}
-            whileTap={{ scale: 0.9 }}
             animate={filterStatus === chip.value ? { scale: 1.05 } : { scale: 1 }}
             transition={filterStatus === chip.value ? { type: "spring", stiffness: 400, damping: 15 } : { duration: 0.15 }}
           >
@@ -1081,9 +1080,9 @@ export function Inventory() {
               variant={filterStatus === chip.value ? "default" : "outline"}
               size="sm"
               onClick={() => setFilterStatus(chip.value)}
-              className={`rounded-full text-xs shrink-0 ${
+              className={`rounded-full text-xs shrink-0 active:scale-90 transition-transform duration-100 ${
                 filterStatus === chip.value
-                  ? "bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-600 hover:to-emerald-800 text-white shadow-sm"
+                  ? "bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-600 hover:to-emerald-800 text-white shadow-md"
                   : ""
               }`}
             >
@@ -1157,33 +1156,29 @@ export function Inventory() {
                   </CardContent>
                 </Card>
               ) : (
-                <div className="rounded-2xl bg-gradient-to-br from-emerald-500 via-emerald-600 to-teal-600 p-6 text-white shadow-xl shadow-emerald-600/20 relative overflow-hidden">
+                <div className="rounded-2xl bg-gradient-to-br from-emerald-500 via-emerald-600 to-teal-600 p-8 text-white shadow-xl shadow-emerald-600/20 relative overflow-hidden">
                   {/* Decorative circles */}
                   <div className="absolute -top-8 -right-8 size-32 rounded-full bg-white/10" />
                   <div className="absolute -bottom-6 -left-6 size-24 rounded-full bg-white/5" />
                   <div className="relative flex flex-col items-center text-center space-y-4">
-                    <motion.div
-                      animate={{ y: [0, -8, 0] }}
-                      transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-                      className="size-16 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center"
-                    >
-                      <Laptop className="size-8" />
-                    </motion.div>
+                    <div className="size-20 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                      <Laptop className="size-10" />
+                    </div>
                     <div className="space-y-1">
                       <h3 className="text-lg font-bold">No laptops yet</h3>
                       <p className="text-sm text-emerald-100">
                         Add your first laptop to start building your inventory
                       </p>
                     </div>
-                    <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                    <div>
                       <Button
                         onClick={() => { setEditingLaptopId(null); setIsFormOpen(true); }}
-                        className="bg-white text-emerald-700 hover:bg-emerald-50 rounded-xl h-11 px-6 text-sm font-bold gap-2 shadow-lg"
+                        className="bg-white text-emerald-700 hover:bg-emerald-50 rounded-xl h-11 px-6 text-sm font-bold gap-2 shadow-lg active:scale-[0.98] transition-transform duration-100"
                       >
                         Add Your First Laptop
                         <ArrowRight className="size-4" />
                       </Button>
-                    </motion.div>
+                    </div>
                   </div>
                 </div>
               )}
@@ -1430,6 +1425,12 @@ export function Inventory() {
                             <Plus className="size-3" />
                           </button>
                         </div>
+                        {laptop.purchasePrice === 0 && laptop.askingPrice > 0 && (
+                          <span className="text-[10px] text-muted-foreground/50 italic">No cost set</span>
+                        )}
+                        {laptop.purchasePrice > 0 && laptop.askingPrice === 0 && (
+                          <span className="text-[10px] text-muted-foreground/50 italic">No asking price</span>
+                        )}
                         {laptop.purchasePrice > 0 && laptop.askingPrice > 0 && (
                           <div
                             className={`flex items-center gap-0.5 text-[10px] font-medium mt-0.5 ${
@@ -1446,19 +1447,20 @@ export function Inventory() {
                               <TrendingDown className="size-3" />
                             ) : null}
                             <span>
-                              {laptop.askingPrice > laptop.purchasePrice
-                                ? `R ${(laptop.askingPrice - laptop.purchasePrice).toLocaleString()} profit`
-                                : laptop.askingPrice < laptop.purchasePrice
-                                  ? `R ${(laptop.purchasePrice - laptop.askingPrice).toLocaleString()} loss`
-                                  : "Break even"}
+                              {(() => {
+                                const profit = laptop.askingPrice - laptop.purchasePrice;
+                                const margin = Math.round((profit / laptop.purchasePrice) * 100);
+                                if (profit > 0) return `+${formatPrice(profit)} (+${margin}%)`;
+                                if (profit < 0) return `-${formatPrice(Math.abs(profit))} (${margin}%)`;
+                                return "Break even";
+                              })()}
                             </span>
                           </div>
                         )}
                         <div className="flex gap-1 mt-1" onClick={(e) => e.stopPropagation()}>
-                          <motion.button
-                            whileTap={{ scale: 0.8 }}
+                          <button
                             onClick={() => toggleWatchlist(laptop.id)}
-                            className="size-8 rounded-md flex items-center justify-center transition-colors relative"
+                            className="size-8 rounded-md flex items-center justify-center transition-colors relative active:scale-80"
                             aria-label={watchlist.includes(laptop.id) ? "Remove from watchlist" : "Add to watchlist"}
                           >
                             {watchlist.includes(laptop.id) ? (
@@ -1473,7 +1475,7 @@ export function Inventory() {
                             ) : (
                               <Heart className="size-3.5 text-muted-foreground hover:text-rose-400 transition-colors" />
                             )}
-                          </motion.button>
+                          </button>
                           <Button
                             variant="ghost"
                             size="icon"
@@ -1598,7 +1600,6 @@ export function Inventory() {
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0, opacity: 0 }}
             transition={{ type: "spring", stiffness: 400, damping: 25 }}
-            whileTap={{ scale: 0.9 }}
             onClick={() => {
               if (compareIds.length === 2) {
                 setIsCompareOpen(true);
