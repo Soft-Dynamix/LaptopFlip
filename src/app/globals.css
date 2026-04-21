@@ -264,3 +264,34 @@ input:focus, textarea:focus, select:focus {
 .dark .card-depth {
   background: linear-gradient(135deg, rgba(30,41,59,0.6) 0%, rgba(30,41,59,0.3) 100%);
 }
+
+/* Stale listing badge pulse (CSS only, no JS) */
+@keyframes stale-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+.stale-badge-pulse {
+  animation: stale-pulse 2s ease-in-out infinite;
+}
+
+/* Smooth scroll for the whole app */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Dark mode scrollbar improvements */
+.dark ::-webkit-scrollbar-track {
+  background: oklch(0.15 0 0);
+}
+.dark ::-webkit-scrollbar-thumb {
+  background: oklch(0.3 0 0);
+  border-radius: 9999px;
+}
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: oklch(0.4 0 0);
+}
+
+/* Toast notifications should appear above the bottom nav */
+[data-sonner-toaster] {
+  --toast-bottom: 5rem;
+}

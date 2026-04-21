@@ -31,6 +31,8 @@ import {
   ExternalLink,
   Pencil,
   Wallet,
+  TrendingUp,
+  TrendingDown,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -1338,11 +1340,35 @@ export function LaptopFormSheet() {
                       </div>
                       {(() => {
                         const totalCosts = (Number(formData.repairsCost) || 0) + (Number(formData.listingFees) || 0) + (Number(formData.otherCosts) || 0);
+                        const pp = Number(formData.purchasePrice) || 0;
+                        const ap = Number(formData.askingPrice) || 0;
+                        const estProfit = ap > 0 && (pp > 0 || totalCosts > 0) ? ap - pp - totalCosts : 0;
+                        const hasData = ap > 0 && (pp > 0 || totalCosts > 0);
                         if (totalCosts > 0) {
                           return (
-                            <div className="flex items-center gap-2 pt-1 px-1">
-                              <span className="text-xs text-muted-foreground">Total extra costs:</span>
-                              <span className="text-xs font-semibold text-amber-600 dark:text-amber-400">R{totalCosts.toLocaleString()}</span>
+                            <div className="space-y-2">
+                              <div className="flex items-center justify-between px-1">
+                                <span className="text-xs text-muted-foreground">Total extra costs:</span>
+                                <span className="text-xs font-semibold text-amber-600 dark:text-amber-400">R{totalCosts.toLocaleString()}</span>
+                              </div>
+                              {hasData && (
+                                <div className={`rounded-lg p-2.5 ${estProfit > 0 ? "bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800" : estProfit < 0 ? "bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800" : "bg-muted border border-border"}`}>
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-1.5">
+                                      {estProfit >= 0 ? <TrendingUp className="size-3.5 text-emerald-600 dark:text-emerald-400" /> : <TrendingDown className="size-3.5 text-red-600 dark:text-red-400" />}
+                                      <span className="text-xs font-medium text-muted-foreground">Est. Profit</span>
+                                    </div>
+                                    <span className={`text-sm font-bold ${estProfit > 0 ? "text-emerald-700 dark:text-emerald-300" : estProfit < 0 ? "text-red-700 dark:text-red-300" : "text-muted-foreground"}`}>
+                                      {estProfit > 0 ? `+${formatPrice(estProfit)}` : estProfit < 0 ? `-${formatPrice(Math.abs(estProfit))}` : formatPrice(0)}
+                                    </span>
+                                  </div>
+                                  {estProfit !== 0 && pp > 0 && (
+                                    <p className="text-[10px] text-muted-foreground">
+                                      {pp > 0 ? `${Math.round((estProfit / (pp + totalCosts)) * 100)}% margin` : "Set purchase price for margin"}
+                                    </p>
+                                  )}
+                                </div>
+                              )}
                             </div>
                           );
                         }

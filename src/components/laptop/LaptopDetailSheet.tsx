@@ -33,11 +33,13 @@ import {
   Send,
   RotateCcw,
   Share2,
+  Wallet,
+  Banknote,
 } from "lucide-react";
 import { toast } from "sonner";
 
 import { useAppStore } from "@/lib/store";
-import { apiDeleteLaptop, apiFetchLaptops, apiCreateLaptop, apiUpdateListing } from "@/lib/api";
+import { apiDeleteLaptop, apiFetchLaptops, apiCreateLaptop, apiUpdateListing, apiUpdateLaptop } from "@/lib/api";
 import { formatPrice, PLATFORMS } from "@/lib/types";
 import type { Laptop, Listing } from "@/lib/types";
 
@@ -400,6 +402,9 @@ export function LaptopDetailSheet() {
   const [deleting, setDeleting] = useState(false);
   const [listingStatuses, setListingStatuses] = useState<Record<string, string>>({});
   const [updatingListing, setUpdatingListing] = useState<string | null>(null);
+  const [quickSellOpen, setQuickSellOpen] = useState(false);
+  const [quickSellPrice, setQuickSellPrice] = useState("");
+  const [quickSelling, setQuickSelling] = useState(false);
 
   const photos = selectedLaptop ? parsePhotos(selectedLaptop.photos) : [];
   const days = selectedLaptop ? daysSince(selectedLaptop.createdAt) : 0;
@@ -593,6 +598,41 @@ export function LaptopDetailSheet() {
     }
   }, [selectedLaptop, setSelectedLaptop, setLaptops, addActivityLog]);
 
+  const handleQuickSell = useCallback(async () => {
+    if (!selectedLaptop) return;
+    const salePrice = Number(quickSellPrice) || selectedLaptop.askingPrice;
+    if (salePrice <= 0) {
+      toast.error("Enter a valid sale price");
+      return;
+    }
+    setQuickSelling(true);
+    try {
+      const updated = await apiUpdateLaptop(selectedLaptop.id, { status: "sold", askingPrice: salePrice });
+      if (updated) {
+        setLaptops((prev) => prev.map((l) => (l.id === selectedLaptop.id ? updated : l)));
+        const expenses = (selectedLaptop.repairsCost || 0) + (selectedLaptop.listingFees || 0) + (selectedLaptop.otherCosts || 0);
+        const totalCost = (selectedLaptop.purchasePrice || 0) + expenses;
+        const profitAmount = salePrice - totalCost;
+        addActivityLog({
+          laptopId: selectedLaptop.id,
+          action: "status_change",
+          detail: `Quick sold for ${formatPrice(salePrice)} — ${profitAmount >= 0 ? "+" : ""}${formatPrice(profitAmount)} profit`,
+        });
+        toast.success(`Sold ${selectedLaptop.brand} ${selectedLaptop.model} for ${formatPrice(salePrice)}`, {
+          description: profitAmount >= 0 ? `Profit: ${formatPrice(profitAmount)} (${Math.round((profitAmount / totalCost) * 100)}%)` : `Loss: ${formatPrice(Math.abs(profitAmount))}`,
+        });
+        setQuickSellOpen(false);
+        setQuickSellPrice("");
+        setIsDetailOpen(false);
+        setSelectedLaptop(null);
+      }
+    } catch {
+      toast.error("Failed to mark as sold");
+    } finally {
+      setQuickSelling(false);
+    }
+  }, [selectedLaptop, quickSellPrice, setLaptops, addActivityLog, setIsDetailOpen, setSelectedLaptop]);
+
   if (!selectedLaptop) return null;
 
   const purchasePrice = selectedLaptop.purchasePrice || 0;
@@ -679,6 +719,29 @@ export function LaptopDetailSheet() {
                 </Badge>
               </div>
             </motion.div>
+
+            {/* ─── Stale Listing Warning ─── */}
+            {selectedLaptop.status === "active" && days >= 14 && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: 0.07 }}
+              >
+                <div className="rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/20 p-3 flex items-start gap-3">
+                  <div className="size-8 rounded-full bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center shrink-0">
+                    <Clock className="size-4 text-amber-600 dark:text-amber-400" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold text-amber-700 dark:text-amber-300">
+                      Listed for {days} days
+                    </p>
+                    <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-0.5">
+                      Consider adjusting the price or refreshing the listing to attract more buyers.
+                    </p>
+                  </div>
+                </div>
+              </motion.div>
+            )}
 
             <Separator />
 
@@ -941,9 +1004,9 @@ export function LaptopDetailSheet() {
                             }`}
                           >
                             {profit > 0
-                              ? `R ${Math.abs(profit).toLocaleString()} profit`
+                              ? `${formatPrice(profit)} profit`
                               : profit < 0
-                                ? `R ${Math.abs(profit).toLocaleString()} loss`
+                                ? `${formatPrice(Math.abs(profit))} loss`
                                 : "Break even"}
                           </p>
                           <p className="text-xs text-muted-foreground">
@@ -956,6 +1019,89 @@ export function LaptopDetailSheet() {
                 </CardContent>
               </Card>
             </motion.div>
+
+            {/* ─── Investment Analysis (when pricing is set) ─── */}
+            {hasPricing && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: 0.275 }}
+              >
+                <h3 className="text-sm font-semibold text-emerald-700 dark:text-emerald-400 flex items-center gap-2 mb-3">
+                  <Wallet className="size-4" />
+                  Investment Analysis
+                </h3>
+                <Card className="rounded-xl overflow-hidden">
+                  <CardContent className="p-4 space-y-3">
+                    {/* Visual progress bar: asking vs invested */}
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-muted-foreground">Cost Recovery</span>
+                        <span className={`font-semibold ${totalInvested > 0 && askingPrice >= totalInvested ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"}`}>
+                          {totalInvested > 0 ? Math.min(100, Math.round((askingPrice / totalInvested) * 100)) : 0}%
+                        </span>
+                      </div>
+                      <div className="h-3 rounded-full bg-muted overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all duration-700 ${totalInvested > 0 && askingPrice >= totalInvested ? "bg-gradient-to-r from-emerald-400 to-emerald-600" : "bg-gradient-to-r from-red-400 to-red-500"}`}
+                          style={{ width: `${totalInvested > 0 ? Math.min(100, Math.round((askingPrice / totalInvested) * 100)) : 0}%` }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Breakdown rows */}
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground flex items-center gap-1.5">
+                          <Banknote className="size-3.5" />
+                          Purchase
+                        </span>
+                        <span className="font-medium">{formatPrice(purchasePrice)}</span>
+                      </div>
+                      {hasExpenses && (
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+                            <Wrench className="size-3.5" />
+                            Expenses
+                          </span>
+                          <span className="font-medium text-amber-700 dark:text-amber-300">{formatPrice(totalExpenses)}</span>
+                        </div>
+                      )}
+                      <div className="h-px bg-border/50" />
+                      <div className="flex items-center justify-between text-sm font-bold">
+                        <span>Total Invested</span>
+                        <span className="text-amber-700 dark:text-amber-300">{formatPrice(totalInvested)}</span>
+                      </div>
+                    </div>
+
+                    {/* Profit badge */}
+                    <div className={`flex items-center gap-2 rounded-xl p-3 ${profit > 0 ? "bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800" : profit < 0 ? "bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800" : "bg-muted border border-border"}`}>
+                      {profit > 0 ? (
+                        <div className="size-8 rounded-full bg-emerald-100 dark:bg-emerald-900/50 flex items-center justify-center">
+                          <TrendingUp className="size-4 text-emerald-600 dark:text-emerald-400" />
+                        </div>
+                      ) : profit < 0 ? (
+                        <div className="size-8 rounded-full bg-red-100 dark:bg-red-900/50 flex items-center justify-center">
+                          <TrendingDown className="size-4 text-red-600 dark:text-red-400" />
+                        </div>
+                      ) : (
+                        <div className="size-8 rounded-full bg-muted flex items-center justify-center">
+                          <Activity className="size-4 text-muted-foreground" />
+                        </div>
+                      )}
+                      <div className="flex-1">
+                        <p className={`text-base font-bold ${profit > 0 ? "text-emerald-700 dark:text-emerald-300" : profit < 0 ? "text-red-700 dark:text-red-300" : "text-muted-foreground"}`}>
+                          {profit > 0 ? formatPrice(profit) : profit < 0 ? `-${formatPrice(Math.abs(profit))}` : "Break even"}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {margin !== 0 ? `${margin}% ${margin > 0 ? "profit" : "loss"} margin` : "No margin data"}
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )}
 
             {/* ─── Notes ─── */}
             {selectedLaptop.notes && (
@@ -1169,6 +1315,15 @@ export function LaptopDetailSheet() {
               <Trash2 className="size-4" />
               Delete Laptop
             </Button>
+            {selectedLaptop.status !== "sold" && selectedLaptop.status !== "archived" && (
+              <Button
+                onClick={() => { setQuickSellPrice(selectedLaptop.askingPrice?.toString() || ""); setQuickSellOpen(true); }}
+                className="w-full rounded-xl h-11 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-semibold gap-2 shadow-lg shadow-emerald-600/20"
+              >
+                <CheckCircle2 className="size-4" />
+                Quick Sell
+              </Button>
+            )}
           </div>
         </SheetContent>
       </Sheet>
@@ -1194,6 +1349,44 @@ export function LaptopDetailSheet() {
               className="bg-destructive hover:bg-destructive/90 text-white"
             >
               {deleting ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Quick Sell Dialog */}
+      <AlertDialog open={quickSellOpen} onOpenChange={(open) => { if (!open) { setQuickSellOpen(false); setQuickSellPrice(""); } }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Quick Sell — {selectedLaptop?.brand} {selectedLaptop?.model}</AlertDialogTitle>
+            <AlertDialogDescription>
+              Enter the final sale price to mark this laptop as sold.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="py-2">
+            <label className="text-sm font-medium text-muted-foreground mb-1.5 block">Sale Price</label>
+            <input
+              type="number"
+              value={quickSellPrice}
+              onChange={(e) => setQuickSellPrice(e.target.value)}
+              placeholder="Enter sale price..."
+              className="w-full h-11 rounded-lg border border-input bg-background px-3 text-base font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+              autoFocus
+            />
+            {quickSellPrice && Number(quickSellPrice) > 0 && (
+              <p className="text-xs text-muted-foreground mt-2">
+                Est. profit: {purchasePrice > 0 ? formatPrice(Number(quickSellPrice) - totalInvested) : "Set purchase price to see profit estimate"}
+              </p>
+            )}
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={quickSelling}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleQuickSell}
+              disabled={quickSelling || !quickSellPrice || Number(quickSellPrice) <= 0}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white"
+            >
+              {quickSelling ? "Selling..." : "Confirm Sale"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
