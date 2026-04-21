@@ -30,6 +30,7 @@ import {
   AlertTriangle,
   ExternalLink,
   Pencil,
+  Wallet,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -770,6 +771,9 @@ export function LaptopFormSheet() {
         serialNumber: laptop.serialNumber || "",
         repairs: laptop.repairs || "",
         features: (laptop as Record<string, unknown>).features ? String((laptop as Record<string, unknown>).features) : "",
+        repairsCost: laptop.repairsCost?.toString() || "",
+        listingFees: laptop.listingFees?.toString() || "",
+        otherCosts: laptop.otherCosts?.toString() || "",
         location: laptop.location || "",
       };
       setFormData(form);
@@ -871,6 +875,9 @@ export function LaptopFormSheet() {
         brand: resolvedBrand,
         purchasePrice: formData.purchasePrice ? Number(formData.purchasePrice) : 0,
         askingPrice: formData.askingPrice ? Number(formData.askingPrice) : 0,
+        repairsCost: formData.repairsCost ? Number(formData.repairsCost) : 0,
+        listingFees: formData.listingFees ? Number(formData.listingFees) : 0,
+        otherCosts: formData.otherCosts ? Number(formData.otherCosts) : 0,
         year: formData.year ? Number(formData.year) : null,
         photos: JSON.stringify(photos),
       };
@@ -1282,6 +1289,65 @@ export function LaptopFormSheet() {
                           </div>
                         </FormField>
                       </div>
+                    </FormSection>
+
+                    {/* Costs & Expenses */}
+                    <FormSection icon={Wallet} title="Costs & Expenses">
+                      <p className="text-xs text-muted-foreground -mt-1">
+                        Track additional costs to calculate your true profit
+                      </p>
+                      <div className="grid grid-cols-3 gap-3">
+                        <FormField label="Repairs">
+                          <div className="relative">
+                            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">R</span>
+                            <Input
+                              type="number"
+                              placeholder="0"
+                              className="pl-7 text-sm h-9"
+                              value={formData.repairsCost}
+                              onChange={(e) => updateField("repairsCost", e.target.value)}
+                            />
+                          </div>
+                        </FormField>
+
+                        <FormField label="Listing Fees">
+                          <div className="relative">
+                            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">R</span>
+                            <Input
+                              type="number"
+                              placeholder="0"
+                              className="pl-7 text-sm h-9"
+                              value={formData.listingFees}
+                              onChange={(e) => updateField("listingFees", e.target.value)}
+                            />
+                          </div>
+                        </FormField>
+
+                        <FormField label="Other Costs">
+                          <div className="relative">
+                            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">R</span>
+                            <Input
+                              type="number"
+                              placeholder="0"
+                              className="pl-7 text-sm h-9"
+                              value={formData.otherCosts}
+                              onChange={(e) => updateField("otherCosts", e.target.value)}
+                            />
+                          </div>
+                        </FormField>
+                      </div>
+                      {(() => {
+                        const totalCosts = (Number(formData.repairsCost) || 0) + (Number(formData.listingFees) || 0) + (Number(formData.otherCosts) || 0);
+                        if (totalCosts > 0) {
+                          return (
+                            <div className="flex items-center gap-2 pt-1 px-1">
+                              <span className="text-xs text-muted-foreground">Total extra costs:</span>
+                              <span className="text-xs font-semibold text-amber-600 dark:text-amber-400">R{totalCosts.toLocaleString()}</span>
+                            </div>
+                          );
+                        }
+                        return null;
+                      })()}
                     </FormSection>
 
                     {/* Photos (for adding more / editing) */}

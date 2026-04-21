@@ -28,6 +28,9 @@ model Laptop {
   serialNumber  String   @default("")
   repairs       String   @default("")
   features      String   @default("") // Ports, connectivity, special features (user-entered)
+  repairsCost   Float    @default(0)
+  listingFees   Float    @default(0)
+  otherCosts    Float    @default(0)
   stockId       String   @unique @default("") // e.g. "LF-0042" — cross-platform reference
   location      String?
   createdAt     DateTime @default(now())

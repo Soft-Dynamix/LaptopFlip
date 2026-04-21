@@ -541,15 +541,22 @@ export function Dashboard() {
       const soldItems = safeData.filter((l: LaptopType) => l.status === "sold");
       const totalProfit = soldItems.reduce((sum: number, l: LaptopType) => {
         const purchase = l.purchasePrice || 0;
-        return sum + (l.askingPrice - purchase);
+        const expenses = (l.repairsCost || 0) + (l.listingFees || 0) + (l.otherCosts || 0);
+        const totalCost = purchase + expenses;
+        return sum + (l.askingPrice - totalCost);
       }, 0);
       const itemsWithCost = soldItems.filter(
-        (l: LaptopType) => l.purchasePrice > 0
+        (l: LaptopType) => {
+          const expenses = (l.repairsCost || 0) + (l.listingFees || 0) + (l.otherCosts || 0);
+          return (l.purchasePrice || 0) + expenses > 0;
+        }
       );
       const avgMargin =
         itemsWithCost.length > 0
           ? itemsWithCost.reduce((sum: number, l: LaptopType) => {
-              return sum + ((l.askingPrice - l.purchasePrice) / l.purchasePrice) * 100;
+              const expenses = (l.repairsCost || 0) + (l.listingFees || 0) + (l.otherCosts || 0);
+              const totalCost = (l.purchasePrice || 0) + expenses;
+              return totalCost > 0 ? sum + ((l.askingPrice - totalCost) / totalCost) * 100 : sum;
             }, 0) / itemsWithCost.length
           : 0;
 
@@ -644,8 +651,10 @@ export function Dashboard() {
   const soldLaptops = safeLaptops.filter((l: LaptopType) => l.status === "sold");
   const bestSeller = soldLaptops.length > 0
     ? soldLaptops.reduce((best: LaptopType, l: LaptopType) => {
-        const bestProfit = best.askingPrice - (best.purchasePrice || 0);
-        const lProfit = l.askingPrice - (l.purchasePrice || 0);
+        const bestExpenses = (best.repairsCost || 0) + (best.listingFees || 0) + (best.otherCosts || 0);
+        const bestProfit = best.askingPrice - (best.purchasePrice || 0) - bestExpenses;
+        const lExpenses = (l.repairsCost || 0) + (l.listingFees || 0) + (l.otherCosts || 0);
+        const lProfit = l.askingPrice - (l.purchasePrice || 0) - lExpenses;
         return lProfit > bestProfit ? l : best;
       })
     : null;
@@ -1029,7 +1038,7 @@ export function Dashboard() {
                     <p className="text-sm font-semibold truncate">
                       {bestSeller.brand} {bestSeller.model}
                       <span className="ml-1.5 text-xs font-medium text-emerald-600 dark:text-emerald-400">
-                        +{formatPrice(bestSeller.askingPrice - (bestSeller.purchasePrice || 0))}
+                        +{formatPrice(bestSeller.askingPrice - (bestSeller.purchasePrice || 0) - ((bestSeller.repairsCost || 0) + (bestSeller.listingFees || 0) + (bestSeller.otherCosts || 0)))}
                       </span>
                     </p>
                   ) : (

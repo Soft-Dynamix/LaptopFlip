@@ -597,11 +597,17 @@ export function LaptopDetailSheet() {
 
   const purchasePrice = selectedLaptop.purchasePrice || 0;
   const askingPrice = selectedLaptop.askingPrice || 0;
-  const profit = askingPrice - purchasePrice;
+  const repairsCost = selectedLaptop.repairsCost || 0;
+  const listingFees = selectedLaptop.listingFees || 0;
+  const otherCosts = selectedLaptop.otherCosts || 0;
+  const totalExpenses = repairsCost + listingFees + otherCosts;
+  const totalInvested = purchasePrice + totalExpenses;
+  const profit = askingPrice - totalInvested;
   const hasPricing = purchasePrice > 0 && askingPrice > 0;
+  const hasExpenses = totalExpenses > 0;
   const margin =
-    purchasePrice > 0
-      ? Math.round((profit / purchasePrice) * 100)
+    totalInvested > 0
+      ? Math.round((profit / totalInvested) * 100)
       : 0;
 
   return (
@@ -876,7 +882,38 @@ export function LaptopDetailSheet() {
                   </div>
 
                   {hasPricing && (
-                    <div className="pt-2 border-t border-border/50">
+                    <div className="pt-2 border-t border-border/50 space-y-2">
+                      {/* Expense breakdown */}
+                      {hasExpenses && (
+                        <div className="space-y-1.5 pb-2 border-b border-border/30">
+                          <p className="text-xs font-medium text-muted-foreground">Additional Costs</p>
+                          <div className="grid grid-cols-3 gap-2">
+                            {repairsCost > 0 && (
+                              <div className="rounded-lg bg-amber-50 dark:bg-amber-950/20 px-2 py-1.5 text-center">
+                                <p className="text-[10px] text-muted-foreground">Repairs</p>
+                                <p className="text-xs font-semibold text-amber-700 dark:text-amber-300">{formatPrice(repairsCost)}</p>
+                              </div>
+                            )}
+                            {listingFees > 0 && (
+                              <div className="rounded-lg bg-amber-50 dark:bg-amber-950/20 px-2 py-1.5 text-center">
+                                <p className="text-[10px] text-muted-foreground">Fees</p>
+                                <p className="text-xs font-semibold text-amber-700 dark:text-amber-300">{formatPrice(listingFees)}</p>
+                              </div>
+                            )}
+                            {otherCosts > 0 && (
+                              <div className="rounded-lg bg-amber-50 dark:bg-amber-950/20 px-2 py-1.5 text-center">
+                                <p className="text-[10px] text-muted-foreground">Other</p>
+                                <p className="text-xs font-semibold text-amber-700 dark:text-amber-300">{formatPrice(otherCosts)}</p>
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex items-center justify-between px-1">
+                            <span className="text-xs text-muted-foreground">Total Invested</span>
+                            <span className="text-xs font-bold text-amber-700 dark:text-amber-300">{formatPrice(totalInvested)}</span>
+                          </div>
+                        </div>
+                      )}
+                      {/* Net profit */}
                       <div
                         className={`flex items-center gap-2 rounded-lg p-3 ${
                           profit > 0

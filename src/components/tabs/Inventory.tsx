@@ -59,6 +59,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -748,6 +749,44 @@ export function Inventory() {
     archived: "Archived",
   };
 
+  // Quick Sell state
+  const [quickSellTarget, setQuickSellTarget] = useState<LaptopType | null>(null);
+  const [quickSellPrice, setQuickSellPrice] = useState("");
+  const [quickSellLoading, setQuickSellLoading] = useState(false);
+
+  const handleQuickSell = async () => {
+    if (!quickSellTarget) return;
+    const salePrice = Number(quickSellPrice) || quickSellTarget.askingPrice;
+    if (salePrice <= 0) {
+      toast.error("Enter a valid sale price");
+      return;
+    }
+    setQuickSellLoading(true);
+    try {
+      const updated = await apiUpdateLaptop(quickSellTarget.id, { status: "sold", askingPrice: salePrice });
+      if (updated) {
+        setLaptops((prev) => prev.map((l) => (l.id === quickSellTarget.id ? updated : l)));
+        const expenses = (quickSellTarget.repairsCost || 0) + (quickSellTarget.listingFees || 0) + (quickSellTarget.otherCosts || 0);
+        const totalCost = (quickSellTarget.purchasePrice || 0) + expenses;
+        const profit = salePrice - totalCost;
+        addActivityLog({
+          laptopId: quickSellTarget.id,
+          action: "status_change",
+          detail: `Quick sold for ${formatPrice(salePrice)} — ${profit >= 0 ? "+" : ""}${formatPrice(profit)} profit`,
+        });
+        toast.success(`Sold ${quickSellTarget.brand} ${quickSellTarget.model} for ${formatPrice(salePrice)}`, {
+          description: profit >= 0 ? `Profit: ${formatPrice(profit)} (${Math.round((profit / totalCost) * 100)}%)` : `Loss: ${formatPrice(Math.abs(profit))}`,
+        });
+        setQuickSellTarget(null);
+        setQuickSellPrice("");
+      }
+    } catch {
+      toast.error("Failed to mark as sold");
+    } finally {
+      setQuickSellLoading(false);
+    }
+  };
+
   const handleChangeStatus = async (laptop: LaptopType) => {
     const newStatus = statusTransition[laptop.status] || "draft";
     try {
@@ -1382,6 +1421,16 @@ export function Inventory() {
                               Watched
                             </Badge>
                           )}
+                          {laptop.purchasePrice > 0 && laptop.askingPrice > 0 && (() => {
+                            const exp = (laptop.repairsCost || 0) + (laptop.listingFees || 0) + (laptop.otherCosts || 0);
+                            const totalCost = laptop.purchasePrice + exp;
+                            const pMargin = totalCost > 0 ? Math.round(((laptop.askingPrice - totalCost) / totalCost) * 100) : 0;
+                            return pMargin !== 0 ? (
+                              <Badge className={`text-[10px] px-1.5 py-0 border ${pMargin > 0 ? "border-emerald-200 dark:border-emerald-800 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300" : "border-red-200 dark:border-red-800 bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300"}`}>
+                                {pMargin > 0 ? "+" : ""}{pMargin}%
+                              </Badge>
+                            ) : null;
+                          })()}
                           {laptop.status === "active" && getDaysListed(laptop.createdAt) > 14 && (
                             <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-amber-700 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/40 px-1.5 py-0 rounded-full border border-amber-200 dark:border-amber-800">
                               <span>⚠</span>
@@ -1541,6 +1590,21 @@ export function Inventory() {
                                 <RefreshCw className="size-4" />
                                 Mark as {statusLabels[statusTransition[laptop.status] || "draft"]}
                               </DropdownMenuItem>
+                              {laptop.status !== "sold" && laptop.status !== "archived" && (
+                                <>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem
+                                    className="text-emerald-600 dark:text-emerald-400 focus:text-emerald-600 dark:focus:text-emerald-400"
+                                    onClick={() => {
+                                      setQuickSellTarget(laptop);
+                                      setQuickSellPrice(laptop.askingPrice?.toString() || "");
+                                    }}
+                                  >
+                                    <DollarSign className="size-4" />
+                                    Quick Sell
+                                  </DropdownMenuItem>
+                                </>
+                              )}
                               <DropdownMenuSeparator />
                               <DropdownMenuItem
                                 variant="destructive"
@@ -1592,7 +1656,77 @@ export function Inventory() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Floating Compare Button */}
+      {/* Quick Sell Dialog */}
+      <AlertDialog
+        open={!!quickSellTarget}
+        onOpenChange={(open) => !open && setQuickSellTarget(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Quick Sell — {quickSellTarget?.brand} {quickSellTarget?.model}</AlertDialogTitle>
+            <AlertDialogDescription>
+              Enter the actual sale price to mark this laptop as sold and record the profit.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="py-2">
+            <div className="rounded-xl bg-muted/50 p-3 space-y-2">
+              {quickSellTarget && (
+                <>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Purchase Price</span>
+                    <span className="font-semibold">{formatPrice(quickSellTarget.purchasePrice || 0)}</span>
+                  </div>
+                  {(quickSellTarget.repairsCost || 0) + (quickSellTarget.listingFees || 0) + (quickSellTarget.otherCosts || 0) > 0 && (
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">Expenses</span>
+                      <span className="font-semibold text-amber-600 dark:text-amber-400">
+                        {formatPrice((quickSellTarget.repairsCost || 0) + (quickSellTarget.listingFees || 0) + (quickSellTarget.otherCosts || 0))}
+                      </span>
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between text-sm border-t border-border/50 pt-2">
+                    <span className="text-muted-foreground font-medium">Total Cost</span>
+                    <span className="font-bold">
+                      {formatPrice((quickSellTarget.purchasePrice || 0) + (quickSellTarget.repairsCost || 0) + (quickSellTarget.listingFees || 0) + (quickSellTarget.otherCosts || 0))}
+                    </span>
+                  </div>
+                </>
+              )}
+              <div className="pt-2">
+                <Label className="text-xs font-medium text-muted-foreground">Sale Price</Label>
+                <div className="relative mt-1">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">R</span>
+                  <Input
+                    type="number"
+                    placeholder={quickSellTarget?.askingPrice?.toString() || "0"}
+                    className="pl-8 h-10 text-base font-semibold"
+                    value={quickSellPrice}
+                    onChange={(e) => setQuickSellPrice(e.target.value)}
+                    autoFocus
+                  />
+                </div>
+                {quickSellPrice && Number(quickSellPrice) > 0 && quickSellTarget && (
+                  <p className="text-xs mt-2 text-muted-foreground">
+                    Est. profit: <span className={((Number(quickSellPrice) - (quickSellTarget.purchasePrice || 0) - (quickSellTarget.repairsCost || 0) - (quickSellTarget.listingFees || 0) - (quickSellTarget.otherCosts || 0)) >= 0) ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"}>
+                      {formatPrice(Number(quickSellPrice) - (quickSellTarget.purchasePrice || 0) - (quickSellTarget.repairsCost || 0) - (quickSellTarget.listingFees || 0) - (quickSellTarget.otherCosts || 0))}
+                    </span>
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={quickSellLoading}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleQuickSell}
+              disabled={quickSellLoading || !quickSellPrice || Number(quickSellPrice) <= 0}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white"
+            >
+              {quickSellLoading ? "Selling..." : "Mark as Sold"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       <AnimatePresence>
         {compareIds.length > 0 && (
           <motion.button

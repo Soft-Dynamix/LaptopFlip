@@ -80,6 +80,9 @@ export async function PUT(
     if (body.year !== undefined) data.year = Number(body.year) || 0;
     if (body.serialNumber !== undefined) data.serialNumber = String(body.serialNumber);
     if (body.repairs !== undefined) data.repairs = String(body.repairs);
+    if (body.repairsCost !== undefined) data.repairsCost = Number(body.repairsCost) || 0;
+    if (body.listingFees !== undefined) data.listingFees = Number(body.listingFees) || 0;
+    if (body.otherCosts !== undefined) data.otherCosts = Number(body.otherCosts) || 0;
     if (body.location !== undefined) data.location = String(body.location) || null;
 
     const laptop = await db.laptop.update({
